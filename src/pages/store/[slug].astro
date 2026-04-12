@@ -1,0 +1,99 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+import type { InferGetStaticPropsType } from 'astro';
+
+export async function getStaticPaths() {
+  const products = await getCollection('products');
+  return products.map(product => ({
+    params: { slug: product.id },
+    props: { product },
+  }));
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { product }: Props = Astro.props;
+const { Content } = await render(product);
+const { title, description, price, image, category, available, contactEmail } = product.data;
+
+const email = contactEmail ?? 'hola@formamx.com';
+const subject = encodeURIComponent(`Interesado en: ${title}`);
+const body = encodeURIComponent(`Hola, me interesa "${title}" (${price}). ¿Podrías darme más información?`);
+const mailtoHref = `mailto:${email}?subject=${subject}&body=${body}`;
+---
+
+<BaseLayout title={title} description={description} image={image}>
+  <div class="mx-auto max-w-5xl px-6 py-16">
+    <!-- Back -->
+    <a href="/store" class="inline-flex items-center gap-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] transition-colors mb-10">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m15 18-6-6 6-6"/>
+      </svg>
+      Volver a la tienda
+    </a>
+
+    <div class="grid gap-12 lg:grid-cols-2">
+      <!-- Imagen -->
+      <div class="rounded-[var(--radius-card)] overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] aspect-square">
+        {image ? (
+          <img src={image} alt={title} class="w-full h-full object-cover" />
+        ) : (
+          <div class="w-full h-full flex items-center justify-center text-[var(--color-muted)]">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+        )}
+      </div>
+
+      <!-- Info -->
+      <div class="flex flex-col gap-6">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)] mb-2 block">{category}</span>
+          <h1 class="text-3xl sm:text-4xl font-extrabold mb-3">{title}</h1>
+          <p class="text-[var(--color-muted)] leading-relaxed">{description}</p>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <span class="text-3xl font-bold">{price}</span>
+          {!available && (
+            <span class="rounded-full border border-[var(--color-border)] px-3 py-1 text-xs font-semibold text-[var(--color-muted)]">
+              Agotado
+            </span>
+          )}
+        </div>
+
+        {available ? (
+          <a
+            href={mailtoHref}
+            class="inline-flex items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-[var(--color-accent)] px-8 py-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            Contactar para comprar
+          </a>
+        ) : (
+          <button disabled class="inline-flex items-center justify-center gap-2 rounded-[var(--radius-btn)] bg-[var(--color-surface)] border border-[var(--color-border)] px-8 py-4 text-sm font-semibold text-[var(--color-muted)] cursor-not-allowed">
+            No disponible
+          </button>
+        )}
+
+        <p class="text-xs text-[var(--color-muted)]">
+          Al hacer clic se abrirá tu cliente de email con la información del pedido.
+        </p>
+      </div>
+    </div>
+
+    <!-- Descripción completa -->
+    <div class="mt-16 pt-12 border-t border-[var(--color-border)]">
+      <h2 class="text-2xl font-bold mb-8">Descripción completa</h2>
+      <div class="prose prose-invert prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[var(--color-accent)] prose-a:no-underline hover:prose-a:underline max-w-none">
+        <Content />
+      </div>
+    </div>
+  </div>
+</BaseLayout>

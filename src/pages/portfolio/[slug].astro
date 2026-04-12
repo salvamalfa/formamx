@@ -1,0 +1,76 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection, render } from 'astro:content';
+import type { InferGetStaticPropsType } from 'astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  return projects.map(project => ({
+    params: { slug: project.id },
+    props: { project },
+  }));
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { project }: Props = Astro.props;
+const { Content } = await render(project);
+const { title, description, tags, image, liveUrl, repoUrl, pubDate } = project.data;
+
+const formatted = pubDate.toLocaleDateString('es-MX', { year: 'numeric', month: 'long' });
+---
+
+<BaseLayout title={title} description={description} image={image}>
+  <article class="mx-auto max-w-3xl px-6 py-16">
+    <!-- Back -->
+    <a href="/portfolio" class="inline-flex items-center gap-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] transition-colors mb-10">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m15 18-6-6 6-6"/>
+      </svg>
+      Volver al portafolio
+    </a>
+
+    <!-- Header -->
+    <header class="mb-10">
+      <div class="flex flex-wrap gap-2 mb-4">
+        {tags.map((tag: string) => (
+          <span class="rounded-full border border-[var(--color-border)] px-2.5 py-0.5 text-xs text-[var(--color-muted)]">{tag}</span>
+        ))}
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-extrabold mb-4">{title}</h1>
+      <p class="text-[var(--color-muted)] text-lg leading-relaxed mb-6">{description}</p>
+      <div class="flex flex-wrap items-center gap-4">
+        <span class="text-sm text-[var(--color-muted)]">{formatted}</span>
+        {liveUrl && (
+          <a href={liveUrl} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 rounded-[var(--radius-btn)] bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)] transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Ver en vivo
+          </a>
+        )}
+        {repoUrl && (
+          <a href={repoUrl} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 rounded-[var(--radius-btn)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold hover:border-[var(--color-accent)]/40 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.73.083-.73 1.205.085 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.42-1.305.762-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23A11.51 11.51 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            Ver código
+          </a>
+        )}
+      </div>
+    </header>
+
+    <!-- Cover image -->
+    {image && (
+      <div class="mb-12 rounded-[var(--radius-card)] overflow-hidden border border-[var(--color-border)] aspect-video bg-[var(--color-surface)]">
+        <img src={image} alt={title} class="w-full h-full object-cover" />
+      </div>
+    )}
+
+    <!-- Markdown content -->
+    <div class="prose prose-invert prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[var(--color-accent)] prose-a:no-underline hover:prose-a:underline prose-code:text-[var(--color-accent)] max-w-none">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

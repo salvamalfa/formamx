@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ProjectCard from '../../components/ProjectCard.astro';
+import { getCollection } from 'astro:content';
+
+const projects = await getCollection('projects');
+const sorted = projects.sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+
+const allTags = [...new Set(projects.flatMap(p => p.data.tags))].sort();
+---
+
+<BaseLayout title="Portafolio" description="Proyectos de desarrollo web — interfaces, e-commerce, apps y más.">
+  <div class="mx-auto max-w-5xl px-6 py-16">
+    <div class="mb-12">
+      <p class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)] mb-3">Work</p>
+      <h1 class="text-4xl font-extrabold mb-4">Portafolio</h1>
+      <p class="text-[var(--color-muted)] max-w-xl leading-relaxed">
+        Selección de proyectos en los que he trabajado como freelance o en equipo.
+      </p>
+    </div>
+
+    <!-- Tags filter (decorativo, sin JS requerido) -->
+    {allTags.length > 0 && (
+      <div class="flex flex-wrap gap-2 mb-10">
+        {allTags.map(tag => (
+          <span class="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-muted)]">
+            {tag}
+          </span>
+        ))}
+      </div>
+    )}
+
+    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {sorted.map(project => (
+        <ProjectCard
+          slug={project.id}
+          title={project.data.title}
+          description={project.data.description}
+          tags={project.data.tags}
+          image={project.data.image}
+          featured={project.data.featured}
+        />
+      ))}
+    </div>
+  </div>
+</BaseLayout>

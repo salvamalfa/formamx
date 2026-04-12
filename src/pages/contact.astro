@@ -1,0 +1,91 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Contacto" description="Ponte en contacto — disponible para proyectos freelance, colaboraciones y consultoría.">
+  <div class="mx-auto max-w-2xl px-6 py-16">
+    <div class="mb-12">
+      <p class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)] mb-3">Contacto</p>
+      <h1 class="text-4xl font-extrabold mb-4">Hablemos</h1>
+      <p class="text-[var(--color-muted)] leading-relaxed">
+        ¿Tienes un proyecto, una idea o quieres comprar algo de la tienda?
+        Escríbeme y te respondo en menos de 24 horas.
+      </p>
+    </div>
+
+    <!-- Formulario -->
+    <!-- Para activarlo: cambia el action a tu endpoint de Formspree o similar -->
+    <!-- Ejemplo Formspree: action="https://formspree.io/f/TU_FORM_ID" -->
+    <form
+      action="https://formspree.io/f/FORM_ID"
+      method="POST"
+      class="flex flex-col gap-6"
+    >
+      <div class="grid gap-6 sm:grid-cols-2">
+        <div class="flex flex-col gap-2">
+          <label for="name" class="text-sm font-medium">Nombre</label>
+          <input
+            id="name"
+            type="text"
+            name="name"
+            required
+            placeholder="Tu nombre"
+            class="rounded-[var(--radius-btn)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label for="email" class="text-sm font-medium">Email</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            required
+            placeholder="tu@email.com"
+            class="rounded-[var(--radius-btn)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+          />
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="subject" class="text-sm font-medium">Asunto</label>
+        <input
+          id="subject"
+          type="text"
+          name="subject"
+          placeholder="¿De qué trata tu mensaje?"
+          class="rounded-[var(--radius-btn)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors"
+        />
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="message" class="text-sm font-medium">Mensaje</label>
+        <textarea
+          id="message"
+          name="message"
+          required
+          rows={5}
+          placeholder="Cuéntame sobre tu proyecto o pregunta..."
+          class="rounded-[var(--radius-btn)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm placeholder:text-[var(--color-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-colors resize-y"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        class="self-start rounded-[var(--radius-btn)] bg-[var(--color-accent)] px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+      >
+        Enviar mensaje
+      </button>
+    </form>
+
+    <!-- Alternativa directa -->
+    <div class="mt-12 pt-10 border-t border-[var(--color-border)] flex flex-col gap-4">
+      <p class="text-sm text-[var(--color-muted)]">También puedes escribirme directamente a:</p>
+      <a
+        href="mailto:hola@formamx.com"
+        class="text-[var(--color-accent)] font-medium hover:underline text-sm"
+      >
+        hola@formamx.com
+      </a>
+    </div>
+  </div>
+</BaseLayout>

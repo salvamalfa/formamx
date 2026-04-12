@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const skills = [
+  'TypeScript', 'JavaScript', 'Astro', 'React', 'Next.js',
+  'Node.js', 'PostgreSQL', 'Supabase', 'Tailwind CSS',
+  'Git', 'Docker', 'Figma',
+];
+
+const timeline = [
+  {
+    year: '2023 – Presente',
+    role: 'Desarrollador Freelance',
+    place: 'Remoto',
+    desc: 'Proyectos web para clientes en México y LATAM. Especializado en Astro, Next.js y sistemas de diseño.',
+  },
+  {
+    year: '2021 – 2023',
+    role: 'Desarrollador Frontend Senior',
+    place: 'Startup SaaS',
+    desc: 'Lideré la migración de una app React a Next.js 13 con App Router. Implementé sistema de diseño con Radix UI y Tailwind.',
+  },
+  {
+    year: '2019 – 2021',
+    role: 'Desarrollador Web',
+    place: 'Agencia Digital',
+    desc: 'Desarrollo de sitios y e-commerce para clientes retail. Stack: WordPress, WooCommerce, Vue.js.',
+  },
+];
+---
+
+<BaseLayout title="About" description="Sobre mí — desarrollador web freelance especializado en interfaces rápidas y bien diseñadas.">
+  <div class="mx-auto max-w-3xl px-6 py-16">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row gap-8 items-start mb-16">
+      <div class="w-24 h-24 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] overflow-hidden shrink-0">
+        <img src="/images/avatar.jpg" alt="Avatar" class="w-full h-full object-cover" onerror="this.style.display='none'" />
+      </div>
+      <div class="flex flex-col gap-3">
+        <h1 class="text-4xl font-extrabold">Sobre mí</h1>
+        <p class="text-[var(--color-muted)] leading-relaxed">
+          Desarrollador web con más de 5 años de experiencia construyendo productos digitales.
+          Me especializo en el frontend moderno, pero soy cómodo trabajando full-stack cuando el proyecto lo necesita.
+        </p>
+        <p class="text-[var(--color-muted)] leading-relaxed">
+          Trabajo principalmente con React, Astro y TypeScript. Me importa el rendimiento, la accesibilidad
+          y los detalles que hacen que una interfaz se sienta profesional.
+        </p>
+        <div class="flex gap-4 mt-2">
+          <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="text-sm text-[var(--color-accent)] hover:underline">GitHub</a>
+          <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="text-sm text-[var(--color-accent)] hover:underline">LinkedIn</a>
+          <a href="/contact" class="text-sm text-[var(--color-accent)] hover:underline">Contacto</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills -->
+    <section class="mb-16">
+      <h2 class="text-2xl font-bold mb-6">Stack & herramientas</h2>
+      <div class="flex flex-wrap gap-2">
+        {skills.map(skill => (
+          <span class="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-1.5 text-sm font-medium text-[var(--color-text)]">
+            {skill}
+          </span>
+        ))}
+      </div>
+    </section>
+
+    <!-- Timeline -->
+    <section>
+      <h2 class="text-2xl font-bold mb-8">Experiencia</h2>
+      <div class="flex flex-col gap-8">
+        {timeline.map((item, i) => (
+          <div class="relative flex gap-6">
+            <div class="flex flex-col items-center">
+              <div class="w-3 h-3 rounded-full bg-[var(--color-accent)] mt-1.5 shrink-0"></div>
+              {i < timeline.length - 1 && (
+                <div class="w-px flex-1 bg-[var(--color-border)] mt-2"></div>
+              )}
+            </div>
+            <div class="flex flex-col gap-1 pb-2">
+              <span class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)]">{item.year}</span>
+              <h3 class="text-base font-bold">{item.role}</h3>
+              <span class="text-sm text-[var(--color-muted)]">{item.place}</span>
+              <p class="text-sm text-[var(--color-muted)] mt-1 leading-relaxed">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  </div>
+</BaseLayout>
