@@ -1,130 +1,17 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import ProjectCard from '../components/ProjectCard.astro';
-import ProductCard from '../components/ProductCard.astro';
-import { getCollection } from 'astro:content';
-
-const allProjects = await getCollection('projects');
-const allProducts = await getCollection('products');
-
-const featuredProjects = allProjects
-  .filter(p => p.data.featured)
-  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime())
-  .slice(0, 3);
-
-const featuredProducts = allProducts
-  .filter(p => p.data.featured)
-  .slice(0, 3);
+import LampConfigurator from '../components/LampConfigurator.astro';
 ---
 
-<BaseLayout title="Inicio" description="Portafolio y tienda de formamx — desarrollo web, diseño y productos digitales.">
-  <!-- Hero -->
-  <section class="mx-auto max-w-5xl px-6 pt-24 pb-20 flex flex-col items-start gap-6">
-    <span class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1.5 text-sm text-[var(--color-muted)]">
-      <span class="h-2 w-2 rounded-full bg-[var(--color-accent)] animate-pulse"></span>
-      Disponible para proyectos
-    </span>
-
-    <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight leading-none">
-      Hola, soy<br />
-      <span class="text-[var(--color-accent)]">formamx</span>
-    </h1>
-
-    <p class="max-w-xl text-lg text-[var(--color-muted)] leading-relaxed">
-      Desarrollador web especializado en interfaces rápidas, accesibles y bien diseñadas.
-      Construyo productos digitales de principio a fin.
-    </p>
-
-    <div class="flex flex-wrap gap-4 pt-2">
-      <a
-        href="/portfolio"
-        class="rounded-[var(--radius-btn)] bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-      >
-        Ver mi trabajo
-      </a>
-      <a
-        href="/contact"
-        class="rounded-[var(--radius-btn)] border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-3 text-sm font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)]/40"
-      >
-        Contactar
-      </a>
-    </div>
-  </section>
-
-  <!-- Proyectos destacados -->
-  {featuredProjects.length > 0 && (
-    <section class="mx-auto max-w-5xl px-6 py-16 border-t border-[var(--color-border)]">
-      <div class="mb-10 flex items-end justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)] mb-2">Portafolio</p>
-          <h2 class="text-3xl font-bold">Proyectos recientes</h2>
-        </div>
-        <a href="/portfolio" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] transition-colors hidden sm:block">
-          Ver todos →
-        </a>
-      </div>
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {featuredProjects.map(project => (
-          <ProjectCard
-            slug={project.id}
-            title={project.data.title}
-            description={project.data.description}
-            tags={project.data.tags}
-            image={project.data.image}
-            featured={project.data.featured}
-          />
-        ))}
-      </div>
-      <div class="mt-8 sm:hidden">
-        <a href="/portfolio" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] transition-colors">
-          Ver todos los proyectos →
-        </a>
-      </div>
-    </section>
-  )}
-
-  <!-- Productos destacados -->
-  {featuredProducts.length > 0 && (
-    <section class="mx-auto max-w-5xl px-6 py-16 border-t border-[var(--color-border)]">
-      <div class="mb-10 flex items-end justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent)] mb-2">Tienda</p>
-          <h2 class="text-3xl font-bold">Productos</h2>
-        </div>
-        <a href="/store" class="text-sm text-[var(--color-muted)] hover:text-[var(--color-accent)] transition-colors hidden sm:block">
-          Ver tienda →
-        </a>
-      </div>
-      <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {featuredProducts.map(product => (
-          <ProductCard
-            slug={product.id}
-            title={product.data.title}
-            description={product.data.description}
-            price={product.data.price}
-            image={product.data.image}
-            category={product.data.category}
-            available={product.data.available}
-            featured={product.data.featured}
-          />
-        ))}
-      </div>
-    </section>
-  )}
-
-  <!-- CTA final -->
-  <section class="mx-auto max-w-5xl px-6 py-20 border-t border-[var(--color-border)]">
-    <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-10 text-center flex flex-col items-center gap-5">
-      <h2 class="text-3xl font-bold">¿Tienes un proyecto en mente?</h2>
-      <p class="max-w-md text-[var(--color-muted)]">
-        Estoy disponible para proyectos freelance, colaboraciones y consultoría técnica.
+<BaseLayout title="TesseraLamp" description="Personaliza tu lámpara TesseraLamp: elige el color de cada pieza y míralo al instante.">
+  <main class="min-h-screen flex flex-col items-center justify-center gap-10 px-6 py-16">
+    <header class="flex flex-col items-center gap-3 text-center">
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">TesseraLamp</h1>
+      <p class="max-w-md text-sm sm:text-base text-[var(--color-muted)]">
+        Personaliza tu lámpara: elige el color de cada pieza.
       </p>
-      <a
-        href="/contact"
-        class="rounded-[var(--radius-btn)] bg-[var(--color-accent)] px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
-      >
-        Hablemos
-      </a>
-    </div>
-  </section>
+    </header>
+
+    <LampConfigurator />
+  </main>
 </BaseLayout>
