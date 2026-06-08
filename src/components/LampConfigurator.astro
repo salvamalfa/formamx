@@ -1,19 +1,24 @@
 ---
 // Configurador de la lámpara TesseraLamp.
-// Las imágenes de cada pieza son PNG 800x800 con fondo transparente, renderizadas
-// desde la misma cámara, de modo que se superponen por z-index para formar la lámpara.
+// Dos piezas, cada una un PNG 800x800 con fondo transparente renderizado desde la
+// misma cámara, que se superponen por z-index para formar la lámpara completa:
+//   - pantalla (shade): pieza superior, color seleccionable.
+//   - base (cuerpo + tapa): pieza inferior; el cuerpo es siempre blanco y solo
+//     cambia el color de la tapa, pero la imagen viene combinada en una sola capa.
 
 type Part = {
-  key: 'pantalla' | 'tapa' | 'cuerpo';
+  key: 'pantalla' | 'base';
   label: string;
+  file: string; // segmento de nombre de archivo: TesseraLamp_<file>_<color>.png
   z: number;
   colors: string[];
 };
 
+const COLORS = ['Azul', 'Rojo', 'Verde', 'Amarillo', 'Morado', 'Naranja'];
+
 const PARTS: Part[] = [
-  { key: 'pantalla', label: 'Pantalla', z: 30, colors: ['Azul', 'Rojo', 'Verde', 'Amarillo', 'Morado', 'Naranja'] },
-  { key: 'cuerpo',   label: 'Cuerpo',   z: 20, colors: ['Blanco'] },
-  { key: 'tapa',     label: 'Tapa',     z: 10, colors: ['Azul', 'Rojo', 'Verde', 'Amarillo', 'Morado', 'Naranja'] },
+  { key: 'pantalla', label: 'Pantalla', file: 'Pantalla',   z: 20, colors: COLORS },
+  { key: 'base',     label: 'Tapa',     file: 'CuerpoTapa',  z: 10, colors: COLORS },
 ];
 
 const SWATCH: Record<string, string> = {
@@ -23,30 +28,27 @@ const SWATCH: Record<string, string> = {
   Amarillo: '#d9a221',
   Morado: '#7b3fc4',
   Naranja: '#e0701a',
-  Blanco: '#e8e8e8',
 };
 
 const DEFAULTS: Record<Part['key'], string> = {
   pantalla: 'Azul',
-  tapa: 'Azul',
-  cuerpo: 'Blanco',
+  base: 'Azul',
 };
 
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const src = (part: string, color: string) =>
-  `/images/tessera/TesseraLamp_${cap(part)}_${color}.png`;
+const src = (file: string, color: string) =>
+  `/images/tessera/TesseraLamp_${file}_${color}.png`;
 
-// Capas ordenadas de abajo (cuerpo) hacia arriba (pantalla) para el apilado visual.
+// Capas ordenadas de abajo (base) hacia arriba (pantalla) para el apilado visual.
 const layers = [...PARTS].sort((a, b) => a.z - b.z);
 ---
 
 <div class="configurator">
-  <!-- Previsualización: las tres piezas superpuestas -->
+  <!-- Previsualización: las piezas superpuestas -->
   <div class="preview" role="img" aria-label="Previsualización de la lámpara TesseraLamp">
     {layers.map((part) => (
       <img
         data-layer={part.key}
-        src={src(part.key, DEFAULTS[part.key])}
+        src={src(part.file, DEFAULTS[part.key])}
         alt=""
         aria-hidden="true"
         style={`z-index:${part.z}`}
@@ -67,6 +69,7 @@ const layers = [...PARTS].sort((a, b) => a.z - b.z);
               type="button"
               class="swatch"
               data-part={part.key}
+              data-file={part.file}
               data-color={color}
               role="radio"
               aria-checked={DEFAULTS[part.key] === color ? 'true' : 'false'}
@@ -177,18 +180,18 @@ const layers = [...PARTS].sort((a, b) => a.z - b.z);
 </style>
 
 <script>
-  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const srcFor = (part: string, color: string) =>
-    `/images/tessera/TesseraLamp_${cap(part)}_${color}.png`;
+  const srcFor = (file: string, color: string) =>
+    `/images/tessera/TesseraLamp_${file}_${color}.png`;
 
   document.querySelectorAll<HTMLButtonElement>('.swatch').forEach((btn) => {
     btn.addEventListener('click', () => {
       const part = btn.dataset.part!;
+      const file = btn.dataset.file!;
       const color = btn.dataset.color!;
 
       // Cambia solo la capa de esta pieza, sin recargar.
       const layer = document.querySelector<HTMLImageElement>(`[data-layer="${part}"]`);
-      if (layer) layer.src = srcFor(part, color);
+      if (layer) layer.src = srcFor(file, color);
 
       // Estado visual: marca el swatch activo dentro de su grupo.
       btn
@@ -199,15 +202,11 @@ const layers = [...PARTS].sort((a, b) => a.z - b.z);
   });
 
   // Precarga todas las combinaciones para que el cambio sea instantáneo.
-  const PRELOAD: Record<string, string[]> = {
-    pantalla: ['Azul', 'Rojo', 'Verde', 'Amarillo', 'Morado', 'Naranja'],
-    tapa: ['Azul', 'Rojo', 'Verde', 'Amarillo', 'Morado', 'Naranja'],
-    cuerpo: ['Blanco'],
-  };
-  for (const [part, colors] of Object.entries(PRELOAD)) {
-    for (const color of colors) {
+  const COLORS = ['Azul', 'Rojo', 'Verde', 'Amarillo', 'Morado', 'Naranja'];
+  for (const file of ['Pantalla', 'CuerpoTapa']) {
+    for (const color of COLORS) {
       const img = new Image();
-      img.src = srcFor(part, color);
+      img.src = srcFor(file, color);
     }
   }
 </script>
