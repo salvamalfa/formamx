@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg:           oklch(10% 0.005 255);
+  --color-bg:           oklch(26% 0.005 264);
   --color-surface:      oklch(16% 0.008 255);
   --color-surface-2:    oklch(20% 0.01 255);
   --color-border:       oklch(28% 0.012 255);
