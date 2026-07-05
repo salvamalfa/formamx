@@ -1,34 +1,51 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import {
-  ALL_IMAGE_SRCS,
+  ALL_IMAGE_KEYS,
   COLORS,
   DEFAULTS,
   MODELS,
   STEPS,
-  baseSrc,
-  pantallaSrc,
+  baseKey,
+  pantallaKey,
   type LampColor,
+  type LampImage,
+  type LampImageManifest,
   type LayerKey,
 } from '../config/lamps';
 
-// Capa de imagen con crossfade: al cambiar `src`, la imagen anterior queda
-// montada debajo y la nueva aparece encima con un fade CSS; al terminar la
-// animación se desmonta la vieja (doble buffer, nunca más de 2 <img> por capa).
-function CrossfadeLayer({ src, z }: { src: string; z: number }) {
-  const [prev, setPrev] = useState<string | null>(null);
-  const last = useRef(src);
+// El <img> ocupa todo el ancho del preview (la lámpara se ajusta por altura
+// con object-contain); el navegador elige el tamaño del srcset según esto.
+const SIZES = '100vw';
 
-  if (last.current !== src) {
+// Capa de imagen con crossfade: al cambiar `image`, la anterior queda montada
+// debajo y la nueva aparece encima con un fade CSS; al terminar la animación
+// se desmonta la vieja (doble buffer, nunca más de 2 <img> por capa).
+function CrossfadeLayer({ image, z }: { image: LampImage; z: number }) {
+  const [prev, setPrev] = useState<LampImage | null>(null);
+  const last = useRef(image);
+
+  if (last.current.src !== image.src) {
     setPrev(last.current);
-    last.current = src;
+    last.current = image;
   }
 
   return (
     <div class="absolute inset-0" style={{ zIndex: z }}>
-      {prev && <img src={prev} class="layer-img" alt="" aria-hidden="true" />}
+      {prev && (
+        <img
+          src={prev.src}
+          srcset={prev.srcset}
+          sizes={SIZES}
+          class="layer-img"
+          alt=""
+          aria-hidden="true"
+        />
+      )}
       <img
-        key={src}
-        src={src}
+        key={image.src}
+        src={image.src}
+        srcset={image.srcset}
+        sizes={SIZES}
         class="layer-img layer-fade"
         alt=""
         aria-hidden="true"
@@ -68,7 +85,7 @@ function Swatch({
   );
 }
 
-export default function LampConfigurator() {
+export default function LampConfigurator({ manifest }: { manifest: LampImageManifest }) {
   const [stepIndex, setStepIndex] = useState(0);
   const [modelId, setModelId] = useState(DEFAULTS.modelId);
   const [pantallaColorId, setPantallaColorId] = useState(DEFAULTS.pantallaColorId);
@@ -99,10 +116,16 @@ export default function LampConfigurator() {
     setStepIndex((i) => (i + dir + STEPS.length) % STEPS.length);
 
   // Precarga de todas las combinaciones para que el crossfade sea instantáneo.
+  // Se usa el mismo srcset/sizes que los <img> reales para que el navegador
+  // pida (y cachee) exactamente el mismo recurso.
   useEffect(() => {
-    for (const src of ALL_IMAGE_SRCS) {
+    for (const key of ALL_IMAGE_KEYS) {
+      const entry = manifest[key];
+      if (!entry) continue;
       const img = new Image();
-      img.src = src;
+      img.sizes = SIZES;
+      img.srcset = entry.srcset;
+      img.src = entry.src;
     }
   }, []);
 
@@ -120,8 +143,8 @@ export default function LampConfigurator() {
         role="img"
         aria-label={`Lámpara ${model.label} con pantalla ${pantallaColor.label.toLowerCase()}, cuerpo blanco y tapa ${tapaColor.label.toLowerCase()}`}
       >
-        <CrossfadeLayer src={baseSrc(tapaColor)} z={10} />
-        <CrossfadeLayer src={pantallaSrc(model, pantallaColor)} z={20} />
+        <CrossfadeLayer image={manifest[baseKey(tapaColor)]} z={10} />
+        <CrossfadeLayer image={manifest[pantallaKey(model, pantallaColor)]} z={20} />
       </div>
 
       {/* Panel inferior estilo Nike By You */}
