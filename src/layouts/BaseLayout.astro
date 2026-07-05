@@ -9,7 +9,7 @@ interface Props {
 
 const {
   title,
-  description = 'Personaliza tu lámpara TesseraLamp: elige el color de cada pieza.',
+  description = 'Configura tu lámpara Forma: elige modelo de pantalla y el color de cada pieza.',
   image = '/images/og-default.jpg',
 } = Astro.props;
 
@@ -23,6 +23,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#f8f8f9" />
 
     <title>{title} | formamx</title>
     <meta name="description" content={description} />
@@ -40,8 +41,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="twitter:title"       content={`${title} | formamx`} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image"       content={new URL(image, Astro.site)} />
+
+    <slot name="head" />
   </head>
-  <body class="min-h-screen">
+  <body>
     <slot />
   </body>
 </html>

@@ -1,17 +1,24 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import LampConfigurator from '../components/LampConfigurator.astro';
+import LampConfigurator from '../components/LampConfigurator.tsx';
+import { baseSrc, pantallaSrc, COLORS, MODELS, DEFAULTS } from '../config/lamps';
+
+const defaultModel = MODELS.find((m) => m.id === DEFAULTS.modelId)!;
+const defaultPantalla = COLORS.find((c) => c.id === DEFAULTS.pantallaColorId)!;
+const defaultTapa = COLORS.find((c) => c.id === DEFAULTS.tapaColorId)!;
 ---
 
-<BaseLayout title="TesseraLamp" description="Personaliza tu lámpara TesseraLamp: elige el color de cada pieza y míralo al instante.">
-  <main class="min-h-screen flex flex-col items-center justify-center gap-10 px-6 py-16">
-    <header class="flex flex-col items-center gap-3 text-center">
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Diseña tu lámpara</h1>
-      <p class="max-w-md text-sm sm:text-base text-[var(--color-muted)]">
-        Personaliza tu lámpara: elige el color de cada pieza.
-      </p>
-    </header>
+<BaseLayout
+  title="Diseña tu lámpara"
+  description="Configura tu lámpara Forma: elige modelo de pantalla y el color de cada pieza, y mírala al instante."
+>
+  <Fragment slot="head">
+    <link rel="preload" as="image" href={pantallaSrc(defaultModel, defaultPantalla)} />
+    <link rel="preload" as="image" href={baseSrc(defaultTapa)} />
+  </Fragment>
 
-    <LampConfigurator />
+  <main class="relative h-dvh overflow-hidden">
+    <h1 class="sr-only">Diseña tu lámpara</h1>
+    <LampConfigurator client:load />
   </main>
 </BaseLayout>
