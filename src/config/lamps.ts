@@ -57,15 +57,26 @@ export const DEFAULTS = {
   tapaColorId: 'azul',
 };
 
-export const pantallaSrc = (model: LampModel, color: LampColor): string =>
-  `/images/lamps/pantalla/${model.file}_Pantalla_${color.file}.png`;
+// Claves del manifest de imágenes optimizadas que se genera en build
+// (ver src/lib/lampImages.ts). Coinciden con la ruta relativa del PNG
+// original en src/assets/lamps/, sin extensión.
+export const pantallaKey = (model: LampModel, color: LampColor): string =>
+  `pantalla/${model.file}_Pantalla_${color.file}`;
 
 // La base (cuerpo + tapa) es común a todos los modelos de pantalla.
-export const baseSrc = (color: LampColor): string =>
-  `/images/lamps/base/TesseraLamp_CuerpoTapa_${color.file}.png`;
+export const baseKey = (color: LampColor): string =>
+  `base/TesseraLamp_CuerpoTapa_${color.file}`;
 
 // Todas las combinaciones, para precargarlas y que el cambio sea instantáneo.
-export const ALL_IMAGE_SRCS: string[] = [
-  ...MODELS.flatMap((m) => COLORS.map((c) => pantallaSrc(m, c))),
-  ...COLORS.map((c) => baseSrc(c)),
+export const ALL_IMAGE_KEYS: string[] = [
+  ...MODELS.flatMap((m) => COLORS.map((c) => pantallaKey(m, c))),
+  ...COLORS.map((c) => baseKey(c)),
 ];
+
+// Entrada del manifest: srcset WebP multi-tamaño + fallback.
+export interface LampImage {
+  src: string;
+  srcset: string;
+}
+
+export type LampImageManifest = Record<string, LampImage>;
