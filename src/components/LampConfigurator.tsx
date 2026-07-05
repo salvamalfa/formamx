@@ -90,7 +90,6 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
   const [modelId, setModelId] = useState(DEFAULTS.modelId);
   const [pantallaColorId, setPantallaColorId] = useState(DEFAULTS.pantallaColorId);
   const [tapaColorId, setTapaColorId] = useState(DEFAULTS.tapaColorId);
-  const [collapsed, setCollapsed] = useState(false);
 
   const step = STEPS[stepIndex];
   const model = MODELS.find((m) => m.id === modelId) ?? MODELS[0];
@@ -134,7 +133,7 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
       {/* Nombre del producto, discreto, estilo Nike */}
       <header class="absolute left-5 top-4 z-30 sm:left-8 sm:top-6">
         <p class="text-sm font-semibold tracking-tight">Lámpara {model.label} — Forma</p>
-        <p class="text-xs text-[var(--color-muted)]">Hecha a medida, pieza a pieza</p>
+        <p class="text-xs text-[var(--color-muted)]">Diseña tu lámpara</p>
       </header>
 
       {/* Previsualización: capas superpuestas */}
@@ -152,27 +151,7 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
         class="relative z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)]"
         aria-label="Opciones de personalización"
       >
-        <div class="mx-auto grid max-w-3xl grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2 px-4 py-2 sm:px-6">
-          <button
-            type="button"
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Mostrar opciones' : 'Ocultar opciones'}
-            onClick={() => setCollapsed((c) => !c)}
-            class="nav-btn"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              class={`size-4 transition-transform duration-200 ${collapsed ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-
+        <div class="mx-auto max-w-3xl px-4 py-2 sm:px-6">
           <div class="flex items-center justify-center gap-3">
             <button type="button" aria-label="Pieza anterior" onClick={() => goto(-1)} class="nav-btn">
               <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -191,12 +170,9 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
               </svg>
             </button>
           </div>
-
-          <span aria-hidden="true" />
         </div>
 
-        {!collapsed && (
-          <div class="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pb-4 sm:px-6">
+        <div class="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 pb-4 sm:px-6">
             {step.showModels && (
               <div
                 role="radiogroup"
@@ -240,7 +216,6 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
               <p class="text-xs text-[var(--color-muted)]">{activeColorLabel}</p>
             </div>
           </div>
-        )}
       </section>
     </div>
   );
