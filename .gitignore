@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # Claude Code local config
 .claude/
+
+# design-sync: extraccion local del brand kit (fuente: zip en Desktop\FORMA)
+ds-bundle/
