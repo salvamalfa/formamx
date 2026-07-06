@@ -37,7 +37,7 @@
 
 ## ICONOGRAPHY
 
-- **Marca:** wordmark + 3 iconos derivados del logo en `assets/logo/` (la «f», la «f» en contenedor app, la «o»). El icono de app oficial es `icono-app-f.svg`.
+- **Marca:** wordmark + 2 iconos derivados del logo en `assets/logo/` (la «f» suelta y la «f» en contenedor app). El icono de app oficial es `icono-app-f.svg`.
 - **Iconos UI:** no existía un set. **Sustitución flagged:** usar [Lucide](https://lucide.dev) vía CDN (`https://unpkg.com/lucide@latest`), trazo 2px, redondeado — combina con lo blando de la marca. Usar POCOS iconos; forma prefiere texto y metadata mono.
 - **Emoji:** nunca. **Unicode como icono:** solo «·» como separador de metadata y «→» en enlaces.
 
