@@ -1,6 +1,7 @@
 {
   "projectId": "02d55857-6b91-4d7a-bd71-8c689246f6c3",
   "shape": "prebuilt-export",
-  "source": "C:/Users/salva/Desktop/FORMA/Brand Kit/Forma - Brand Kit.zip",
-  "localDir": "ds-bundle"
+  "source": "ds-bundle (versionado en este repo; el zip en Desktop/FORMA/Brand Kit es solo respaldo del import inicial)",
+  "localDir": "ds-bundle",
+  "syncMode": "pull-before-push"
 }
