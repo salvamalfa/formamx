@@ -130,11 +130,19 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
 
   return (
     <div class="flex h-full flex-col">
-      {/* Nombre del producto, discreto, estilo Nike */}
+      {/* Título y precio, discretos, estilo Nike */}
       <header class="absolute left-5 top-4 z-30 sm:left-8 sm:top-6">
-        <p class="text-sm font-semibold tracking-tight">Lámpara {model.label} — Forma</p>
-        <p class="text-xs text-[var(--color-muted)]">Diseña tu lámpara</p>
+        <h1 class="text-sm font-semibold tracking-tight">Diseña tu lámpara</h1>
+        <p class="text-xs text-[var(--color-muted)]">$499</p>
       </header>
+
+      {/* Botón de compra (aún sin acción) */}
+      <button
+        type="button"
+        class="absolute right-5 top-4 z-30 cursor-pointer rounded-full bg-[#2f5fd6] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2650b4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2f5fd6] sm:right-8 sm:top-6"
+      >
+        Comprar
+      </button>
 
       {/* Previsualización: capas superpuestas */}
       <div
