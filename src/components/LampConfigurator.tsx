@@ -132,7 +132,8 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
     <div class="flex h-full flex-col">
       {/* Título y precio, discretos, estilo Nike */}
       <header class="absolute left-5 top-4 z-30 sm:left-8 sm:top-6">
-        <h1 class="text-sm font-semibold tracking-tight">Diseña tu lámpara</h1>
+        <a href="/" class="font-newsreader text-xl font-medium italic leading-none">forma</a>
+        <h1 class="mt-2 text-sm font-semibold tracking-tight">Diseña tu lámpara</h1>
         <p class="text-xs text-[var(--color-muted)]">$499</p>
       </header>
 
