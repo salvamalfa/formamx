@@ -1,0 +1,47 @@
+/* forma — color. Paleta setentera cálida: crema, tinta, naranja quemado, mostaza, verde bosque. */
+:root {
+  /* Base */
+  --crema: #F6EEDD;
+  --crema-claro: #FBF6EB;
+  --crema-oscuro: #EFE3CB;
+  --blanco: #FFFDF8;
+
+  --tinta: #1E1A14;
+  --tinta-suave: #5C5342;
+  --tinta-tenue: #8A7A5E;
+
+  --naranja: #D06A2C;
+  --naranja-oscuro: #B5541E;
+  --naranja-claro: #F2D9BC;
+
+  --mostaza: #E3A63B;
+  --mostaza-claro: #F3E3BE;
+
+  --bosque: #3E5A40;
+  --bosque-oscuro: #2F4632;
+  --bosque-claro: #E4EAE0;
+
+  /* Semánticos */
+  --surface-page: var(--crema);
+  --surface-card: var(--blanco);
+  --surface-sunken: var(--crema-oscuro);
+  --surface-inverse: var(--tinta);
+
+  --text-body: var(--tinta);
+  --text-muted: var(--tinta-suave);
+  --text-faint: var(--tinta-tenue);
+  --text-inverse: var(--crema);
+
+  --accent: var(--naranja);
+  --accent-hover: var(--naranja-oscuro);
+  --accent-contrast: var(--blanco);
+  --support: var(--bosque);
+  --support-hover: var(--bosque-oscuro);
+  --support-soft: var(--bosque-claro);
+  --highlight: var(--mostaza);
+  --highlight-soft: var(--mostaza-claro);
+
+  --border-soft: #E8DCC2;
+  --border-strong: #D8C9A8;
+  --focus-ring: var(--mostaza);
+}

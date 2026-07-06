@@ -1,0 +1,30 @@
+/* forma — espaciado, radios, bordes y sombras. Generoso y blando, como el logo. */
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  /* Radios: siempre redondeado, nunca cuadrado seco */
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
+
+  /* Bordes */
+  --border-card: 1px solid var(--border-soft);
+
+  /* Sombras: cálidas y suaves, tinta al 6–10%, nunca negras duras */
+  --shadow-card: 0 1px 2px rgba(30, 26, 20, 0.05), 0 6px 20px rgba(30, 26, 20, 0.07);
+  --shadow-raised: 0 2px 4px rgba(30, 26, 20, 0.08), 0 12px 32px rgba(30, 26, 20, 0.12);
+
+  /* Transiciones */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-slow: 300ms;
+}
