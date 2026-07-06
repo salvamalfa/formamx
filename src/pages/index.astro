@@ -1,37 +1,131 @@
 ---
+// Portada — diseño "2a La combinación" de Forma - Exploraciones (Claude Design).
+import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import LampConfigurator from '../components/LampConfigurator.tsx';
-import { buildLampImageManifest } from '../lib/lampImages';
-import { baseKey, pantallaKey, COLORS, MODELS, DEFAULTS } from '../config/lamps';
-
-const manifest = await buildLampImageManifest();
-
-const defaultModel = MODELS.find((m) => m.id === DEFAULTS.modelId)!;
-const defaultPantalla = COLORS.find((c) => c.id === DEFAULTS.pantallaColorId)!;
-const defaultTapa = COLORS.find((c) => c.id === DEFAULTS.tapaColorId)!;
-const preloads = [
-  manifest[pantallaKey(defaultModel, defaultPantalla)],
-  manifest[baseKey(defaultTapa)],
-];
+import bancaPhoto from '../assets/photos/banca.jpeg';
+import lampBase from '../assets/lamps/base/TesseraLamp_CuerpoTapa_Azul.png';
+import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
 ---
 
 <BaseLayout
-  title="Diseña tu lámpara"
-  description="Configura tu lámpara Forma: elige modelo de pantalla y el color de cada pieza, y mírala al instante."
+  title="forma"
+  description="Un taller de una sola persona. Madera, plástico fundido, tierra y video — cada pieza se hace una vez."
 >
-  <Fragment slot="head">
-    {preloads.map((image) => (
-      <link
-        rel="preload"
-        as="image"
-        href={image.src}
-        imagesrcset={image.srcset}
-        imagesizes="100vw"
-      />
-    ))}
-  </Fragment>
+  <main class="min-h-dvh bg-[#f9f9fa] text-[#232327]">
+    <!-- Cabecera -->
+    <header class="flex items-baseline justify-between px-6 pt-8 sm:px-12">
+      <p class="font-newsreader text-[30px] font-medium italic">forma</p>
+      <nav class="flex gap-6 font-archivo text-xs text-[#77787d]">
+        <a href="/" class="border-b border-[#232327] pb-0.5 text-[#232327]">piezas</a>
+        <span class="cursor-default">sobre mí</span>
+      </nav>
+    </header>
 
-  <main class="relative h-dvh overflow-hidden">
-    <LampConfigurator client:load manifest={manifest} />
+    <p class="m-0 max-w-[560px] px-6 pb-11 pt-9 font-newsreader text-[26px] italic leading-[1.45] text-[#565760] sm:px-12">
+      Un taller de una sola persona. Madera, plástico fundido, tierra y video — cada
+      pieza se hace una vez.
+    </p>
+
+    <!-- La banca -->
+    <section class="grid border-t border-[#232327] md:grid-cols-[1fr_460px]">
+      <div class="flex min-h-[380px] flex-col gap-[18px] px-6 py-10 sm:px-12">
+        <p class="font-mono text-[10.5px] tracking-[.1em] text-[#9a9ba0]">CARPINTERÍA · 2026</p>
+        <h2 class="font-archivo text-[34px] font-bold tracking-[-0.02em]">La banca de los abuelos</h2>
+        <p class="max-w-[440px] font-garamond text-lg leading-[1.65] text-[#3d3e44]">
+          Mis abuelos pasan las tardes en el jardín, pero las sillas de plástico que
+          usaban eran incómodas y ya se estaban rompiendo. Quise hacerles algo que
+          durara más que yo: una silla baja, reclinada, donde cupiera un libro y una
+          siesta.
+        </p>
+        <a
+          href="/banca"
+          class="mt-auto self-start border-b border-[#2f5fd6] pb-px font-archivo text-[13px] text-[#2f5fd6]"
+        >
+          leer la historia completa →
+        </a>
+      </div>
+      <Image
+        src={bancaPhoto}
+        alt="Banca de madera en el jardín"
+        widths={[460, 920, 1400]}
+        sizes="(min-width: 768px) 460px, 100vw"
+        class="h-full min-h-[280px] w-full object-cover object-[50%_58%] md:min-h-[380px]"
+      />
+    </section>
+
+    <!-- La lámpara -->
+    <section class="grid border-t border-[#232327] md:grid-cols-[460px_1fr]">
+      <div class="relative min-h-[300px] bg-[#efeeea] md:min-h-[380px]">
+        <Image
+          src={lampBase}
+          alt=""
+          aria-hidden="true"
+          widths={[460, 920]}
+          sizes="(min-width: 768px) 460px, 100vw"
+          class="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)] object-contain"
+        />
+        <Image
+          src={lampShade}
+          alt="Lámpara Tessera azul"
+          widths={[460, 920]}
+          sizes="(min-width: 768px) 460px, 100vw"
+          class="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)] object-contain"
+        />
+      </div>
+      <div class="flex min-h-[380px] flex-col gap-[18px] px-6 py-10 sm:px-12">
+        <p class="font-mono text-[10.5px] tracking-[.1em] text-[#9a9ba0]">IMPRESIÓN 3D · 2025</p>
+        <h2 class="font-archivo text-[34px] font-bold tracking-[-0.02em]">Lámpara Tessera</h2>
+        <p class="max-w-[440px] font-garamond text-lg leading-[1.65] text-[#3d3e44]">
+          Una lámpara de mesa que se imprime al ordenar: eliges pantalla, cuerpo y tapa
+          entre cinco modelos y seis colores. Ninguna sale igual a otra.
+        </p>
+        <a
+          href="/lampara"
+          class="mt-auto self-start border-b border-[#2f5fd6] pb-px font-archivo text-[13px] text-[#2f5fd6]"
+        >
+          diseña la tuya →
+        </a>
+      </div>
+    </section>
+
+    <!-- El video -->
+    <section class="grid border-t border-[#232327] md:grid-cols-[1fr_460px]">
+      <div class="flex min-h-[320px] flex-col gap-[18px] px-6 py-10 sm:px-12">
+        <p class="font-mono text-[10.5px] tracking-[.1em] text-[#9a9ba0]">
+          AGRICULTURA · VIDEO 12 MIN · 2026
+        </p>
+        <h2 class="font-archivo text-[34px] font-bold tracking-[-0.02em]">Almácigos de primavera</h2>
+        <p class="max-w-[440px] font-garamond text-lg leading-[1.65] text-[#3d3e44]">
+          Sembré jitomate, albahaca y chile de árbol en cajones que hice el año pasado.
+          Grabé todo el proceso; el video quedó mejor que la albahaca.
+        </p>
+        <span
+          class="mt-auto cursor-pointer self-start border-b border-[#2f5fd6] pb-px font-archivo text-[13px] text-[#2f5fd6]"
+        >
+          ver el video →
+        </span>
+      </div>
+      <div class="grid min-h-[320px] place-items-center bg-[#232327]">
+        <div class="flex flex-col items-center gap-3">
+          <div class="grid size-14 place-items-center rounded-full border border-white/40">
+            <div
+              class="ml-1 h-0 w-0 border-y-[9px] border-l-[14px] border-y-transparent border-l-white"
+            >
+            </div>
+          </div>
+          <span class="font-mono text-[10px] tracking-[.12em] text-white/50">VIDEO · 12:04</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pie -->
+    <footer
+      class="flex items-baseline justify-between border-t border-[#232327] px-6 py-6 sm:px-12"
+    >
+      <span class="font-newsreader text-base italic text-[#565760]">forma</span>
+      <span class="font-mono text-[10.5px] tracking-[.08em] text-[#9a9ba0]">
+        HECHO EN MÉXICO · HOLA@FORMA.MX
+      </span>
+    </footer>
   </main>
 </BaseLayout>
