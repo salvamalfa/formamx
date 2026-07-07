@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import logoNegro from '../assets/brand/forma-negro.svg';
 import {
   ALL_IMAGE_KEYS,
   COLORS,
@@ -73,8 +74,8 @@ function Swatch({
       aria-label={color.label}
       title={color.label}
       onClick={onSelect}
-      class={`grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-2 transition-transform hover:scale-108 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
-        checked ? 'border-[var(--color-accent)]' : 'border-transparent'
+      class={`grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-2 transition-transform hover:scale-108 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
+        checked ? 'border-[var(--tinta)]' : 'border-transparent'
       }`}
     >
       <span
@@ -132,16 +133,20 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
     <div class="flex h-full flex-col">
       {/* Título y precio, discretos, estilo Nike */}
       <header class="absolute left-5 top-4 z-30 sm:left-8 sm:top-6">
-        <a href="/" class="font-newsreader text-xl font-medium italic leading-none">forma</a>
-        <h1 class="mt-2 text-sm font-semibold tracking-tight">Diseña tu lámpara</h1>
-        <p class="text-xs text-[var(--color-muted)]">$499</p>
+        <a href="/" aria-label="forma — inicio">
+          <img src={logoNegro.src} alt="forma" class="block h-6 w-auto" />
+        </a>
+        <h1
+          class="mt-2.5 text-[15px] font-bold leading-tight"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          Diseña tu lámpara
+        </h1>
+        <p class="meta-caps mt-0.5 text-[var(--text-muted)]">$499 MXN</p>
       </header>
 
       {/* Botón de compra (aún sin acción) */}
-      <button
-        type="button"
-        class="absolute right-5 top-4 z-30 cursor-pointer rounded-full bg-[#2f5fd6] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2650b4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2f5fd6] sm:right-8 sm:top-6"
-      >
+      <button type="button" class="btn btn-primary absolute right-5 top-4 z-30 sm:right-8 sm:top-6">
         Comprar
       </button>
 
@@ -157,7 +162,7 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
 
       {/* Panel inferior estilo Nike By You */}
       <section
-        class="relative z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="relative z-30 border-t border-[var(--border-soft)] bg-[var(--blanco)]"
         aria-label="Opciones de personalización"
       >
         <div class="mx-auto max-w-3xl px-4 py-2 sm:px-6">
@@ -167,9 +172,9 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
                 <path d="M19 12H5" /><path d="m12 19-7-7 7-7" />
               </svg>
             </button>
-            <p class="min-w-32 text-center text-sm font-medium" aria-live="polite">
+            <p class="min-w-32 text-center text-sm font-semibold" aria-live="polite">
               {step.label}
-              <span class="ml-1.5 text-[var(--color-muted)]">
+              <span class="ml-1.5 font-normal text-[var(--text-muted)]">
                 {stepIndex + 1}/{STEPS.length}
               </span>
             </p>
@@ -195,10 +200,10 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
                     role="radio"
                     aria-checked={m.id === modelId}
                     onClick={() => setModelId(m.id)}
-                    class={`shrink-0 cursor-pointer rounded-full border px-4 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] ${
+                    class={`shrink-0 cursor-pointer rounded-full border-[1.5px] px-4 py-1.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
                       m.id === modelId
-                        ? 'border-[var(--color-accent)] font-medium'
-                        : 'border-[var(--color-border)] text-[var(--color-muted)] hover:border-[var(--color-accent)]'
+                        ? 'border-[var(--support)] bg-[var(--support-soft)] text-[var(--support)]'
+                        : 'border-[var(--border-strong)] bg-transparent text-[var(--text-muted)] hover:border-[var(--support)]'
                     }`}
                   >
                     {m.label}
@@ -222,7 +227,7 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
                   />
                 ))}
               </div>
-              <p class="text-xs text-[var(--color-muted)]">{activeColorLabel}</p>
+              <p class="text-xs text-[var(--text-muted)]">{activeColorLabel}</p>
             </div>
           </div>
       </section>

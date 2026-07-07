@@ -23,7 +23,9 @@ const El = href ? 'a' : 'article';
 
 <El class="project-card" data-cat={cat} href={href}>
   {
-    image ? (
+    Astro.slots.has('media') ? (
+      <slot name="media" />
+    ) : image ? (
       <Image
         src={image}
         alt={imageAlt}
