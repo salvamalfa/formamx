@@ -1,0 +1,21 @@
+---
+// Dashboard privado del taller: cola de pedidos + estado del AMS. Vive en el
+// sitio estático pero habla con el Worker por bearer (token en localStorage).
+// El manifest de imágenes se genera en build, igual que en /lampara, para
+// reusar exactamente las mismas capas del configurador en el preview.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TallerDashboard from '../components/TallerDashboard.tsx';
+import { buildLampImageManifest } from '../lib/lampImages';
+
+const manifest = await buildLampImageManifest();
+---
+
+<BaseLayout title="Taller" description="Cola de pedidos del taller.">
+  <Fragment slot="head">
+    <meta name="robots" content="noindex, nofollow" />
+  </Fragment>
+
+  <main class="brand-forma min-h-dvh bg-[var(--crema)] text-[var(--text-body)]">
+    <TallerDashboard client:only="preact" manifest={manifest} />
+  </main>
+</BaseLayout>

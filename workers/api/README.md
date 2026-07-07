@@ -11,8 +11,15 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `POST /api/checkout` | — | Crea la sesión de pago. Body: `{"product":"lampara","config":{"model","pantalla","tapa"}}` o `{"product":"banca-001"}`. Devuelve `{"url"}` de Stripe. |
 | `GET /api/products/:id` | — | `{"id","available","price_mxn"}` — /banca lo consulta al cargar. |
 | `POST /api/webhook/stripe` | firma Stripe | Registra pedidos. Tarjeta → `pagada`; OXXO → `pendiente` hasta que la tienda reporte el pago. |
+| `GET /api/admin/orders` | `Bearer ADMIN_TOKEN` | Pedidos en curso para el dashboard `/taller`. `?status=` filtra, `?limit=`. |
+| `PATCH /api/admin/orders/:id` | `Bearer ADMIN_TOKEN` | Avanza el estado siguiendo el grafo permitido (salto ilegal → 409). |
+| `GET/PUT /api/admin/spools` | `Bearer ADMIN_TOKEN` | Estado de las 4 ranuras del AMS (qué color hay cargado). |
 
 Estados de pedido: `pendiente → pagada → en_cola → imprimiendo → lista → enviada` (+ `cancelada`).
+
+El dashboard `/taller` del sitio guarda el `ADMIN_TOKEN` en `localStorage` y lo
+manda como bearer. Genera uno con `openssl rand -hex 24` y ponlo con
+`npx wrangler secret put ADMIN_TOKEN`; pégalo una vez en `/taller`.
 
 ## Puesta en marcha (una sola vez)
 

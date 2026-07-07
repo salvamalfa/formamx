@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { AppContext } from './env';
+import { admin } from './routes/admin';
 import { checkout } from './routes/checkout';
 import { products } from './routes/products';
 import { webhook } from './routes/webhook';
@@ -18,12 +19,17 @@ const app = new Hono<AppContext>();
 // server-to-server sin header Origin y el middleware no agrega nada.
 app.use(
   '/api/*',
-  cors({ origin: ALLOWED_ORIGINS, allowMethods: ['GET', 'POST', 'OPTIONS'] }),
+  cors({
+    origin: ALLOWED_ORIGINS,
+    allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  }),
 );
 
 app.route('/api/checkout', checkout);
 app.route('/api/products', products);
 app.route('/api/webhook', webhook);
+app.route('/api/admin', admin);
 
 app.get('/', (c) => c.json({ ok: true, servicio: 'formamx-api' }));
 

@@ -10,6 +10,14 @@ export interface LampConfig {
 
 const MODEL_IDS = new Set(MODELS.map((m) => m.id));
 const COLOR_IDS = new Set(COLORS.map((c) => c.id));
+// El cuerpo de la lámpara siempre es blanco: es un color válido de bobina
+// aunque no sea seleccionable en el configurador.
+const SPOOL_COLOR_IDS = new Set([...COLOR_IDS, 'blanco']);
+
+// Color que puede cargarse en una ranura del AMS ('blanco' + los 6 del catálogo).
+export function isSpoolColor(id: unknown): id is string {
+  return typeof id === 'string' && SPOOL_COLOR_IDS.has(id);
+}
 
 export function validateLampConfig(raw: unknown): LampConfig | null {
   if (typeof raw !== 'object' || raw === null) return null;
