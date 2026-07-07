@@ -12,10 +12,7 @@
   --color-muted:        oklch(50% 0.01 264);
 
   --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", monospace;
-  --font-garamond: "EB Garamond", Georgia, serif;
-  --font-newsreader: "Newsreader", Georgia, serif;
-  --font-archivo: "Archivo", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   --radius-card: 0.75rem;
   --radius-btn:  0.5rem;
