@@ -41,17 +41,13 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
         pegada, para poder reemplazarla si algún día se astilla. El tinte naranja fue
         idea de mi abuela — dijo que el jardín ya tenía suficiente verde.
       </p>
-    </div>
-
-    <Image
-      src={bancaPhoto}
-      alt="La banca terminada en el jardín"
-      widths={[800, 1400, 2000]}
-      sizes="100vw"
-      class="h-[460px] w-full object-cover object-[50%_55%]"
-    />
-
-    <div class="mx-auto max-w-[640px] px-6">
+      <Image
+        src={bancaPhoto}
+        alt="La banca terminada en el jardín"
+        widths={[800, 1400, 2000]}
+        sizes="(min-width: 688px) 592px, 100vw"
+        class="h-auto w-full rounded-[var(--radius-m)]"
+      />
       <p
         class="mb-10 mt-3 text-xs text-[var(--text-faint)]"
         style="font-family: var(--font-mono); letter-spacing: var(--meta-tracking)"
