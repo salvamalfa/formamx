@@ -1,0 +1,45 @@
+---
+// Página de aterrizaje tras el pago. Con OXXO el pago tarda en confirmarse,
+// así que el texto no promete nada que el webhook aún no sepa.
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import logoNegro from '../assets/brand/forma-negro.svg';
+---
+
+<BaseLayout title="Gracias" description="Tu pedido ya está en el taller.">
+  <Fragment slot="head">
+    <meta name="robots" content="noindex" />
+  </Fragment>
+
+  <main class="brand-forma flex min-h-dvh flex-col bg-[var(--crema)] text-[var(--text-body)]">
+    <div class="mx-auto flex w-full max-w-[640px] flex-1 flex-col px-6 pb-20 pt-10">
+      <header class="mb-16">
+        <a href="/" aria-label="forma — inicio" class="inline-block">
+          <Image src={logoNegro} alt="forma" class="block h-6 w-auto" />
+        </a>
+      </header>
+
+      <div class="my-auto">
+        <p class="meta-caps m-0 text-[var(--support)]">Pedido recibido</p>
+        <h1
+          class="m-0 mt-3 text-[length:var(--display-lg)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)]"
+          style="font-family: var(--font-display)"
+        >
+          Gracias. Ya está en mi taller.
+        </h1>
+        <p class="m-0 mt-5 max-w-[440px] text-[length:var(--text-lg)] leading-[var(--leading-body)]">
+          Te escribo cuando tu pieza salga de la impresora. El recibo llega a tu
+          correo.
+        </p>
+        <p
+          class="m-0 mt-8 max-w-[440px] text-xs leading-[1.9] text-[var(--text-muted)]"
+          style="font-family: var(--font-mono)"
+        >
+          ¿Pagaste con OXXO? El pedido se confirma cuando la tienda reporte tu
+          pago — el recibo te llega entonces.
+        </p>
+        <a href="/" class="btn btn-primary mt-10 inline-flex no-underline">Volver a la bitácora</a>
+      </div>
+    </div>
+  </main>
+</BaseLayout>

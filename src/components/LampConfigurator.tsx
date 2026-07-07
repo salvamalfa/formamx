@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import logoNegro from '../assets/brand/forma-negro.svg';
+import { startCheckout } from '../lib/checkout';
 import {
   ALL_IMAGE_KEYS,
   COLORS,
@@ -91,6 +92,21 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
   const [modelId, setModelId] = useState(DEFAULTS.modelId);
   const [pantallaColorId, setPantallaColorId] = useState(DEFAULTS.pantallaColorId);
   const [tapaColorId, setTapaColorId] = useState(DEFAULTS.tapaColorId);
+  const [buying, setBuying] = useState<'idle' | 'loading' | 'error'>('idle');
+
+  // Abre el pago con la combinación elegida; si sale bien, la página navega a
+  // Stripe y el estado loading se queda hasta el unload.
+  const buy = async () => {
+    setBuying('loading');
+    try {
+      await startCheckout({
+        product: 'lampara',
+        config: { model: modelId, pantalla: pantallaColorId, tapa: tapaColorId },
+      });
+    } catch {
+      setBuying('error');
+    }
+  };
 
   const step = STEPS[stepIndex];
   const model = MODELS.find((m) => m.id === modelId) ?? MODELS[0];
@@ -145,10 +161,22 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
         <p class="meta-caps mt-0.5 text-[var(--text-muted)]">$499 MXN</p>
       </header>
 
-      {/* Botón de compra (aún sin acción) */}
-      <button type="button" class="btn btn-primary absolute right-5 top-4 z-30 sm:right-8 sm:top-6">
-        Comprar
-      </button>
+      {/* Botón de compra */}
+      <div class="absolute right-5 top-4 z-30 flex flex-col items-end gap-1.5 sm:right-8 sm:top-6">
+        <button
+          type="button"
+          class="btn btn-primary disabled:cursor-default disabled:opacity-60"
+          disabled={buying === 'loading'}
+          onClick={buy}
+        >
+          {buying === 'loading' ? 'Abriendo el pago…' : 'Comprar'}
+        </button>
+        {buying === 'error' && (
+          <p class="m-0 max-w-44 text-right text-xs text-[var(--text-muted)]" role="alert">
+            No se pudo abrir el pago. Inténtalo otra vez.
+          </p>
+        )}
+      </div>
 
       {/* Previsualización: capas superpuestas */}
       <div

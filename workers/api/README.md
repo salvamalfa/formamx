@@ -1,0 +1,71 @@
+# formamx-api
+
+Backend serverless de formamx.com: checkout con Stripe, webhook de pagos y
+registro de pedidos. Corre en Cloudflare Workers (capa gratuita) con D1.
+El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
+
+## Rutas
+
+| Ruta | Auth | Qué hace |
+| --- | --- | --- |
+| `POST /api/checkout` | — | Crea la sesión de pago. Body: `{"product":"lampara","config":{"model","pantalla","tapa"}}` o `{"product":"banca-001"}`. Devuelve `{"url"}` de Stripe. |
+| `GET /api/products/:id` | — | `{"id","available","price_mxn"}` — /banca lo consulta al cargar. |
+| `POST /api/webhook/stripe` | firma Stripe | Registra pedidos. Tarjeta → `pagada`; OXXO → `pendiente` hasta que la tienda reporte el pago. |
+
+Estados de pedido: `pendiente → pagada → en_cola → imprimiendo → lista → enviada` (+ `cancelada`).
+
+## Puesta en marcha (una sola vez)
+
+Requiere una cuenta de Cloudflare (gratis) y una de Stripe activada para México.
+
+```sh
+cd workers/api
+npm install
+npx wrangler login
+
+# 1. Base de datos
+npx wrangler d1 create formamx        # pega el database_id que devuelve en wrangler.toml
+npm run migrate:remote
+
+# 2. Secretos (Stripe → Developers → API keys)
+npx wrangler secret put STRIPE_SECRET_KEY
+npx wrangler secret put NTFY_TOPIC    # string aleatorio largo; el nombre del topic ES el secreto
+
+# 3. Primer deploy (anota la URL *.workers.dev que imprime)
+npm run deploy
+
+# 4. Webhook: Stripe → Developers → Webhooks → Add endpoint
+#    URL: https://formamx-api.<tu-subdominio>.workers.dev/api/webhook/stripe
+#    Eventos: checkout.session.completed, checkout.session.async_payment_succeeded,
+#             checkout.session.async_payment_failed, checkout.session.expired
+#    Copia el signing secret:
+npx wrangler secret put STRIPE_WEBHOOK_SECRET
+
+# 5. Vuelve a desplegar para tomar los secretos
+npm run deploy
+```
+
+Después:
+
+- En Stripe: habilita **OXXO** (Settings → Payment methods) y los **recibos por
+  email** de pagos exitosos (Settings → Emails).
+- Instala la app **ntfy** en el teléfono y suscríbete al topic del paso 2:
+  ahí llegan los avisos de pedido nuevo.
+- Pega la URL real del Worker en `src/config/api.ts` del sitio.
+
+## Desarrollo local
+
+```sh
+npm run migrate:local
+npm run dev            # http://localhost:8787 con D1 local
+
+# Secretos de prueba para dev: crea workers/api/.dev.vars (ignorado por git):
+#   STRIPE_SECRET_KEY=sk_test_...
+#   STRIPE_WEBHOOK_SECRET=whsec_...
+#   NTFY_TOPIC=formamx-dev-loquesea
+
+# Webhooks locales con la CLI de Stripe:
+stripe listen --forward-to localhost:8787/api/webhook/stripe
+```
+
+Consultar pedidos: `npx wrangler d1 execute formamx --remote --command "SELECT id, status, product_id, amount_mxn FROM orders ORDER BY created_at DESC LIMIT 20"`

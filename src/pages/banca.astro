@@ -4,6 +4,7 @@
 // ficha de compra como tarjeta blanca con el CTA naranja del kit.
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import BuyBanca from '../components/BuyBanca.tsx';
 import logoNegro from '../assets/brand/forma-negro.svg';
 import bancaPhoto from '../assets/photos/banca.jpeg';
 ---
@@ -83,16 +84,7 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
           pino estufado · tinte + aceite<br />142 × 58 × 61 cm · 9.5 kg<br />envío CDMX
           incluido
         </div>
-        <div class="flex flex-col items-center gap-2.5">
-          <button type="button" class="btn btn-primary">Comprar</button>
-          <a
-            href="mailto:hola@forma.mx"
-            class="text-xs text-[var(--naranja-oscuro)] underline underline-offset-[3px] hover:text-[var(--naranja)]"
-            style="font-family: var(--font-mono)"
-          >
-            ¿una a tu medida?
-          </a>
-        </div>
+        <BuyBanca client:load />
       </div>
     </div>
   </main>
