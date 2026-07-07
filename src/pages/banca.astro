@@ -1,8 +1,10 @@
 ---
-// Página de proyecto "La banca de los abuelos" — diseño "2a Proyecto" de
-// Forma - Exploraciones (Claude Design).
+// Página de proyecto "La banca de los abuelos", con el brand kit de forma:
+// crema/tinta, Alan Sans para títulos y cuerpo, IBM Plex Mono para metadata,
+// ficha de compra como tarjeta blanca con el CTA naranja del kit.
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import logoNegro from '../assets/brand/forma-negro.svg';
 import bancaPhoto from '../assets/photos/banca.jpeg';
 ---
 
@@ -10,26 +12,31 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
   title="La banca de los abuelos"
   description="Una silla baja para leer en el jardín, hecha para dos personas que ya no tienen prisa. Pieza única en venta."
 >
-  <main class="min-h-dvh bg-[#fbfbfc] pb-18 pt-11 text-[#2b2b2e]">
-    <div class="mx-auto max-w-[600px] px-6">
-      <header class="mb-10 flex items-baseline justify-between">
-        <a href="/" class="font-newsreader text-2xl font-medium italic">forma</a>
-        <span class="font-mono text-[10.5px] tracking-[.1em] text-[#9a9ba0]">PIEZA Nº 004</span>
+  <main class="brand-forma min-h-dvh bg-[var(--crema)] pb-20 pt-10 text-[var(--text-body)]">
+    <div class="mx-auto max-w-[640px] px-6">
+      <header class="mb-10 flex items-center justify-between">
+        <a href="/" aria-label="forma — inicio" class="shrink-0">
+          <Image src={logoNegro} alt="forma" class="block h-6 w-auto" />
+        </a>
+        <span class="meta-caps text-[var(--text-faint)]">Proyecto 001</span>
       </header>
 
-      <h1 class="mb-5 font-garamond text-[52px] font-medium leading-[1.05] tracking-[-0.01em]">
+      <h1
+        class="m-0 text-[length:var(--display-lg)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)]"
+        style="font-family: var(--font-display)"
+      >
         La banca de los abuelos
       </h1>
-      <p class="mb-11 font-mono text-[11px] leading-loose tracking-[.08em] text-[#77787d]">
-        CARPINTERÍA · PINO ESTUFADO · MARZO 2026
+      <p class="meta-caps m-0 mt-3 text-[var(--text-muted)]">
+        Carpintería — Pino estufado — Marzo 2026
       </p>
 
-      <p class="mb-[26px] font-garamond text-[19px] leading-[1.65]">
+      <p class="mb-6 mt-10 text-[length:var(--text-lg)] leading-[var(--leading-body)]">
         Mis abuelos pasan las tardes en el jardín, pero las sillas de plástico que
         usaban eran incómodas y ya se estaban rompiendo. Quise hacerles algo que durara
         más que yo: una silla baja, reclinada, donde cupiera un libro y una siesta.
       </p>
-      <p class="mb-11 font-garamond text-[19px] leading-[1.65]">
+      <p class="mb-10 text-[length:var(--text-lg)] leading-[var(--leading-body)]">
         Usé pino estufado de un aserradero local. Cada duela está atornillada, no
         pegada, para poder reemplazarla si algún día se astilla. El tinte naranja fue
         idea de mi abuela — dijo que el jardín ya tenía suficiente verde.
@@ -44,11 +51,14 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
       class="h-[460px] w-full object-cover object-[50%_55%]"
     />
 
-    <div class="mx-auto max-w-[600px] px-6">
-      <p class="mb-11 mt-3 font-mono text-[10.5px] tracking-[.06em] text-[#9a9ba0]">
+    <div class="mx-auto max-w-[640px] px-6">
+      <p
+        class="mb-10 mt-3 text-xs text-[var(--text-faint)]"
+        style="font-family: var(--font-mono); letter-spacing: var(--meta-tracking)"
+      >
         La primera tarde de sol. El libro es de mi abuelo.
       </p>
-      <p class="mb-16 font-garamond text-[19px] leading-[1.65]">
+      <p class="mb-14 text-[length:var(--text-lg)] leading-[var(--leading-body)]">
         Hice una segunda banca con los sobrantes, idéntica salvo por los nudos de la
         madera. Es la que está en venta aquí abajo. La primera no se vende: vive en el
         jardín de mis abuelos.
@@ -56,34 +66,36 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
 
       <!-- Ficha de compra -->
       <div
-        class="grid items-center gap-6 border-t border-[#2b2b2e] pt-7 sm:grid-cols-[auto_1fr_auto] sm:gap-8"
+        class="grid items-center gap-6 rounded-[var(--radius-m)] bg-[var(--surface-card)] p-7 shadow-[var(--shadow-card)] sm:grid-cols-[auto_1fr_auto] sm:gap-8"
       >
         <div class="flex flex-col gap-1.5">
-          <span class="font-mono text-[10px] tracking-[.12em] text-[#9a9ba0]">
-            PIEZA ÚNICA · 1 DE 1
-          </span>
-          <span class="font-garamond text-[30px] font-medium">
-            $2,400 <span class="text-base text-[#77787d]">MXN</span>
+          <span class="meta-caps text-[var(--support)]">Pieza única — 1 de 1</span>
+          <span>
+            <span
+              class="text-[28px] font-extrabold leading-tight"
+              style="font-family: var(--font-display)"
+            >
+              $2,400
+            </span>
+            <span class="meta-caps ml-1 text-[var(--text-faint)]">MXN</span>
           </span>
         </div>
         <div
-          class="font-mono text-[10.5px] leading-[1.9] text-[#77787d] sm:border-l sm:border-[#e3e3e6] sm:pl-6"
+          class="text-[11px] leading-[1.9] text-[var(--text-muted)] sm:border-l sm:border-[var(--border-soft)] sm:pl-6"
+          style="font-family: var(--font-mono)"
         >
           pino estufado · tinte + aceite<br />142 × 58 × 61 cm · 9.5 kg<br />envío CDMX
           incluido
         </div>
         <div class="flex flex-col items-center gap-2.5">
-          <button
-            type="button"
-            class="cursor-pointer rounded-full bg-[#2f5fd6] px-[30px] py-[13px] font-mono text-xs tracking-[.06em] text-white"
-          >
-            Comprar
-          </button>
-          <span
-            class="cursor-pointer font-mono text-[10.5px] text-[#77787d] underline underline-offset-[3px]"
+          <button type="button" class="btn btn-primary">Comprar</button>
+          <a
+            href="mailto:hola@forma.mx"
+            class="text-xs text-[var(--naranja-oscuro)] underline underline-offset-[3px] hover:text-[var(--naranja)]"
+            style="font-family: var(--font-mono)"
           >
             ¿una a tu medida?
-          </span>
+          </a>
         </div>
       </div>
     </div>
