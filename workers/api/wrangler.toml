@@ -1,0 +1,15 @@
+# API de formamx: checkout con Stripe, webhook de pagos y cola de pedidos.
+# Secretos (nunca aquí): wrangler secret put STRIPE_SECRET_KEY | STRIPE_WEBHOOK_SECRET | NTFY_TOPIC
+name = "formamx-api"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "formamx"
+# Sustituir por el id real que devuelve `wrangler d1 create formamx` (no es secreto).
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[vars]
+SITE_ORIGIN = "https://formamx.com"
