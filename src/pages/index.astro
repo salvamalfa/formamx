@@ -18,17 +18,41 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
 >
   <main class="brand-forma min-h-dvh bg-[var(--tinta)] text-[var(--crema)]">
     <!-- Cabecera -->
-    <header
-      class="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 py-5 sm:px-12"
-    >
+    <header class="relative mx-auto flex max-w-[1100px] items-center justify-between gap-6 px-6 py-5 sm:px-12">
       <a href="/" aria-label="forma — inicio" class="shrink-0">
         <Image src={logoBlanco} alt="forma" class="block h-[30px] w-auto" />
       </a>
-      <nav class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-7">
+
+      <!-- Nav en línea (tablet y escritorio) -->
+      <nav class="hidden items-center gap-7 sm:flex">
         <a href="/" class="text-[15px] font-semibold text-[var(--crema)] no-underline">Bitácora</a>
         <a href="#bitacora" class="text-[15px] text-[var(--crema-oscuro)] no-underline">Piezas</a>
         <span class="cursor-default text-[15px] text-[var(--crema-oscuro)]">Quién</span>
         <a href="mailto:hola@forma.mx" class="btn btn-sm btn-support">Escríbeme</a>
+      </nav>
+
+      <!-- Menú móvil: botón hamburguesa + panel desplegable -->
+      <button
+        type="button"
+        id="menu-btn"
+        aria-expanded="false"
+        aria-controls="menu-movil"
+        aria-label="Abrir menú"
+        class="grid size-10 cursor-pointer place-items-center rounded-full border-[1.5px] border-[rgba(246,238,221,0.3)] bg-transparent text-[var(--crema)] sm:hidden"
+      >
+        <svg data-icon="abrir" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path>
+        </svg>
+        <svg data-icon="cerrar" viewBox="0 0 24 24" class="hidden size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>
+        </svg>
+      </button>
+
+      <nav id="menu-movil" hidden class="menu-movil absolute right-6 top-full z-50 w-60 sm:hidden" aria-label="Menú">
+        <a href="/" class="font-semibold">Bitácora</a>
+        <a href="#bitacora">Piezas</a>
+        <span class="cursor-default px-3 py-2.5 text-[15px] text-[var(--text-faint)]">Quién</span>
+        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-support mt-1.5 justify-center">Escríbeme</a>
       </nav>
     </header>
 
@@ -58,7 +82,7 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
         alt="silla de jardín al sol"
         widths={[600, 1000, 1400]}
         sizes="(min-width: 768px) 480px, 100vw"
-        class="h-[380px] w-full rounded-[var(--radius-l)] object-cover"
+        class="h-[260px] w-full rounded-[var(--radius-l)] object-cover sm:h-[380px]"
       />
     </section>
 
@@ -138,20 +162,40 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
             en cuando.
           </p>
         </div>
-        <form class="flex flex-wrap items-end gap-2.5" novalidate>
+        <form class="flex w-full items-end gap-2.5 sm:w-auto" novalidate>
           <input
             type="email"
-            class="input-brand w-[220px] sm:w-[260px]"
+            class="input-brand min-w-0 flex-1 sm:w-[260px] sm:flex-none"
             placeholder="tu@correo.com"
             aria-label="Tu correo"
           />
-          <button type="button" class="btn btn-primary">Avísame</button>
+          <button type="button" class="btn btn-primary shrink-0">Avísame</button>
         </form>
       </div>
     </footer>
   </main>
 
   <script>
+    // Menú móvil: alterna el panel, cambia el icono y cierra al navegar,
+    // al hacer clic fuera o con Escape.
+    const menuBtn = document.getElementById('menu-btn')!;
+    const menu = document.getElementById('menu-movil')!;
+    const setMenu = (abierto: boolean) => {
+      menu.hidden = !abierto;
+      menuBtn.setAttribute('aria-expanded', String(abierto));
+      menuBtn.setAttribute('aria-label', abierto ? 'Cerrar menú' : 'Abrir menú');
+      menuBtn.querySelector('[data-icon="abrir"]')!.classList.toggle('hidden', abierto);
+      menuBtn.querySelector('[data-icon="cerrar"]')!.classList.toggle('hidden', !abierto);
+    };
+    menuBtn.addEventListener('click', () => setMenu(menu.hidden));
+    menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setMenu(false)));
+    document.addEventListener('click', (e) => {
+      if (!menu.hidden && !menu.contains(e.target as Node) && !menuBtn.contains(e.target as Node)) setMenu(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setMenu(false);
+    });
+
     // Filtro de categorías de la bitácora (equivalente al setState del prototipo).
     const chips = document.querySelectorAll<HTMLButtonElement>('[data-cat-btn]');
     const cards = document.querySelectorAll<HTMLElement>('[data-cat]');
