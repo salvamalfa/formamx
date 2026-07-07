@@ -7,11 +7,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import logoBlanco from '../assets/brand/forma-blanco.svg';
 import sillaJardin from '../assets/photos/banca.jpeg';
+import lampBase from '../assets/lamps/base/TesseraLamp_CuerpoTapa_Azul.png';
+import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
 ---
 
 <BaseLayout
   title="forma"
   description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Cada pieza se hace una vez."
+  themeColor="#1E1A14"
 >
   <main class="brand-forma min-h-dvh bg-[var(--tinta)] text-[var(--crema)]">
     <!-- Cabecera -->
@@ -84,16 +87,34 @@ import sillaJardin from '../assets/photos/banca.jpeg';
           note="La primera capa quedó chueca. La segunda, mejor."
           tags={['madera', 'exterior']}
           unique
+          href="/banca"
         />
         <ProjectCard
           cat="impresión 3d"
-          placeholder="foto pendiente"
           meta={['Proyecto 002', 'En proceso', 'PLA']}
           title="Lámpara impresa"
           note="Tercer intento del difusor. Los dos primeros se doblaron."
           tags={['impresión 3d', 'luz']}
           href="/lampara"
-        />
+        >
+          <div slot="media" class="relative h-[210px] w-full bg-[var(--crema-oscuro)]">
+            <Image
+              src={lampBase}
+              alt=""
+              aria-hidden="true"
+              widths={[400, 800]}
+              sizes="(min-width: 768px) 340px, 100vw"
+              class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
+            />
+            <Image
+              src={lampShade}
+              alt="Lámpara Tessera azul"
+              widths={[400, 800]}
+              sizes="(min-width: 768px) 340px, 100vw"
+              class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
+            />
+          </div>
+        </ProjectCard>
         <ProjectCard
           cat="video"
           placeholder="grabando"
