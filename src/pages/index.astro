@@ -1,131 +1,145 @@
 ---
-// Portada — diseño "2a La combinación" de Forma - Exploraciones (Claude Design).
+// Portada "Bitácora" — diseño forma - Bitácora.dc.html de Claude Design,
+// implementado con el brand kit de forma (variantes por defecto del diseño:
+// portada editorial, ambiente noche, bitácora en galería).
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import bancaPhoto from '../assets/photos/banca.jpeg';
-import lampBase from '../assets/lamps/base/TesseraLamp_CuerpoTapa_Azul.png';
-import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
+import ProjectCard from '../components/ProjectCard.astro';
+import logoBlanco from '../assets/brand/forma-blanco.svg';
+import sillaJardin from '../assets/photos/banca.jpeg';
 ---
 
 <BaseLayout
   title="forma"
-  description="Un taller de una sola persona. Madera, plástico fundido, tierra y video — cada pieza se hace una vez."
+  description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Cada pieza se hace una vez."
 >
-  <main class="min-h-dvh bg-[#f9f9fa] text-[#232327]">
+  <main class="brand-forma min-h-dvh bg-[var(--tinta)] text-[var(--crema)]">
     <!-- Cabecera -->
-    <header class="flex items-baseline justify-between px-6 pt-8 sm:px-12">
-      <p class="font-newsreader text-[30px] font-medium italic">forma</p>
-      <nav class="flex gap-6 font-archivo text-xs text-[#77787d]">
-        <a href="/" class="border-b border-[#232327] pb-0.5 text-[#232327]">piezas</a>
-        <span class="cursor-default">sobre mí</span>
+    <header class="mx-auto flex max-w-[1100px] items-center justify-between gap-6 px-6 py-5 sm:px-12">
+      <a href="/" aria-label="forma — inicio" class="shrink-0">
+        <Image src={logoBlanco} alt="forma" class="block h-[30px] w-auto" />
+      </a>
+      <nav class="flex items-center gap-4 sm:gap-7">
+        <a href="/" class="text-[15px] font-semibold text-[var(--crema)] no-underline">Bitácora</a>
+        <a href="#bitacora" class="text-[15px] text-[var(--crema-oscuro)] no-underline">Piezas</a>
+        <span class="cursor-default text-[15px] text-[var(--crema-oscuro)]">Quién</span>
+        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-support">Escríbeme</a>
       </nav>
     </header>
 
-    <p class="m-0 max-w-[560px] px-6 pb-11 pt-9 font-newsreader text-[26px] italic leading-[1.45] text-[#565760] sm:px-12">
-      Un taller de una sola persona. Madera, plástico fundido, tierra y video — cada
-      pieza se hace una vez.
-    </p>
-
-    <!-- La banca -->
-    <section class="grid border-t border-[#232327] md:grid-cols-[1fr_460px]">
-      <div class="flex min-h-[380px] flex-col gap-[18px] px-6 py-10 sm:px-12">
-        <p class="font-mono text-[10.5px] tracking-[.1em] text-[#9a9ba0]">CARPINTERÍA · 2026</p>
-        <h2 class="font-archivo text-[34px] font-bold tracking-[-0.02em]">La banca de los abuelos</h2>
-        <p class="max-w-[440px] font-garamond text-lg leading-[1.65] text-[#3d3e44]">
-          Mis abuelos pasan las tardes en el jardín, pero las sillas de plástico que
-          usaban eran incómodas y ya se estaban rompiendo. Quise hacerles algo que
-          durara más que yo: una silla baja, reclinada, donde cupiera un libro y una
-          siesta.
-        </p>
-        <a
-          href="/banca"
-          class="mt-auto self-start border-b border-[#2f5fd6] pb-px font-archivo text-[13px] text-[#2f5fd6]"
+    <!-- Hero editorial -->
+    <section
+      class="mx-auto grid max-w-[1100px] items-center gap-12 px-6 pt-12 sm:px-12 md:grid-cols-[1.1fr_1fr]"
+    >
+      <div>
+        <p class="meta-caps m-0 text-[var(--naranja-claro)]">Taller de proyectos — Desde 2026</p>
+        <h1
+          class="m-0 mt-3.5 text-[length:var(--display-lg)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)] text-[var(--crema)] md:text-[length:var(--display-xl)]"
+          style="font-family: var(--font-display)"
         >
-          leer la historia completa →
-        </a>
+          Cada pieza se hace una vez.
+        </h1>
+        <p class="m-0 mt-[18px] max-w-[440px] text-[length:var(--text-lg)] leading-[var(--leading-body)] text-[var(--crema-oscuro)]">
+          Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema,
+          documentado. Se vende, si quieres — pero primero la historia.
+        </p>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="#bitacora" class="btn btn-lg btn-primary no-underline">Ver la bitácora</a>
+          <span class="btn btn-lg btn-ghost">Quién soy →</span>
+        </div>
       </div>
       <Image
-        src={bancaPhoto}
-        alt="Banca de madera en el jardín"
-        widths={[460, 920, 1400]}
-        sizes="(min-width: 768px) 460px, 100vw"
-        class="h-full min-h-[280px] w-full object-cover object-[50%_58%] md:min-h-[380px]"
+        src={sillaJardin}
+        alt="silla de jardín al sol"
+        widths={[600, 1000, 1400]}
+        sizes="(min-width: 768px) 480px, 100vw"
+        class="h-[380px] w-full rounded-[var(--radius-l)] object-cover"
       />
     </section>
 
-    <!-- La lámpara -->
-    <section class="grid border-t border-[#232327] md:grid-cols-[460px_1fr]">
-      <div class="relative min-h-[300px] bg-[#efeeea] md:min-h-[380px]">
-        <Image
-          src={lampBase}
-          alt=""
-          aria-hidden="true"
-          widths={[460, 920]}
-          sizes="(min-width: 768px) 460px, 100vw"
-          class="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)] object-contain"
-        />
-        <Image
-          src={lampShade}
-          alt="Lámpara Tessera azul"
-          widths={[460, 920]}
-          sizes="(min-width: 768px) 460px, 100vw"
-          class="absolute inset-6 h-[calc(100%-3rem)] w-[calc(100%-3rem)] object-contain"
-        />
-      </div>
-      <div class="flex min-h-[380px] flex-col gap-[18px] px-6 py-10 sm:px-12">
-        <p class="font-mono text-[10.5px] tracking-[.1em] text-[#9a9ba0]">IMPRESIÓN 3D · 2025</p>
-        <h2 class="font-archivo text-[34px] font-bold tracking-[-0.02em]">Lámpara Tessera</h2>
-        <p class="max-w-[440px] font-garamond text-lg leading-[1.65] text-[#3d3e44]">
-          Una lámpara de mesa que se imprime al ordenar: eliges pantalla, cuerpo y tapa
-          entre cinco modelos y seis colores. Ninguna sale igual a otra.
-        </p>
-        <a
-          href="/lampara"
-          class="mt-auto self-start border-b border-[#2f5fd6] pb-px font-archivo text-[13px] text-[#2f5fd6]"
+    <!-- Bitácora -->
+    <section id="bitacora" class="mx-auto max-w-[1100px] px-6 py-16 sm:px-12">
+      <div class="flex flex-wrap items-baseline justify-between gap-6">
+        <h2
+          class="m-0 text-[length:var(--display-md)] font-bold text-[var(--crema)]"
+          style="font-family: var(--font-display)"
         >
-          diseña la tuya →
-        </a>
-      </div>
-    </section>
-
-    <!-- El video -->
-    <section class="grid border-t border-[#232327] md:grid-cols-[1fr_460px]">
-      <div class="flex min-h-[320px] flex-col gap-[18px] px-6 py-10 sm:px-12">
-        <p class="font-mono text-[10.5px] tracking-[.1em] text-[#9a9ba0]">
-          AGRICULTURA · VIDEO 12 MIN · 2026
-        </p>
-        <h2 class="font-archivo text-[34px] font-bold tracking-[-0.02em]">Almácigos de primavera</h2>
-        <p class="max-w-[440px] font-garamond text-lg leading-[1.65] text-[#3d3e44]">
-          Sembré jitomate, albahaca y chile de árbol en cajones que hice el año pasado.
-          Grabé todo el proceso; el video quedó mejor que la albahaca.
-        </p>
-        <span
-          class="mt-auto cursor-pointer self-start border-b border-[#2f5fd6] pb-px font-archivo text-[13px] text-[#2f5fd6]"
-        >
-          ver el video →
-        </span>
-      </div>
-      <div class="grid min-h-[320px] place-items-center bg-[#232327]">
-        <div class="flex flex-col items-center gap-3">
-          <div class="grid size-14 place-items-center rounded-full border border-white/40">
-            <div
-              class="ml-1 h-0 w-0 border-y-[9px] border-l-[14px] border-y-transparent border-l-white"
-            >
-            </div>
-          </div>
-          <span class="font-mono text-[10px] tracking-[.12em] text-white/50">VIDEO · 12:04</span>
+          Bitácora
+        </h2>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="chip activo" data-cat-btn="todos">todos</button>
+          <button type="button" class="chip" data-cat-btn="madera">madera</button>
+          <button type="button" class="chip" data-cat-btn="impresión 3d">impresión 3d</button>
+          <button type="button" class="chip" data-cat-btn="video">video</button>
         </div>
       </div>
+
+      <div class="mt-6 grid gap-6 md:grid-cols-3">
+        <ProjectCard
+          cat="madera"
+          image={sillaJardin}
+          imageAlt="Silla de jardín"
+          meta={['Proyecto 001', '2026.04', 'Pino']}
+          title="Silla de jardín"
+          note="La primera capa quedó chueca. La segunda, mejor."
+          tags={['madera', 'exterior']}
+          unique
+        />
+        <ProjectCard
+          cat="impresión 3d"
+          placeholder="foto pendiente"
+          meta={['Proyecto 002', 'En proceso', 'PLA']}
+          title="Lámpara impresa"
+          note="Tercer intento del difusor. Los dos primeros se doblaron."
+          tags={['impresión 3d', 'luz']}
+          href="/lampara"
+        />
+        <ProjectCard
+          cat="video"
+          placeholder="grabando"
+          meta={['Proyecto 003', 'Pronto']}
+          title="Video: el jardín en junio"
+          note="Grabando las tardes. Sin guion, con pájaros."
+          tags={['video', 'naturaleza']}
+        />
+      </div>
     </section>
 
-    <!-- Pie -->
-    <footer
-      class="flex items-baseline justify-between border-t border-[#232327] px-6 py-6 sm:px-12"
-    >
-      <span class="font-newsreader text-base italic text-[#565760]">forma</span>
-      <span class="font-mono text-[10.5px] tracking-[.08em] text-[#9a9ba0]">
-        HECHO EN MÉXICO · HOLA@FORMA.MX
-      </span>
+    <!-- Pie con aviso por correo -->
+    <footer class="border-t border-[rgba(246,238,221,0.15)] bg-[var(--surface-inverse)] px-6 py-14 sm:px-12">
+      <div class="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-12">
+        <div>
+          <Image src={logoBlanco} alt="forma" class="block h-[26px] w-auto" />
+          <p class="m-0 mt-3.5 max-w-[340px] text-sm leading-[1.6] text-[var(--naranja-claro)]">
+            Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez
+            en cuando.
+          </p>
+        </div>
+        <form class="flex items-end gap-2.5" novalidate>
+          <input
+            type="email"
+            class="input-brand w-[220px] sm:w-[260px]"
+            placeholder="tu@correo.com"
+            aria-label="Tu correo"
+          />
+          <button type="button" class="btn btn-primary">Avísame</button>
+        </form>
+      </div>
     </footer>
   </main>
+
+  <script>
+    // Filtro de categorías de la bitácora (equivalente al setState del prototipo).
+    const chips = document.querySelectorAll<HTMLButtonElement>('[data-cat-btn]');
+    const cards = document.querySelectorAll<HTMLElement>('[data-cat]');
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const cat = chip.dataset.catBtn!;
+        chips.forEach((c) => c.classList.toggle('activo', c === chip));
+        cards.forEach((card) => {
+          card.style.display = cat === 'todos' || card.dataset.cat === cat ? '' : 'none';
+        });
+      });
+    });
+  </script>
 </BaseLayout>

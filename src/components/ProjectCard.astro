@@ -1,0 +1,62 @@
+---
+// Réplica del componente ProjectCard del brand kit de forma.
+// Si recibe `href` la tarjeta entera es un enlace; si no, es un artículo estático.
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  cat: string; // categoría para el filtro de la bitácora
+  meta: string[];
+  title: string;
+  note: string;
+  tags: string[];
+  image?: ImageMetadata;
+  imageAlt?: string;
+  placeholder?: string; // texto del hueco cuando no hay foto
+  unique?: boolean; // etiqueta "pieza única"
+  href?: string;
+}
+
+const { cat, meta, title, note, tags, image, imageAlt = '', placeholder, unique = false, href } = Astro.props;
+const El = href ? 'a' : 'article';
+---
+
+<El class="project-card" data-cat={cat} href={href}>
+  {
+    image ? (
+      <Image
+        src={image}
+        alt={imageAlt}
+        widths={[400, 800]}
+        sizes="(min-width: 768px) 340px, 100vw"
+        class="block h-[210px] w-full object-cover"
+      />
+    ) : (
+      <div class="grid h-[210px] w-full place-items-center bg-[var(--crema-oscuro)]">
+        <span class="meta-caps text-[11px] text-[var(--text-faint)]">{placeholder}</span>
+      </div>
+    )
+  }
+  <div class="flex flex-1 flex-col gap-2 px-5 pb-5 pt-[18px]">
+    <div class="flex items-baseline justify-between gap-3">
+      <span class="meta-caps text-[var(--support)]">{meta.join(' — ')}</span>
+      {unique && <span class="tag tag-tinta">pieza única</span>}
+    </div>
+    <h3
+      class="m-0 text-[length:var(--display-sm)] font-bold leading-[var(--leading-display)] text-[var(--text-body)]"
+      style="font-family: var(--font-display)"
+    >
+      {title}
+    </h3>
+    <p class="m-0 text-sm leading-[var(--leading-body)] text-[var(--text-muted)]">{note}</p>
+    {
+      tags.length > 0 && (
+        <div class="mt-auto flex flex-wrap gap-2 pt-1.5">
+          {tags.map((t) => (
+            <span class="tag tag-bosque">{t}</span>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</El>

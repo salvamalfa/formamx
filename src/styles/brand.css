@@ -1,0 +1,203 @@
+/* Brand kit "forma" — tokens y componentes del design system de Claude Design
+   (_ds/forma-brand-kit). Con alcance a .brand-forma para no interferir con las
+   páginas que aún usan el estilo anterior (/banca, /lampara). */
+
+.brand-forma {
+  /* ── Color ─────────────────────────────────────────── */
+  --crema: #F6EEDD;
+  --crema-claro: #FBF6EB;
+  --crema-oscuro: #EFE3CB;
+  --blanco: #FFFDF8;
+
+  --tinta: #1E1A14;
+  --tinta-suave: #5C5342;
+  --tinta-tenue: #8A7A5E;
+
+  --naranja: #D06A2C;
+  --naranja-oscuro: #B5541E;
+  --naranja-claro: #F2D9BC;
+
+  --mostaza: #E3A63B;
+  --mostaza-claro: #F3E3BE;
+
+  --bosque: #3E5A40;
+  --bosque-oscuro: #2F4632;
+  --bosque-claro: #E4EAE0;
+
+  --surface-page: var(--crema);
+  --surface-card: var(--blanco);
+  --surface-sunken: var(--crema-oscuro);
+  --surface-inverse: var(--tinta);
+
+  --text-body: var(--tinta);
+  --text-muted: var(--tinta-suave);
+  --text-faint: var(--tinta-tenue);
+  --text-inverse: var(--crema);
+
+  --accent: var(--naranja);
+  --accent-hover: var(--naranja-oscuro);
+  --accent-contrast: var(--blanco);
+  --support: var(--bosque);
+  --support-hover: var(--bosque-oscuro);
+  --support-soft: var(--bosque-claro);
+  --highlight: var(--mostaza);
+  --highlight-soft: var(--mostaza-claro);
+
+  --border-soft: #E8DCC2;
+  --border-strong: #D8C9A8;
+  --focus-ring: var(--mostaza);
+
+  /* ── Tipografía ────────────────────────────────────── */
+  --font-display: 'Alan Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Alan Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-md: 16px;
+  --text-lg: 19px;
+  --display-sm: 24px;
+  --display-md: 32px;
+  --display-lg: 44px;
+  --display-xl: 64px;
+
+  --leading-display: 1.15;
+  --leading-body: 1.6;
+  --tracking-caps: 0.08em;
+  --tracking-display: -0.01em;
+  --meta-size: 12px;
+  --meta-tracking: 0.05em;
+
+  /* ── Espaciado / radios / sombras ──────────────────── */
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --radius-l: 24px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(30, 26, 20, 0.05), 0 6px 20px rgba(30, 26, 20, 0.07);
+  --shadow-raised: 0 2px 4px rgba(30, 26, 20, 0.08), 0 12px 32px rgba(30, 26, 20, 0.12);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-slow: 300ms;
+
+  font-family: var(--font-body);
+}
+
+/* Metadata mono en mayúsculas (componente Meta del kit) */
+.brand-forma .meta-caps {
+  font-family: var(--font-mono);
+  font-size: var(--meta-size);
+  letter-spacing: var(--meta-tracking);
+  text-transform: uppercase;
+}
+
+/* Botones (componente Button del kit) */
+.brand-forma .btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 11px 22px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.brand-forma .btn-sm { font-size: 13px; padding: 8px 16px; }
+.brand-forma .btn-lg { font-size: 16px; padding: 14px 28px; }
+
+.brand-forma .btn-primary { background: var(--accent); color: var(--accent-contrast); }
+.brand-forma .btn-primary:hover { background: var(--accent-hover); }
+
+.brand-forma .btn-support { background: var(--support); color: var(--crema); }
+.brand-forma .btn-support:hover { background: var(--support-hover); }
+
+.brand-forma .btn-ghost { background: transparent; color: var(--crema); }
+.brand-forma .btn-ghost:hover { background: rgba(246, 238, 221, 0.12); }
+
+/* Tags (componente Tag del kit) */
+.brand-forma .tag {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.brand-forma .tag-bosque { background: var(--support-soft); color: var(--support); }
+.brand-forma .tag-tinta { background: var(--surface-inverse); color: var(--text-inverse); }
+
+/* Chips de filtro de la bitácora (ambiente noche) */
+.brand-forma .chip {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid rgba(246, 238, 221, 0.3);
+  background: transparent;
+  color: var(--crema-oscuro);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.brand-forma .chip.activo {
+  border-color: var(--mostaza);
+  background: var(--mostaza);
+  color: var(--tinta);
+}
+
+/* Tarjeta de proyecto (componente ProjectCard del kit) */
+.brand-forma .project-card {
+  background: var(--surface-card);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--duration-slow) var(--ease-out);
+  display: flex;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-forma .project-card:hover {
+  box-shadow: var(--shadow-raised);
+}
+
+/* Input (componente Input del kit) */
+.brand-forma .input-brand {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text-body);
+  background: var(--blanco);
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-strong);
+  outline: none;
+  border-radius: var(--radius-s);
+  padding: 11px 14px;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.brand-forma .input-brand:focus {
+  border-color: var(--support);
+  outline: 3px solid var(--support-soft);
+}
+
+.brand-forma .input-brand::placeholder {
+  color: var(--text-faint);
+}
