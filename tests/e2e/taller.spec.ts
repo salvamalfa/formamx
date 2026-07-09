@@ -13,6 +13,7 @@ const ORDER = {
   payment_method: 'card',
   customer: { name: 'Ana Prueba', email: 'ana@example.com', phone: '+525511112222' },
   shipping: { name: 'Ana Prueba', address: { line1: 'Av. Insurgentes 100', city: 'CDMX', postal_code: '06700' } },
+  jobs: [] as unknown[],
 };
 
 async function mockApi(page: Page, opts: { spools?: (string | null)[] } = {}) {
@@ -59,6 +60,64 @@ test('las instrucciones de filamento avisan si falta un color en el AMS', async 
   await expect(page.getByText('cuerpo: Blanco')).toBeVisible();
   await expect(page.getByText('pantalla: Azul · carga')).toBeVisible();
   await expect(page.getByText('tapa: Rojo · carga')).toBeVisible();
+});
+
+test('un pedido en cola con filamentos cargados se puede mandar a imprimir', async ({ page }) => {
+  const enCola = { ...ORDER, status: 'en_cola' };
+  let dispatched = false;
+  await mockApi(page, { spools: ['blanco', 'azul', 'rojo', null] });
+  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [enCola] } }));
+  await page.route('**/api/admin/orders/ord_1/dispatch', (route) => {
+    dispatched = true;
+    return route.fulfill({
+      json: {
+        jobs: [
+          { id: 'job_1', order_id: 'ord_1', part: 'pantalla', file_key: 'pantalla/tessera', colors: ['azul'], status: 'queued', progress_pct: null, message: null },
+          { id: 'job_2', order_id: 'ord_1', part: 'cuerpo_tapa', file_key: 'cuerpo_tapa/cuerpo_tapa', colors: ['blanco', 'rojo'], status: 'queued', progress_pct: null, message: null },
+        ],
+      },
+    });
+  });
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByRole('button', { name: 'Imprimir' }).click();
+  await expect(page.getByText('Cuerpo + tapa')).toBeVisible();
+  expect(dispatched).toBe(true);
+});
+
+test('sin los filamentos cargados el botón Imprimir queda deshabilitado', async ({ page }) => {
+  const enCola = { ...ORDER, status: 'en_cola' };
+  await mockApi(page, { spools: [null, null, null, null] });
+  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [enCola] } }));
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByRole('button', { name: 'Imprimir' })).toBeDisabled();
+});
+
+test('un trabajo fallido muestra el motivo y permite reintentar', async ({ page }) => {
+  const conFallo = {
+    ...ORDER,
+    status: 'en_cola',
+    jobs: [
+      { id: 'job_1', order_id: 'ord_1', part: 'pantalla', file_key: 'pantalla/tessera', colors: ['azul'], status: 'failed', progress_pct: null, message: 'falta azul en el AMS' },
+    ],
+  };
+  let requeued = false;
+  await mockApi(page);
+  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [conFallo] } }));
+  await page.route('**/api/admin/jobs/job_1/requeue', (route) => {
+    requeued = true;
+    return route.fulfill({ json: { ...conFallo.jobs[0], status: 'queued', message: null } });
+  });
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('falta azul en el AMS')).toBeVisible();
+  await page.getByRole('button', { name: 'Reintentar' }).click();
+  await expect(page.getByText('falta azul en el AMS')).toHaveCount(0);
+  expect(requeued).toBe(true);
 });
 
 test('el botón avanza el estado del pedido', async ({ page }) => {

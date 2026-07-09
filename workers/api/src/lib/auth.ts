@@ -17,8 +17,8 @@ async function safeEqual(a: string, b: string): Promise<boolean> {
 }
 
 // Middleware de bearer contra un secreto del entorno. El dashboard usa
-// ADMIN_TOKEN; el agente de impresión usará su propio token (fase 3).
-export function bearer(secretName: 'ADMIN_TOKEN') {
+// ADMIN_TOKEN; el agente de impresión usa AGENT_TOKEN.
+export function bearer(secretName: 'ADMIN_TOKEN' | 'AGENT_TOKEN') {
   return async (c: Context<AppContext>, next: Next) => {
     const expected = c.env[secretName];
     const header = c.req.header('Authorization') ?? '';

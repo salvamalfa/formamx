@@ -7,6 +7,9 @@ export interface Env {
   SITE_ORIGIN: string;
   // Bearer del dashboard /taller.
   ADMIN_TOKEN: string;
+  // Bearer del agente de impresión (la PC junto a la impresora). Separado del
+  // ADMIN_TOKEN: el token del dashboard nunca vive en esa PC ni viceversa.
+  AGENT_TOKEN: string;
 }
 
 export type AppContext = { Bindings: Env };

@@ -23,6 +23,18 @@ export interface Order {
       country?: string;
     };
   } | null;
+  jobs: PrintJob[];
+}
+
+export interface PrintJob {
+  id: string;
+  order_id: string;
+  part: 'pantalla' | 'cuerpo_tapa';
+  file_key: string;
+  colors: string[];
+  status: 'queued' | 'claimed' | 'printing' | 'done' | 'failed' | 'canceled';
+  progress_pct: number | null;
+  message: string | null;
 }
 
 export interface Spool {
@@ -45,7 +57,10 @@ async function call<T>(token: string, path: string, init: RequestInit = {}): Pro
 }
 
 export const getOrders = (token: string) =>
-  call<{ orders: Order[] }>(token, '/orders').then((r) => r.orders);
+  call<{ orders: Order[] }>(token, '/orders').then((r) =>
+    // jobs llegó en fase 3; se normaliza por si responde un worker anterior.
+    r.orders.map((o) => ({ ...o, jobs: o.jobs ?? [] })),
+  );
 
 export const patchOrder = (token: string, id: string, status: string) =>
   call<Order>(token, `/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
@@ -58,3 +73,11 @@ export const putSpools = (token: string, slots: Spool[]) =>
     method: 'PUT',
     body: JSON.stringify({ slots }),
   }).then((r) => r.slots);
+
+export const dispatchOrder = (token: string, id: string) =>
+  call<{ jobs: PrintJob[] }>(token, `/orders/${id}/dispatch`, { method: 'POST' }).then(
+    (r) => r.jobs,
+  );
+
+export const requeueJob = (token: string, id: string) =>
+  call<PrintJob>(token, `/jobs/${id}/requeue`, { method: 'POST' });
