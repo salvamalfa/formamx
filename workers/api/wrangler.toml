@@ -8,8 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "formamx"
-# Sustituir por el id real que devuelve `wrangler d1 create formamx` (no es secreto).
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "98dbf2ef-7777-4e1e-85d5-02b3734148b4"
 
 [vars]
 SITE_ORIGIN = "https://formamx.com"
