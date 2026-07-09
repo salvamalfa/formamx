@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { bearer } from '../lib/auth';
-import { isSpoolColor } from '../lib/catalog';
+import { isSpoolColor, validateLampConfig } from '../lib/catalog';
+import { shapeJob, type PrintJobRow } from '../lib/jobs';
 import { canTransition } from '../lib/orders';
 
 export const admin = new Hono<AppContext>();
@@ -67,7 +68,92 @@ admin.get('/orders', async (c) => {
       ).bind(limit);
 
   const { results } = await query.all<OrderFullRow>();
-  return c.json({ orders: results.map(shapeOrder) });
+
+  // Trabajos de impresión de los pedidos listados, en una sola consulta.
+  const jobsByOrder = new Map<string, ReturnType<typeof shapeJob>[]>();
+  if (results.length) {
+    const ids = results.map((o) => o.id);
+    const placeholders = ids.map(() => '?').join(',');
+    const { results: jobs } = await c.env.DB.prepare(
+      `SELECT * FROM print_jobs WHERE order_id IN (${placeholders}) ORDER BY created_at`,
+    )
+      .bind(...ids)
+      .all<PrintJobRow>();
+    for (const j of jobs) {
+      const list = jobsByOrder.get(j.order_id) ?? [];
+      list.push(shapeJob(j));
+      jobsByOrder.set(j.order_id, list);
+    }
+  }
+
+  return c.json({
+    orders: results.map((row) => ({ ...shapeOrder(row), jobs: jobsByOrder.get(row.id) ?? [] })),
+  });
+});
+
+// Despacha un pedido de lámpara a la impresora: crea sus 2 trabajos
+// (pantalla en su color, cuerpo+tapa con blanco + color de tapa).
+admin.post('/orders/:id/dispatch', async (c) => {
+  const id = c.req.param('id');
+  const order = await c.env.DB.prepare('SELECT * FROM orders WHERE id = ?')
+    .bind(id)
+    .first<OrderFullRow>();
+  if (!order) return c.json({ error: 'no_existe' }, 404);
+  if (order.status !== 'en_cola') {
+    return c.json({ error: 'estado_invalido', status: order.status }, 409);
+  }
+  const config = validateLampConfig(parseJson(order.config_json));
+  if (!config) return c.json({ error: 'sin_config' }, 409);
+
+  const existing = await c.env.DB.prepare(
+    'SELECT COUNT(*) AS n FROM print_jobs WHERE order_id = ?',
+  )
+    .bind(id)
+    .first<{ n: number }>();
+  if (existing && existing.n > 0) return c.json({ error: 'ya_despachado' }, 409);
+
+  const jobs = [
+    {
+      part: 'pantalla',
+      file_key: `pantalla/${config.model}`,
+      colors: [config.pantalla],
+    },
+    {
+      part: 'cuerpo_tapa',
+      file_key: 'cuerpo_tapa/cuerpo_tapa',
+      colors: ['blanco', config.tapa],
+    },
+  ];
+  await c.env.DB.batch(
+    jobs.map((j) =>
+      c.env.DB.prepare(
+        'INSERT INTO print_jobs (id, order_id, part, file_key, colors_json) VALUES (?, ?, ?, ?, ?)',
+      ).bind(`job_${crypto.randomUUID()}`, id, j.part, j.file_key, JSON.stringify(j.colors)),
+    ),
+  );
+
+  const { results } = await c.env.DB.prepare(
+    'SELECT * FROM print_jobs WHERE order_id = ? ORDER BY created_at',
+  )
+    .bind(id)
+    .all<PrintJobRow>();
+  return c.json({ jobs: results.map(shapeJob) });
+});
+
+// Reencola un trabajo fallido (botón Reintentar del dashboard).
+admin.post('/jobs/:id/requeue', async (c) => {
+  const id = c.req.param('id');
+  const updated = await c.env.DB.prepare(
+    `UPDATE print_jobs
+     SET status = 'queued', progress_pct = NULL, message = NULL, claimed_at = NULL,
+         updated_at = datetime('now')
+     WHERE id = ? AND status = 'failed'
+     RETURNING *`,
+  )
+    .bind(id)
+    .first<PrintJobRow>();
+  if (!updated) return c.json({ error: 'no_reencolable' }, 409);
+  return c.json(shapeJob(updated));
 });
 
 // Avanza el estado del pedido siguiendo el grafo permitido.

@@ -8,11 +8,14 @@ import {
   type LampImageManifest,
 } from '../config/lamps';
 import {
+  dispatchOrder,
   getOrders,
   getSpools,
   patchOrder,
   putSpools,
+  requeueJob,
   type Order,
+  type PrintJob,
   type Spool,
 } from '../lib/tallerApi';
 
@@ -35,6 +38,20 @@ const STATUS_LABEL: Record<string, string> = {
   lista: 'Lista',
   enviada: 'Enviada',
   cancelada: 'Cancelada',
+};
+
+const JOB_STATUS_LABEL: Record<PrintJob['status'], string> = {
+  queued: 'en cola',
+  claimed: 'preparando',
+  printing: 'imprimiendo',
+  done: 'lista',
+  failed: 'falló',
+  canceled: 'cancelado',
+};
+
+const PART_LABEL: Record<PrintJob['part'], string> = {
+  pantalla: 'Pantalla',
+  cuerpo_tapa: 'Cuerpo + tapa',
 };
 
 // Colores que puede cargar una bobina: blanco (cuerpo) + los 6 del catálogo.
@@ -61,7 +78,11 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
   }, []);
 
   useEffect(() => {
-    if (token) void load(token);
+    if (!token) return;
+    void load(token);
+    // Refresco periódico para ver avanzar las impresiones sin recargar.
+    const timer = setInterval(() => void load(token), 30_000);
+    return () => clearInterval(timer);
   }, [token]);
 
   async function load(t: string) {
@@ -113,6 +134,34 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
     } catch {
       setOrders(prev);
       setError('No se pudo cambiar el estado.');
+    }
+  }
+
+  // Manda un pedido a la cola de impresión (crea sus 2 trabajos).
+  async function dispatch(order: Order) {
+    if (!token) return;
+    try {
+      const jobs = await dispatchOrder(token, order.id);
+      setOrders((os) => os.map((o) => (o.id === order.id ? { ...o, jobs } : o)));
+    } catch {
+      setError('No se pudo despachar a la impresora.');
+    }
+  }
+
+  // Reencola un trabajo fallido.
+  async function retry(job: PrintJob) {
+    if (!token) return;
+    try {
+      const updated = await requeueJob(token, job.id);
+      setOrders((os) =>
+        os.map((o) =>
+          o.id === job.order_id
+            ? { ...o, jobs: o.jobs.map((j) => (j.id === job.id ? updated : j)) }
+            : o,
+        ),
+      );
+    } catch {
+      setError('No se pudo reencolar el trabajo.');
     }
   }
 
@@ -192,6 +241,8 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
               manifest={manifest}
               spools={spools}
               onAdvance={() => advance(order)}
+              onDispatch={() => dispatch(order)}
+              onRetry={retry}
             />
           ))}
         </div>
@@ -250,14 +301,25 @@ function OrderCard({
   manifest,
   spools,
   onAdvance,
+  onDispatch,
+  onRetry,
 }: {
   order: Order;
   manifest: LampImageManifest;
   spools: Spool[];
   onAdvance: () => void;
+  onDispatch: () => void;
+  onRetry: (job: PrintJob) => void;
 }) {
   const step = NEXT_STEP[order.status];
   const loaded = new Set(spools.map((s) => s.color_id).filter(Boolean) as string[]);
+
+  // El pedido de lámpara en cola y sin despachar puede mandarse a imprimir;
+  // solo si los 3 filamentos que necesita están cargados en el AMS.
+  const canDispatch = order.config && order.status === 'en_cola' && order.jobs.length === 0;
+  const missingColors = order.config
+    ? ['blanco', order.config.pantalla, order.config.tapa].filter((c) => !loaded.has(c))
+    : [];
 
   return (
     <article class="flex flex-col gap-4 rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)] sm:flex-row">
@@ -275,15 +337,74 @@ function OrderCard({
           <FilamentNeeds config={order.config} loaded={loaded} />
         )}
 
+        {order.jobs.length > 0 && <JobsStrip jobs={order.jobs} onRetry={onRetry} />}
+
         <ShippingBlock order={order} />
 
-        {step && (
-          <button type="button" class="btn btn-sm btn-primary mt-1 self-start" onClick={onAdvance}>
-            {step.label}
-          </button>
-        )}
+        <div class="mt-1 flex flex-wrap items-center gap-2">
+          {canDispatch && (
+            <button
+              type="button"
+              class="btn btn-sm btn-primary disabled:cursor-default disabled:opacity-60"
+              disabled={missingColors.length > 0}
+              title={missingColors.length ? `Carga en el AMS: ${missingColors.join(', ')}` : undefined}
+              onClick={onDispatch}
+            >
+              Imprimir
+            </button>
+          )}
+          {step && (
+            <button
+              type="button"
+              class={`btn btn-sm ${canDispatch ? 'btn-ghost' : 'btn-primary'}`}
+              onClick={onAdvance}
+            >
+              {step.label}
+            </button>
+          )}
+        </div>
       </div>
     </article>
+  );
+}
+
+// Estado de las piezas en la impresora, con barra de progreso.
+function JobsStrip({ jobs, onRetry }: { jobs: PrintJob[]; onRetry: (job: PrintJob) => void }) {
+  return (
+    <div class="flex flex-col gap-1.5 rounded-[var(--radius-s)] bg-[var(--crema)] p-2.5">
+      {jobs.map((job) => (
+        <div key={job.id} class="flex items-center gap-2.5">
+          <span class="meta-caps w-24 shrink-0 text-[10px] text-[var(--text-muted)]">
+            {PART_LABEL[job.part]}
+          </span>
+          <div class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--crema-oscuro)]">
+            <div
+              class={`h-full rounded-[var(--radius-pill)] ${
+                job.status === 'failed' ? 'bg-[var(--naranja)]' : 'bg-[var(--support)]'
+              }`}
+              style={{
+                width: `${job.status === 'done' ? 100 : (job.progress_pct ?? 0)}%`,
+                transition: 'width 300ms var(--ease-out)',
+              }}
+            />
+          </div>
+          <span class="meta-caps w-20 shrink-0 text-right text-[10px] text-[var(--text-faint)]">
+            {JOB_STATUS_LABEL[job.status]}
+            {job.status === 'printing' && job.progress_pct != null ? ` ${job.progress_pct}%` : ''}
+          </span>
+          {job.status === 'failed' && (
+            <button type="button" class="btn btn-sm btn-ghost shrink-0" onClick={() => onRetry(job)}>
+              Reintentar
+            </button>
+          )}
+        </div>
+      ))}
+      {jobs.some((j) => j.status === 'failed' && j.message) && (
+        <p class="m-0 text-[10px] text-[var(--naranja-oscuro)]" style={{ fontFamily: 'var(--font-mono)' }}>
+          {jobs.find((j) => j.status === 'failed' && j.message)?.message}
+        </p>
+      )}
+    </div>
   );
 }
 
