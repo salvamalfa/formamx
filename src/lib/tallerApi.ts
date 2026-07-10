@@ -41,6 +41,9 @@ export interface Spool {
   slot: number;
   color_id: string | null;
   material: string | null;
+  // Color exacto que reporta la impresora ('#RRGGBB'), tenga o no
+  // correspondencia con el catálogo.
+  color_hex: string | null;
 }
 
 async function call<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
@@ -68,12 +71,6 @@ export const patchOrder = (token: string, id: string, status: string) =>
 
 export const getSpools = (token: string) =>
   call<{ slots: Spool[] }>(token, '/spools').then((r) => r.slots);
-
-export const putSpools = (token: string, slots: Spool[]) =>
-  call<{ slots: Spool[] }>(token, '/spools', {
-    method: 'PUT',
-    body: JSON.stringify({ slots }),
-  }).then((r) => r.slots);
 
 export const getPrinter = (token: string) =>
   call<{ bed_clear: boolean; ams_synced_at: string | null }>(token, '/printer');

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { bearer } from '../lib/auth';
-import { isSpoolColor, isSpoolMaterial, validateLampConfig } from '../lib/catalog';
+import { validateLampConfig } from '../lib/catalog';
 import { shapeJob, type PrintJobRow } from '../lib/jobs';
 import { canTransition } from '../lib/orders';
 
@@ -198,45 +198,15 @@ interface SpoolRow {
   slot: number;
   color_id: string | null;
   material: string | null;
+  color_hex: string | null;
 }
 
-// Estado de las 4 ranuras del AMS (color y material cargados en cada una).
+// Estado de las 4 ranuras del AMS, tal como lo reporta la impresora vía el
+// agente (POST /api/agent/ams). Solo lectura: la app no edita el AMS — el
+// AMS dicta el estado de la app.
 admin.get('/spools', async (c) => {
   const { results } = await c.env.DB.prepare(
-    'SELECT slot, color_id, material FROM spool_slots ORDER BY slot',
-  ).all<SpoolRow>();
-  return c.json({ slots: results });
-});
-
-admin.put('/spools', async (c) => {
-  const body = await c.req
-    .json<{ slots?: SpoolRow[] }>()
-    .catch(() => ({}) as { slots?: SpoolRow[] });
-  const slots = body.slots;
-  if (!Array.isArray(slots)) return c.json({ error: 'slots_requerido' }, 400);
-
-  for (const s of slots) {
-    if (typeof s.slot !== 'number' || s.slot < 0 || s.slot > 3) {
-      return c.json({ error: 'slot_invalido' }, 400);
-    }
-    if (s.color_id !== null && !isSpoolColor(s.color_id)) {
-      return c.json({ error: 'color_invalido', slot: s.slot }, 400);
-    }
-    if (s.material != null && !isSpoolMaterial(s.material)) {
-      return c.json({ error: 'material_invalido', slot: s.slot }, 400);
-    }
-  }
-
-  await c.env.DB.batch(
-    slots.map((s) =>
-      c.env.DB.prepare(
-        "UPDATE spool_slots SET color_id = ?, material = ?, updated_at = datetime('now') WHERE slot = ?",
-      ).bind(s.color_id, s.material ?? null, s.slot),
-    ),
-  );
-
-  const { results } = await c.env.DB.prepare(
-    'SELECT slot, color_id, material FROM spool_slots ORDER BY slot',
+    'SELECT slot, color_id, material, color_hex FROM spool_slots ORDER BY slot',
   ).all<SpoolRow>();
   return c.json({ slots: results });
 });

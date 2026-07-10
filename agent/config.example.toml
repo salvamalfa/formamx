@@ -9,10 +9,10 @@ agent_token = "PEGA-AQUI-EL-AGENT-TOKEN"
 poll_seconds = 20
 
 # Carpeta con los 3MF rebanados (exportados de Bambu Studio), una pieza por
-# archivo, cada uno de un solo filamento:
-#   <files_dir>\pantalla\tessera.gcode.3mf   (uno por modelo)
-#   <files_dir>\cuerpo\cuerpo.gcode.3mf
-#   <files_dir>\tapa\tapa.gcode.3mf
+# archivo, un solo filamento, y EL MATERIAL EXPLÍCITO en el nombre:
+#   <files_dir>\pantalla\tessera.petg.gcode.3mf   (uno por modelo y material)
+#   <files_dir>\cuerpo\cuerpo.pla.gcode.3mf
+#   <files_dir>\tapa\tapa.pla.gcode.3mf
 files_dir = 'C:\formamx\3mf'
 
 # true = ensayo: simula la impresión sin tocar la impresora.

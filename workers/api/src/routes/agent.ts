@@ -39,11 +39,20 @@ agent.get('/jobs/next', async (c) => {
   if (!job) return c.body(null, 204);
 
   const { results: spools } = await c.env.DB.prepare(
-    'SELECT slot, color_id, material FROM spool_slots ORDER BY slot',
-  ).all<{ slot: number; color_id: string | null; material: string | null }>();
+    'SELECT slot, color_id, material, color_hex FROM spool_slots ORDER BY slot',
+  ).all<{ slot: number; color_id: string | null; material: string | null; color_hex: string | null }>();
 
   return c.json({ job: shapeJob(job), spools });
 });
+
+// El hex viene de la impresora como RGBA (8 dígitos) o RGB (6); se normaliza
+// a '#RRGGBB' para mostrarlo tal cual en el panel.
+function normalizeHex(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const h = raw.replace('#', '');
+  if (!/^[0-9a-fA-F]{6,8}$/.test(h)) return null;
+  return `#${h.slice(0, 6).toUpperCase()}`;
+}
 
 // El agente reporta lo que la impresora dice tener cargado en el AMS
 // (tray_type y tray_color de cada ranura). El color hex se empareja con el
@@ -59,14 +68,15 @@ agent.post('/ams', async (c) => {
     .map((s) => ({
       slot: s.slot,
       color_id: nearestCatalogColor(s.color_hex),
+      color_hex: normalizeHex(s.color_hex),
       material: isSpoolMaterial(s.material) ? s.material : null,
     }));
 
   await c.env.DB.batch([
     ...updates.map((s) =>
       c.env.DB.prepare(
-        "UPDATE spool_slots SET color_id = ?, material = ?, updated_at = datetime('now') WHERE slot = ?",
-      ).bind(s.color_id, s.material, s.slot),
+        "UPDATE spool_slots SET color_id = ?, color_hex = ?, material = ?, updated_at = datetime('now') WHERE slot = ?",
+      ).bind(s.color_id, s.color_hex, s.material, s.slot),
     ),
     c.env.DB.prepare(
       "UPDATE printer_flags SET ams_synced_at = datetime('now') WHERE id = 1",
