@@ -1,0 +1,25 @@
+# Configuración del agente de impresión de formamx.
+# Copia este archivo como C:\formamx\config.toml y llena tus valores.
+# La copia real NUNCA se sube al repo (contiene el token del agente).
+
+api_base = "https://formamx-api.formamx.workers.dev"
+agent_token = "PEGA-AQUI-EL-AGENT-TOKEN"
+
+# Cada cuántos segundos preguntar por trabajos nuevos.
+poll_seconds = 20
+
+# Carpeta con los 3MF rebanados (exportados de Bambu Studio):
+#   <files_dir>\pantalla\tessera.gcode.3mf   (uno por modelo)
+#   <files_dir>\cuerpo_tapa\cuerpo_tapa.gcode.3mf
+files_dir = 'C:\formamx\3mf'
+
+# true = ensayo: simula la impresión sin tocar la impresora.
+dry_run = true
+dry_run_seconds = 20
+
+log_file = 'C:\formamx\agent.log'
+
+[printer]
+ip = "192.168.1.83"
+serial = "PEGA-AQUI-EL-NUMERO-DE-SERIE"
+access_code = "28433424"

@@ -33,3 +33,7 @@ pnpm-debug.log*
 # Playwright
 test-results/
 playwright-report/
+
+# Python (agente)
+__pycache__/
+*.pyc
