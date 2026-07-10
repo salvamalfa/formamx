@@ -33,21 +33,23 @@ notepad C:\formamx\config.toml
 
 # 3. Carpeta de los 3MF rebanados
 mkdir C:\formamx\3mf\pantalla
-mkdir C:\formamx\3mf\cuerpo_tapa
+mkdir C:\formamx\3mf\cuerpo
+mkdir C:\formamx\3mf\tapa
 ```
 
-Los 3MF se exportan de Bambu Studio con **"Exportar plato rebanado"**
-(.gcode.3mf), con nombres exactos:
+Cada lámpara son **3 impresiones separadas** (pantalla, cuerpo, tapa). Los 3MF
+se exportan de Bambu Studio con **"Exportar plato rebanado"** (.gcode.3mf),
+todos de **un solo filamento** (PLA genérico; el color real lo pone el AMS al
+imprimir), con nombres exactos:
 
 ```
 C:\formamx\3mf\pantalla\tessera.gcode.3mf     (y diamond, fluted, rhombus, torsion)
-C:\formamx\3mf\cuerpo_tapa\cuerpo_tapa.gcode.3mf
+C:\formamx\3mf\cuerpo\cuerpo.gcode.3mf
+C:\formamx\3mf\tapa\tapa.gcode.3mf
 ```
 
-- Cada **pantalla** se rebana con 1 filamento (PLA genérico; el color real lo
-  pone el AMS al imprimir).
-- El **cuerpo_tapa** es un plato con 2 filamentos: **F1 = cuerpo (blanco),
-  F2 = tapa (color)**. Ese orden importa: es el que usa el mapeo.
+Para arrancar basta con los 3 archivos de un modelo (p. ej. tessera): los
+otros modelos de pantalla se agregan cuando quieras.
 
 ## Probar en ensayo (sin impresora)
 

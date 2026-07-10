@@ -75,7 +75,7 @@ agent.post('/jobs/:id/status', async (c) => {
     .run();
 
   // Efectos sobre el pedido y avisos al taller.
-  const label = job.part === 'pantalla' ? 'pantalla' : 'cuerpo y tapa';
+  const label = job.part;
   if (next === 'printing' && job.status === 'claimed') {
     // Primera pieza que empieza: el pedido pasa a imprimiendo (guardado).
     const moved = await c.env.DB.prepare(
@@ -96,13 +96,13 @@ agent.post('/jobs/:id/status', async (c) => {
       .bind(job.order_id)
       .first<{ n: number }>();
     if (pending && pending.n === 0) {
-      // Ambas piezas listas. El pedido se queda en imprimiendo: pasarlo a
+      // Todas las piezas listas. El pedido se queda en imprimiendo: pasarlo a
       // `lista` es gate humano (inspección) desde /taller.
       c.executionCtx.waitUntil(
         notify(
           c.env.NTFY_TOPIC,
           'forma: salio de la impresora',
-          `Pedido ${job.order_id}: las dos piezas están listas. Revísalas y márcalo Lista en /taller.`,
+          `Pedido ${job.order_id}: todas las piezas están listas. Revísalas y márcalo Lista en /taller.`,
         ),
       );
     }

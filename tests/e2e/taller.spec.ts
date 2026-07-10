@@ -73,7 +73,8 @@ test('un pedido en cola con filamentos cargados se puede mandar a imprimir', asy
       json: {
         jobs: [
           { id: 'job_1', order_id: 'ord_1', part: 'pantalla', file_key: 'pantalla/tessera', colors: ['azul'], status: 'queued', progress_pct: null, message: null },
-          { id: 'job_2', order_id: 'ord_1', part: 'cuerpo_tapa', file_key: 'cuerpo_tapa/cuerpo_tapa', colors: ['blanco', 'rojo'], status: 'queued', progress_pct: null, message: null },
+          { id: 'job_2', order_id: 'ord_1', part: 'cuerpo', file_key: 'cuerpo/cuerpo', colors: ['blanco'], status: 'queued', progress_pct: null, message: null },
+          { id: 'job_3', order_id: 'ord_1', part: 'tapa', file_key: 'tapa/tapa', colors: ['rojo'], status: 'queued', progress_pct: null, message: null },
         ],
       },
     });
@@ -81,8 +82,11 @@ test('un pedido en cola con filamentos cargados se puede mandar a imprimir', asy
   await page.goto('/taller');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
+  // Las lámparas en cola ya no tienen botón de avance manual: solo Imprimir
+  // (el agente mueve el estado al imprimir de verdad).
+  await expect(page.getByRole('button', { name: 'Imprimiendo' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Imprimir' }).click();
-  await expect(page.getByText('Cuerpo + tapa')).toBeVisible();
+  await expect(page.getByText('Tapa', { exact: true })).toBeVisible();
   expect(dispatched).toBe(true);
 });
 
@@ -118,6 +122,32 @@ test('un trabajo fallido muestra el motivo y permite reintentar', async ({ page 
   await page.getByRole('button', { name: 'Reintentar' }).click();
   await expect(page.getByText('falta azul en el AMS')).toHaveCount(0);
   expect(requeued).toBe(true);
+});
+
+test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page }) => {
+  const banca = {
+    ...ORDER,
+    id: 'ord_banca',
+    product_id: 'banca-001',
+    config: null,
+    amount_mxn: 240000,
+    status: 'en_cola',
+  };
+  await mockApi(page);
+  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [banca] } }));
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Empezar' })).toBeVisible();
+
+  // Ya en marcha, el estado se lee "En progreso", no "Imprimiendo".
+  await page.route('**/api/admin/orders', (route) =>
+    route.fulfill({ json: { orders: [{ ...banca, status: 'imprimiendo' }] } }),
+  );
+  await page.getByRole('button', { name: 'Actualizar' }).click();
+  await expect(page.getByText('En progreso')).toBeVisible();
+  await expect(page.getByText('Imprimiendo')).toHaveCount(0);
 });
 
 test('el botón avanza el estado del pedido', async ({ page }) => {

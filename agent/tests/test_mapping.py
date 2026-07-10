@@ -14,8 +14,9 @@ def test_pantalla_un_filamento():
     assert compute_mapping(['rojo'], SPOOLS) == [1]
 
 
-def test_cuerpo_tapa_dos_filamentos_en_orden():
-    # F1 = blanco (cuerpo), F2 = color de tapa: el orden del 3MF se respeta.
+def test_dos_filamentos_en_orden():
+    # El mapeo respeta el orden de filamentos del 3MF (soporta platos
+    # multifilamento aunque hoy cada pieza vaya con uno solo).
     assert compute_mapping(['blanco', 'azul'], SPOOLS) == [0, 2]
 
 

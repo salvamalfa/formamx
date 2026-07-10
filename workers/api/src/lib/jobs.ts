@@ -1,7 +1,7 @@
 export interface PrintJobRow {
   id: string;
   order_id: string;
-  part: 'pantalla' | 'cuerpo_tapa';
+  part: 'pantalla' | 'cuerpo' | 'tapa';
   file_key: string;
   colors_json: string;
   status: 'queued' | 'claimed' | 'printing' | 'done' | 'failed' | 'canceled';

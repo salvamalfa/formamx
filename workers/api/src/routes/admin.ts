@@ -112,17 +112,12 @@ admin.post('/orders/:id/dispatch', async (c) => {
     .first<{ n: number }>();
   if (existing && existing.n > 0) return c.json({ error: 'ya_despachado' }, 409);
 
+  // Cada pieza es su propio archivo rebanado de un filamento; el color real
+  // lo pone el AMS al imprimir.
   const jobs = [
-    {
-      part: 'pantalla',
-      file_key: `pantalla/${config.model}`,
-      colors: [config.pantalla],
-    },
-    {
-      part: 'cuerpo_tapa',
-      file_key: 'cuerpo_tapa/cuerpo_tapa',
-      colors: ['blanco', config.tapa],
-    },
+    { part: 'pantalla', file_key: `pantalla/${config.model}`, colors: [config.pantalla] },
+    { part: 'cuerpo', file_key: 'cuerpo/cuerpo', colors: ['blanco'] },
+    { part: 'tapa', file_key: 'tapa/tapa', colors: [config.tapa] },
   ];
   await c.env.DB.batch(
     jobs.map((j) =>

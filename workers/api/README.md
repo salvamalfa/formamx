@@ -14,7 +14,7 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `GET /api/admin/orders` | `Bearer ADMIN_TOKEN` | Pedidos en curso para el dashboard `/taller`. `?status=` filtra, `?limit=`. |
 | `PATCH /api/admin/orders/:id` | `Bearer ADMIN_TOKEN` | Avanza el estado siguiendo el grafo permitido (salto ilegal → 409). |
 | `GET/PUT /api/admin/spools` | `Bearer ADMIN_TOKEN` | Estado de las 4 ranuras del AMS (qué color hay cargado). |
-| `POST /api/admin/orders/:id/dispatch` | `Bearer ADMIN_TOKEN` | Manda un pedido `en_cola` a imprimir: crea 2 trabajos (pantalla y cuerpo+tapa). |
+| `POST /api/admin/orders/:id/dispatch` | `Bearer ADMIN_TOKEN` | Manda un pedido `en_cola` a imprimir: crea 3 trabajos (pantalla, cuerpo y tapa). |
 | `POST /api/admin/jobs/:id/requeue` | `Bearer ADMIN_TOKEN` | Reencola un trabajo fallido. |
 | `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada. |
 | `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`. |
