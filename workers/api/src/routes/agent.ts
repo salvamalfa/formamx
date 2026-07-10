@@ -14,6 +14,13 @@ agent.use('*', bearer('AGENT_TOKEN'));
 // Devuelve también las bobinas actuales para que el agente calcule el
 // ams_mapping con datos frescos. 204 = nada pendiente.
 agent.get('/jobs/next', async (c) => {
+  // Candado de cama: tras una impresión, no se entrega NADA hasta que el
+  // taller confirme en /taller que retiró la pieza.
+  const flags = await c.env.DB.prepare('SELECT bed_clear FROM printer_flags WHERE id = 1').first<{
+    bed_clear: number;
+  }>();
+  if (flags && !flags.bed_clear) return c.body(null, 204);
+
   // Reencola claims abandonados antes de reclamar.
   await c.env.DB.prepare(
     `UPDATE print_jobs SET status = 'queued', claimed_at = NULL, updated_at = datetime('now')
@@ -44,11 +51,18 @@ const AGENT_TRANSITIONS: Record<string, string[]> = {
   printing: ['printing', 'done', 'failed'],
 };
 
+interface StatusBody {
+  status?: string;
+  progress_pct?: number;
+  message?: string;
+  // true cuando la impresión llegó a tocar la cama (terminada o fallida a
+  // medias): activa el candado hasta que el taller confirme que la despejó.
+  bed_dirty?: boolean;
+}
+
 agent.post('/jobs/:id/status', async (c) => {
   const id = c.req.param('id');
-  const body = await c.req
-    .json<{ status?: string; progress_pct?: number; message?: string }>()
-    .catch(() => ({}) as { status?: string; progress_pct?: number; message?: string });
+  const body = await c.req.json<StatusBody>().catch(() => ({}) as StatusBody);
   const next = body.status;
   if (!next || !['printing', 'done', 'failed'].includes(next)) {
     return c.json({ error: 'status_invalido' }, 400);
@@ -74,6 +88,12 @@ agent.post('/jobs/:id/status', async (c) => {
     )
     .run();
 
+  if (body.bed_dirty && (next === 'done' || next === 'failed')) {
+    await c.env.DB.prepare(
+      "UPDATE printer_flags SET bed_clear = 0, updated_at = datetime('now') WHERE id = 1",
+    ).run();
+  }
+
   // Efectos sobre el pedido y avisos al taller.
   const label = job.part;
   if (next === 'printing' && job.status === 'claimed') {
@@ -95,6 +115,9 @@ agent.post('/jobs/:id/status', async (c) => {
     )
       .bind(job.order_id)
       .first<{ n: number }>();
+    const confirma = body.bed_dirty
+      ? ' Retira la pieza de la cama y confirma en /taller para continuar.'
+      : '';
     if (pending && pending.n === 0) {
       // Todas las piezas listas. El pedido se queda en imprimiendo: pasarlo a
       // `lista` es gate humano (inspección) desde /taller.
@@ -102,7 +125,15 @@ agent.post('/jobs/:id/status', async (c) => {
         notify(
           c.env.NTFY_TOPIC,
           'forma: salio de la impresora',
-          `Pedido ${job.order_id}: todas las piezas están listas. Revísalas y márcalo Lista en /taller.`,
+          `Pedido ${job.order_id}: todas las piezas están listas. Revísalas y márcalo Lista en /taller.${confirma}`,
+        ),
+      );
+    } else {
+      c.executionCtx.waitUntil(
+        notify(
+          c.env.NTFY_TOPIC,
+          'forma: pieza terminada',
+          `Pedido ${job.order_id}: ${label} lista.${confirma}`,
         ),
       );
     }

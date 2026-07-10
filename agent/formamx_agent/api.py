@@ -31,12 +31,15 @@ class TallerApi:
         status: str,
         progress_pct: int | None = None,
         message: str | None = None,
+        bed_dirty: bool = False,
     ) -> None:
         body: dict = {'status': status}
         if progress_pct is not None:
             body['progress_pct'] = progress_pct
         if message is not None:
             body['message'] = message
+        if bed_dirty:
+            body['bed_dirty'] = True
         r = self.session.post(
             f'{self.base}/api/agent/jobs/{job_id}/status', json=body, timeout=self.timeout
         )

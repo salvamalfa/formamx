@@ -76,11 +76,13 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
     printer.upload(local_file, 'model.3mf')
     api.report(job_id, 'printing', progress_pct=0)
     ok, error = printer.print_file('model.3mf', subtask, ams_mapping, on_progress)
+    # La impresión tocó la cama (bien o mal): se activa el candado y no llegan
+    # más trabajos hasta que confirmes en /taller que la despejaste.
     if ok:
-        api.report(job_id, 'done', progress_pct=100)
-        log.info('trabajo %s terminado', job_id)
+        api.report(job_id, 'done', progress_pct=100, bed_dirty=True)
+        log.info('trabajo %s terminado; esperando confirmación de cama despejada', job_id)
     else:
-        api.report(job_id, 'failed', message=error or 'fallo sin detalle')
+        api.report(job_id, 'failed', message=error or 'fallo sin detalle', bed_dirty=True)
         log.error('trabajo %s falló: %s', job_id, error)
 
 

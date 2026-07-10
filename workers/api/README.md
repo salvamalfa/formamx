@@ -16,8 +16,9 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `GET/PUT /api/admin/spools` | `Bearer ADMIN_TOKEN` | Estado de las 4 ranuras del AMS (qué color hay cargado). |
 | `POST /api/admin/orders/:id/dispatch` | `Bearer ADMIN_TOKEN` | Manda un pedido `en_cola` a imprimir: crea 3 trabajos (pantalla, cuerpo y tapa). |
 | `POST /api/admin/jobs/:id/requeue` | `Bearer ADMIN_TOKEN` | Reencola un trabajo fallido. |
-| `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada. |
-| `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`. |
+| `GET/POST /api/admin/printer[/bed-clear]` | `Bearer ADMIN_TOKEN` | Candado de cama: estado y confirmación de que se retiró la pieza. |
+| `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada o la cama sigue ocupada. |
+| `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`; con `bed_dirty` activa el candado de cama. |
 
 Estados de pedido: `pendiente → pagada → en_cola → imprimiendo → lista → enviada` (+ `cancelada`).
 

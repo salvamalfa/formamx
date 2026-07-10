@@ -8,8 +8,10 @@ import {
   type LampImageManifest,
 } from '../config/lamps';
 import {
+  confirmBedClear,
   dispatchOrder,
   getOrders,
+  getPrinter,
   getSpools,
   patchOrder,
   putSpools,
@@ -80,6 +82,7 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
   const [tokenInput, setTokenInput] = useState('');
   const [orders, setOrders] = useState<Order[]>([]);
   const [spools, setSpools] = useState<Spool[]>([]);
+  const [bedClear, setBedClear] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,9 +103,10 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
     setLoading(true);
     setError(null);
     try {
-      const [o, s] = await Promise.all([getOrders(t), getSpools(t)]);
+      const [o, s, p] = await Promise.all([getOrders(t), getSpools(t), getPrinter(t)]);
       setOrders(o);
       setSpools(s);
+      setBedClear(p.bed_clear);
     } catch (err) {
       if (err instanceof Error && err.message === 'no_autorizado') {
         localStorage.removeItem(TOKEN_KEY);
@@ -148,7 +152,19 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
     }
   }
 
-  // Manda un pedido a la cola de impresión (crea sus 2 trabajos).
+  // Confirma que la cama quedó despejada: el agente vuelve a recibir trabajos.
+  async function bedCleared() {
+    if (!token) return;
+    setBedClear(true);
+    try {
+      await confirmBedClear(token);
+    } catch {
+      setBedClear(false);
+      setError('No se pudo confirmar. Reintenta.');
+    }
+  }
+
+  // Manda un pedido a la cola de impresión (crea sus trabajos).
   async function dispatch(order: Order) {
     if (!token) return;
     try {
@@ -233,6 +249,21 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
         <p class="mt-3 text-sm text-[var(--support)]" role="alert">
           {error}
         </p>
+      )}
+
+      {!bedClear && (
+        <div
+          class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-m)] bg-[var(--tinta)] p-4 text-[var(--crema)]"
+          role="alert"
+        >
+          <p class="m-0 text-sm">
+            <span class="font-bold">Hay una pieza en la cama.</span> La impresora no
+            recibirá el siguiente trabajo hasta que la retires.
+          </p>
+          <button type="button" class="btn btn-sm btn-primary shrink-0" onClick={bedCleared}>
+            Cama despejada
+          </button>
+        </div>
       )}
 
       <SpoolsPanel spools={spools} onChange={saveSpool} />

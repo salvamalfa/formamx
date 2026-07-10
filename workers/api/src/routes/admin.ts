@@ -175,6 +175,22 @@ admin.patch('/orders/:id', async (c) => {
   return c.json(shapeOrder({ ...order, status: next }));
 });
 
+// Estado físico de la impresora (por ahora solo el candado de cama).
+admin.get('/printer', async (c) => {
+  const flags = await c.env.DB.prepare('SELECT bed_clear FROM printer_flags WHERE id = 1').first<{
+    bed_clear: number;
+  }>();
+  return c.json({ bed_clear: Boolean(flags?.bed_clear ?? 1) });
+});
+
+// El taller confirma que retiró la pieza: el agente vuelve a recibir trabajos.
+admin.post('/printer/bed-clear', async (c) => {
+  await c.env.DB.prepare(
+    "UPDATE printer_flags SET bed_clear = 1, updated_at = datetime('now') WHERE id = 1",
+  ).run();
+  return c.json({ bed_clear: true });
+});
+
 interface SpoolRow {
   slot: number;
   color_id: string | null;
