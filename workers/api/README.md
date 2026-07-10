@@ -13,7 +13,7 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `POST /api/webhook/stripe` | firma Stripe | Registra pedidos. Tarjeta → `pagada`; OXXO → `pendiente` hasta que la tienda reporte el pago. |
 | `GET /api/admin/orders` | `Bearer ADMIN_TOKEN` | Pedidos en curso para el dashboard `/taller`. `?status=` filtra, `?limit=`. |
 | `PATCH /api/admin/orders/:id` | `Bearer ADMIN_TOKEN` | Avanza el estado siguiendo el grafo permitido (salto ilegal → 409). |
-| `GET/PUT /api/admin/spools` | `Bearer ADMIN_TOKEN` | Estado de las 4 ranuras del AMS (color y material cargados). |
+| `GET /api/admin/spools` | `Bearer ADMIN_TOKEN` | Estado de las 4 ranuras del AMS (solo lectura: el AMS de la impresora dicta el estado). |
 | `POST /api/agent/ams` | `Bearer AGENT_TOKEN` | El agente sube lo que la impresora reporta en el AMS; el color hex se empareja con el catálogo. |
 | `POST /api/admin/orders/:id/dispatch` | `Bearer ADMIN_TOKEN` | Manda un pedido `en_cola` a imprimir: crea 3 trabajos (pantalla, cuerpo y tapa). |
 | `POST /api/admin/jobs/:id/requeue` | `Bearer ADMIN_TOKEN` | Reencola un trabajo fallido. |

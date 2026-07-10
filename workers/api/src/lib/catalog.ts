@@ -48,9 +48,20 @@ export function nearestCatalogColor(trayColorHex: unknown): string | null {
   if (!/^[0-9a-fA-F]{6,8}$/.test(h)) return null;
   const [r, g, b] = hexToRgb(h);
 
+  // Los neutros (gris, negro, blanco) casi no tienen croma y la distancia RGB
+  // pura los empareja mal con colores saturados (un gris medio "queda cerca"
+  // del morado). Un neutro solo puede ser blanco si es claro; si no, queda
+  // fuera de catálogo.
+  const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+  if (chroma < 40) {
+    const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
+    return lightness > 225 ? 'blanco' : null;
+  }
+
   let best: string | null = null;
   let bestDist = Infinity;
   for (const s of SWATCHES) {
+    if (s.id === 'blanco') continue; // blanco solo por la rama de neutros
     const d = Math.hypot(r - s.rgb[0], g - s.rgb[1], b - s.rgb[2]);
     if (d < bestDist) {
       bestDist = d;

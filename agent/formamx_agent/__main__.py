@@ -54,24 +54,30 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
         log.warning('trabajo %s sin filamentos: %s', job_id, err)
         return
 
-    # 2. Localizar el 3MF rebanado. El material de la ranura mapeada decide la
-    #    variante (p. ej. PETG usa tessera.petg.gcode.3mf); si no hay variante
-    #    se usa el archivo genérico. En ensayo no es obligatorio que exista.
+    # 2. Localizar el 3MF rebanado. El material de la ranura mapeada es
+    #    obligatorio y va explícito en el nombre del archivo (sin genéricos).
+    #    En ensayo no es obligatorio que el archivo exista.
     material = next(
         (s.get('material') for s in spools if s['slot'] == ams_mapping[0]),
         None,
     )
-    local_file, es_variante = pick_file(files_dir, job['file_key'], material)
-    if material and not es_variante:
-        log.info(
-            'sin variante %s para %s; uso el archivo genérico %s',
-            material, job['file_key'], local_file.name,
+    if not material:
+        api.report(
+            job_id,
+            'failed',
+            message=(
+                f'la ranura {ams_mapping[0] + 1} no reporta material; '
+                'configura el filamento en la impresora'
+            ),
         )
+        log.warning('trabajo %s sin material en la ranura %s', job_id, ams_mapping[0] + 1)
+        return
+    local_file = pick_file(files_dir, job['file_key'], material)
     if not local_file.exists():
         if dry:
             log.warning('[ensayo] falta %s; continúo de todos modos', local_file)
         else:
-            api.report(job_id, 'failed', message=f'no encuentro {local_file}')
+            api.report(job_id, 'failed', message=f'no encuentro {local_file.name} en {local_file.parent}')
             return
 
     # 3. Subir y arrancar; el progreso se reporta cada >=5 % para no gastar
@@ -106,16 +112,25 @@ def main() -> None:
     setup_logging(cfg.get('log_file'))
 
     dry = bool(cfg.get('dry_run', False))
+    # La impresora real, si está configurada. En ensayo se usa SOLO para leer
+    # el AMS (leer no imprime nada); las impresiones las simula DryPrinter.
+    real_printer = None
+    if 'printer' in cfg:
+        from .printer import BambuPrinter
+
+        p = cfg['printer']
+        real_printer = BambuPrinter(p['ip'], p['serial'], p['access_code'])
+
     if dry:
         from .dryrun import DryPrinter
 
         printer = DryPrinter(float(cfg.get('dry_run_seconds', 20)))
-        log.info('modo ENSAYO: no se toca la impresora')
+        log.info('modo ENSAYO: las impresiones se simulan')
     else:
-        from .printer import BambuPrinter
-
-        p = cfg['printer']
-        printer = BambuPrinter(p['ip'], p['serial'], p['access_code'])
+        if real_printer is None:
+            log.error('falta la sección [printer] en el config; no puedo imprimir')
+            sys.exit(1)
+        printer = real_printer
 
     api = TallerApi(cfg['api_base'], cfg['agent_token'])
     files_dir = Path(cfg.get('files_dir', '.'))
@@ -123,18 +138,24 @@ def main() -> None:
     last_ams_sync = 0.0
     log.info('agente listo; preguntando cada %ss a %s', poll, cfg['api_base'])
 
+    if real_printer is None:
+        log.warning('sin [printer] en config; el panel AMS de /taller no se sincroniza')
+
     while True:
         try:
             # Sincroniza lo que la impresora dice tener en el AMS (material y
-            # color por ranura) para que /taller lo muestre solo.
-            if time.monotonic() - last_ams_sync >= AMS_SYNC_SECONDS:
+            # color por ranura) para que /taller lo muestre solo. Siempre se
+            # loguea el resultado: éxito, fallo o impresora sin configurar.
+            if real_printer is not None and time.monotonic() - last_ams_sync >= AMS_SYNC_SECONDS:
                 try:
-                    trays = printer.read_ams()
+                    trays = real_printer.read_ams()
                     if trays:
                         api.sync_ams(trays)
                         log.info('AMS sincronizado: %s', trays)
+                    else:
+                        log.warning('no pude leer el AMS: la impresora no respondió a tiempo')
                 except Exception as err:
-                    log.warning('no pude sincronizar el AMS: %s', err)
+                    log.warning('no pude leer el AMS: %s', err)
                 last_ams_sync = time.monotonic()
 
             # En real, no reclamar si la impresora ya está trabajando (por

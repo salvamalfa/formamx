@@ -14,7 +14,6 @@ import {
   getPrinter,
   getSpools,
   patchOrder,
-  putSpools,
   requeueJob,
   type Order,
   type PrintJob,
@@ -194,19 +193,6 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
     }
   }
 
-  async function saveSpool(slot: number, patch: Partial<Spool>) {
-    if (!token) return;
-    const next = spools.map((s) => (s.slot === slot ? { ...s, ...patch } : s));
-    setSpools(next);
-    try {
-      const saved = await putSpools(token, next);
-      setSpools(saved);
-    } catch {
-      setError('No se pudieron guardar las bobinas.');
-      void load(token);
-    }
-  }
-
   if (!token) {
     return (
       <div class="mx-auto max-w-sm px-6 py-24">
@@ -268,7 +254,7 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
         </div>
       )}
 
-      <SpoolsPanel spools={spools} syncedAt={amsSyncedAt} onChange={saveSpool} />
+      <SpoolsPanel spools={spools} syncedAt={amsSyncedAt} />
 
       <section class="mt-10">
         <h2 class="meta-caps text-[var(--text-muted)]">
@@ -295,72 +281,49 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
   );
 }
 
-const MATERIALS = ['PLA', 'PETG'];
-
-function SpoolsPanel({
-  spools,
-  syncedAt,
-  onChange,
-}: {
-  spools: Spool[];
-  syncedAt: string | null;
-  onChange: (slot: number, patch: Partial<Spool>) => void;
-}) {
+// Solo lectura: el AMS de la impresora dicta el estado; el agente lo
+// sincroniza y aquí únicamente se muestra.
+function SpoolsPanel({ spools, syncedAt }: { spools: Spool[]; syncedAt: string | null }) {
   return (
     <section class="mt-8 rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h2 class="meta-caps text-[var(--text-muted)]">AMS — qué hay cargado</h2>
-        {syncedAt && (
+        {syncedAt ? (
           <span class="text-[10px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
             leído de la impresora: {formatSync(syncedAt)}
+          </span>
+        ) : (
+          <span class="text-[10px] text-[var(--naranja-oscuro)]" style={{ fontFamily: 'var(--font-mono)' }}>
+            sin lectura de la impresora — arranca el agente
           </span>
         )}
       </div>
       <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[0, 1, 2, 3].map((slot) => {
           const spool = spools.find((s) => s.slot === slot);
-          const current = spool?.color_id ?? null;
+          const hex = spool?.color_hex ?? null;
+          const catalogId = spool?.color_id ?? null;
+          const empty = !hex && !catalogId;
           return (
             <div key={slot} class="flex flex-col gap-1.5 text-sm">
               <span class="meta-caps text-[var(--text-faint)]">Ranura {slot + 1}</span>
               <div class="flex items-center gap-2">
                 <span
                   class="size-5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.18)]"
-                  style={{ background: current ? colorSwatch(current) : 'transparent' }}
+                  style={{ background: hex ?? (catalogId ? colorSwatch(catalogId) : 'transparent') }}
                 />
-                <select
-                  class="input-brand min-w-0 flex-1 py-1.5"
-                  aria-label={`Color ranura ${slot + 1}`}
-                  value={current ?? ''}
-                  onChange={(e) => {
-                    const v = (e.target as HTMLSelectElement).value;
-                    onChange(slot, { color_id: v === '' ? null : v });
-                  }}
-                >
-                  <option value="">vacío</option>
-                  {SPOOL_COLORS.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                <span class="min-w-0 truncate font-semibold">
+                  {empty ? 'vacía' : catalogId ? colorLabel(catalogId) : (hex ?? '')}
+                </span>
+                {hex && catalogId && (
+                  <span class="text-[10px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+                    {hex}
+                  </span>
+                )}
               </div>
-              <select
-                class="input-brand min-w-0 py-1.5 text-xs"
-                aria-label={`Material ranura ${slot + 1}`}
-                value={spool?.material ?? ''}
-                onChange={(e) => {
-                  const v = (e.target as HTMLSelectElement).value;
-                  onChange(slot, { material: v === '' ? null : v });
-                }}
-              >
-                <option value="">material —</option>
-                {MATERIALS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+              <span class="meta-caps text-[10px] text-[var(--text-muted)]">
+                {spool?.material ?? (empty ? '—' : 'sin material')}
+              </span>
             </div>
           );
         })}

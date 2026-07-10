@@ -32,15 +32,11 @@ def compute_mapping(colors: list[str], spools: list[dict]) -> list[int]:
     return [slot_por_color[c] for c in colors]
 
 
-def pick_file(files_dir, file_key: str, material: str | None):
-    """Ruta del 3MF a imprimir según el material de la ranura mapeada.
-
-    Primero busca la variante por material (tessera.petg.gcode.3mf); si no
-    existe, cae al archivo genérico (tessera.gcode.3mf). Devuelve (ruta,
-    es_variante_de_material).
+def pick_file(files_dir, file_key: str, material: str):
+    """Ruta del 3MF a imprimir: el material va explícito en el nombre
+    (tessera.petg.gcode.3mf). No existen archivos genéricos: el G-code fija
+    temperaturas al rebanar, así que un archivo sin material es ambiguo.
     """
-    if material:
-        candidate = files_dir / f'{file_key}.{material.lower()}.gcode.3mf'
-        if candidate.exists():
-            return candidate, True
-    return files_dir / f'{file_key}.gcode.3mf', False
+    if not material:
+        raise ValueError('material requerido para elegir el archivo')
+    return files_dir / f'{file_key}.{material.lower()}.gcode.3mf'

@@ -18,7 +18,7 @@ const ORDER = {
 
 async function mockApi(
   page: Page,
-  opts: { spools?: (string | null)[]; bedClear?: boolean } = {},
+  opts: { spools?: (string | null)[]; bedClear?: boolean; syncedAt?: string | null } = {},
 ) {
   const spools = opts.spools ?? [null, null, null, null];
   await page.route('**/api/admin/orders', (route) => {
@@ -32,11 +32,20 @@ async function mockApi(
   );
   await page.route('**/api/admin/spools', (route) =>
     route.fulfill({
-      json: { slots: spools.map((color_id, slot) => ({ slot, color_id, material: null })) },
+      json: {
+        slots: spools.map((color_id, slot) => ({
+          slot,
+          color_id,
+          material: color_id ? 'PLA' : null,
+          color_hex: color_id ? '#F4F4F2' : null,
+        })),
+      },
     }),
   );
   await page.route('**/api/admin/printer', (route) =>
-    route.fulfill({ json: { bed_clear: opts.bedClear ?? true, ams_synced_at: null } }),
+    route.fulfill({
+      json: { bed_clear: opts.bedClear ?? true, ams_synced_at: opts.syncedAt ?? null },
+    }),
   );
 }
 
@@ -158,25 +167,40 @@ test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page 
   await expect(page.getByText('Imprimiendo')).toHaveCount(0);
 });
 
-test('cada ranura permite indicar el material y se guarda', async ({ page }) => {
-  let saved: unknown = null;
-  await mockApi(page, { spools: ['blanco', null, null, null] });
-  await page.route('**/api/admin/spools', (route) => {
-    if (route.request().method() === 'PUT') {
-      saved = route.request().postDataJSON();
-      return route.fulfill({ json: saved });
-    }
-    return route.fulfill({
-      json: { slots: [{ slot: 0, color_id: 'blanco', material: null }, { slot: 1, color_id: null, material: null }, { slot: 2, color_id: null, material: null }, { slot: 3, color_id: null, material: null }] },
-    });
-  });
+test('el panel AMS es de solo lectura y muestra el hex de la impresora', async ({ page }) => {
+  await mockApi(page, { syncedAt: '2026-07-11 15:30:00' });
+  await page.route('**/api/admin/spools', (route) =>
+    route.fulfill({
+      json: {
+        slots: [
+          { slot: 0, color_id: 'blanco', material: 'PLA', color_hex: '#F4F4F2' },
+          { slot: 1, color_id: 'azul', material: 'PETG', color_hex: '#2F5FD6' },
+          // Gris: sin correspondencia en el catálogo, se muestra el hex.
+          { slot: 2, color_id: null, material: 'PLA', color_hex: '#808080' },
+          { slot: 3, color_id: null, material: null, color_hex: null },
+        ],
+      },
+    }),
+  );
   await page.goto('/taller');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.getByLabel('Material ranura 1').selectOption('PETG');
-  await expect
-    .poll(() => saved)
-    .toMatchObject({ slots: [{ slot: 0, color_id: 'blanco', material: 'PETG' }, {}, {}, {}] });
+
+  const panel = page.locator('section', { hasText: 'AMS — qué hay cargado' });
+  await expect(panel.locator('select')).toHaveCount(0); // solo lectura
+  await expect(panel.getByText('#2F5FD6')).toBeVisible(); // hex junto al nombre
+  await expect(panel.getByText('#808080')).toBeVisible(); // gris fuera de catálogo
+  await expect(panel.getByText('PETG')).toBeVisible();
+  await expect(panel.getByText('leído de la impresora:')).toBeVisible();
+  await expect(panel.getByText('vacía')).toBeVisible();
+});
+
+test('sin sincronización del AMS aparece el aviso de arrancar el agente', async ({ page }) => {
+  await mockApi(page, { syncedAt: null });
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('sin lectura de la impresora — arranca el agente')).toBeVisible();
 });
 
 test('con la cama ocupada aparece el candado y se libera al confirmar', async ({ page }) => {

@@ -49,21 +49,17 @@ def test_ams_vacio():
     assert exc.value.faltantes == ['rojo']
 
 
-def test_pick_file_prefiere_variante_de_material(tmp_path):
-    (tmp_path / 'pantalla').mkdir()
-    (tmp_path / 'pantalla' / 'tessera.gcode.3mf').touch()
-    (tmp_path / 'pantalla' / 'tessera.petg.gcode.3mf').touch()
-    ruta, es_variante = pick_file(tmp_path, 'pantalla/tessera', 'PETG')
-    assert ruta.name == 'tessera.petg.gcode.3mf' and es_variante
+def test_pick_file_lleva_el_material_en_el_nombre(tmp_path):
+    ruta = pick_file(tmp_path, 'pantalla/tessera', 'PETG')
+    assert ruta == tmp_path / 'pantalla' / 'tessera.petg.gcode.3mf'
 
 
-def test_pick_file_cae_al_generico_sin_variante(tmp_path):
-    (tmp_path / 'pantalla').mkdir()
-    (tmp_path / 'pantalla' / 'tessera.gcode.3mf').touch()
-    ruta, es_variante = pick_file(tmp_path, 'pantalla/tessera', 'PETG')
-    assert ruta.name == 'tessera.gcode.3mf' and not es_variante
+def test_pick_file_pla_en_minusculas(tmp_path):
+    ruta = pick_file(tmp_path, 'cuerpo/cuerpo', 'PLA')
+    assert ruta.name == 'cuerpo.pla.gcode.3mf'
 
 
-def test_pick_file_sin_material_usa_generico(tmp_path):
-    ruta, es_variante = pick_file(tmp_path, 'cuerpo/cuerpo', None)
-    assert ruta.name == 'cuerpo.gcode.3mf' and not es_variante
+def test_pick_file_sin_material_es_error(tmp_path):
+    # No existen archivos genéricos: sin material no hay archivo que elegir.
+    with pytest.raises(ValueError):
+        pick_file(tmp_path, 'tapa/tapa', None)
