@@ -45,9 +45,9 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // Estado visible según el tipo de pieza: lo que en una lámpara es
-// "Imprimiendo", en una pieza de madera es simplemente "En progreso".
+// "Imprimiendo", en una pieza manual (madera) es simplemente "En progreso".
 function statusLabel(order: Order): string {
-  if (!order.config && order.status === 'imprimiendo') return 'En progreso';
+  if (order.production === 'manual' && order.status === 'imprimiendo') return 'En progreso';
   return STATUS_LABEL[order.status] ?? order.status;
 }
 
@@ -254,29 +254,44 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
         </div>
       )}
 
-      <SpoolsPanel spools={spools} syncedAt={amsSyncedAt} />
+      {(['impresion_3d', 'manual'] as const).map((production) => {
+        const grupo = orders.filter((o) => o.production === production);
+        const es3d = production === 'impresion_3d';
+        return (
+          <section key={production} class="mt-12">
+            <h2
+              class="m-0 text-lg font-bold"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {es3d ? 'Impresión 3D' : 'Taller manual'}
+            </h2>
+            <p class="meta-caps m-0 mt-1 text-[var(--text-faint)]">
+              {loading ? 'cargando…' : `${grupo.length} en curso`}
+            </p>
 
-      <section class="mt-10">
-        <h2 class="meta-caps text-[var(--text-muted)]">
-          Pedidos {loading ? '· cargando…' : `· ${orders.length}`}
-        </h2>
-        {orders.length === 0 && !loading && (
-          <p class="mt-4 text-sm text-[var(--text-muted)]">No hay pedidos en curso.</p>
-        )}
-        <div class="mt-4 grid gap-5 md:grid-cols-2">
-          {orders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              manifest={manifest}
-              spools={spools}
-              onAdvance={() => advance(order)}
-              onDispatch={() => dispatch(order)}
-              onRetry={retry}
-            />
-          ))}
-        </div>
-      </section>
+            {es3d && <SpoolsPanel spools={spools} syncedAt={amsSyncedAt} />}
+
+            {grupo.length === 0 && !loading && (
+              <p class="mt-4 text-sm text-[var(--text-muted)]">
+                {es3d ? 'Nada en la impresora.' : 'Nada en el taller manual.'}
+              </p>
+            )}
+            <div class="mt-4 grid gap-5 md:grid-cols-2">
+              {grupo.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  manifest={manifest}
+                  spools={spools}
+                  onAdvance={() => advance(order)}
+                  onDispatch={() => dispatch(order)}
+                  onRetry={retry}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -354,13 +369,14 @@ function OrderCard({
   onRetry: (job: PrintJob) => void;
 }) {
   const loaded = new Set(spools.map((s) => s.color_id).filter(Boolean) as string[]);
+  const es3d = order.production === 'impresion_3d';
 
-  // El pedido de lámpara en cola y sin despachar puede mandarse a imprimir;
+  // El pedido de impresión en cola y sin despachar puede mandarse a imprimir;
   // solo si los 3 filamentos que necesita están cargados en el AMS.
-  const canDispatch = order.config && order.status === 'en_cola' && order.jobs.length === 0;
-  // Las lámparas en cola avanzan solas cuando el agente imprime; el botón
-  // manual solo aplica a piezas que no pasan por la impresora (la banca).
-  const step = order.config && order.status === 'en_cola' ? undefined : NEXT_STEP[order.status];
+  const canDispatch = es3d && order.config && order.status === 'en_cola' && order.jobs.length === 0;
+  // Los pedidos 3D en cola avanzan solos cuando el agente imprime; el botón
+  // manual solo aplica al taller manual (madera, etc.).
+  const step = es3d && order.status === 'en_cola' ? undefined : NEXT_STEP[order.status];
   const missingColors = order.config
     ? ['blanco', order.config.pantalla, order.config.tapa].filter((c) => !loaded.has(c))
     : [];

@@ -7,6 +7,8 @@ export interface Order {
   id: string;
   created_at: string;
   product_id: string;
+  // 'impresion_3d' pasa por la impresora; 'manual' (madera, etc.) no.
+  production: 'impresion_3d' | 'manual';
   config: { model: string; pantalla: string; tapa: string } | null;
   amount_mxn: number;
   status: string;
@@ -62,8 +64,12 @@ async function call<T>(token: string, path: string, init: RequestInit = {}): Pro
 
 export const getOrders = (token: string) =>
   call<{ orders: Order[] }>(token, '/orders').then((r) =>
-    // jobs llegó en fase 3; se normaliza por si responde un worker anterior.
-    r.orders.map((o) => ({ ...o, jobs: o.jobs ?? [] })),
+    // Normalizaciones por si responde un worker anterior al campo.
+    r.orders.map((o) => ({
+      ...o,
+      jobs: o.jobs ?? [],
+      production: o.production ?? (o.config ? 'impresion_3d' : 'manual'),
+    })),
   );
 
 export const patchOrder = (token: string, id: string, status: string) =>
