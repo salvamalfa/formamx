@@ -40,6 +40,7 @@ export interface PrintJob {
 export interface Spool {
   slot: number;
   color_id: string | null;
+  material: string | null;
 }
 
 async function call<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
@@ -75,7 +76,7 @@ export const putSpools = (token: string, slots: Spool[]) =>
   }).then((r) => r.slots);
 
 export const getPrinter = (token: string) =>
-  call<{ bed_clear: boolean }>(token, '/printer');
+  call<{ bed_clear: boolean; ams_synced_at: string | null }>(token, '/printer');
 
 export const confirmBedClear = (token: string) =>
   call<{ bed_clear: boolean }>(token, '/printer/bed-clear', { method: 'POST' });

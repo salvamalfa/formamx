@@ -39,8 +39,8 @@ mkdir C:\formamx\3mf\tapa
 
 Cada lámpara son **3 impresiones separadas** (pantalla, cuerpo, tapa). Los 3MF
 se exportan de Bambu Studio con **"Exportar plato rebanado"** (.gcode.3mf),
-todos de **un solo filamento** (PLA genérico; el color real lo pone el AMS al
-imprimir), con nombres exactos:
+todos de **un solo filamento** (el color real lo pone el AMS al imprimir),
+con nombres exactos:
 
 ```
 C:\formamx\3mf\pantalla\tessera.gcode.3mf     (y diamond, fluted, rhombus, torsion)
@@ -50,6 +50,20 @@ C:\formamx\3mf\tapa\tapa.gcode.3mf
 
 Para arrancar basta con los 3 archivos de un modelo (p. ej. tessera): los
 otros modelos de pantalla se agregan cuando quieras.
+
+**Materiales.** El perfil de filamento con el que rebanas queda grabado en el
+G-code (temperaturas, velocidades), así que cada archivo es de UN material.
+El agente elige la variante según el material de la ranura que va a usar:
+si la ranura del azul es PETG, busca primero `tessera.petg.gcode.3mf` (y
+`tessera.pla.gcode.3mf` para PLA); si no hay variante, usa el genérico
+`tessera.gcode.3mf`. Regla práctica: si una pieza siempre es del mismo
+material, rebana el genérico con ese perfil y listo; crea variantes solo
+para piezas que imprimas en más de un material.
+
+El agente además **lee el AMS de la impresora cada 5 minutos** (tipo y color
+que configuraste en la pantalla de la A1) y actualiza solo el panel de
+ranuras de /taller. También puedes editarlo a mano; los colores que no se
+parezcan a los del catálogo quedan sin asignar para que los corrijas.
 
 ## Probar en ensayo (sin impresora)
 

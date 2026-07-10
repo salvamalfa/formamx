@@ -23,6 +23,10 @@ class DryPrinter:
     def current_state(self) -> str:
         return 'IDLE'
 
+    def read_ams(self):
+        # En ensayo no hay impresora que leer: las ranuras se manejan a mano.
+        return None
+
     def print_file(self, remote_name, subtask, ams_mapping, on_progress, max_hours=12):
         log.info('[ensayo] imprimiendo %s (ams_mapping=%s)', subtask, ams_mapping)
         steps = 10

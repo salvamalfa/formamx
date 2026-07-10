@@ -83,6 +83,7 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
   const [orders, setOrders] = useState<Order[]>([]);
   const [spools, setSpools] = useState<Spool[]>([]);
   const [bedClear, setBedClear] = useState(true);
+  const [amsSyncedAt, setAmsSyncedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +108,7 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
       setOrders(o);
       setSpools(s);
       setBedClear(p.bed_clear);
+      setAmsSyncedAt(p.ams_synced_at);
     } catch (err) {
       if (err instanceof Error && err.message === 'no_autorizado') {
         localStorage.removeItem(TOKEN_KEY);
@@ -192,9 +194,9 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
     }
   }
 
-  async function saveSpool(slot: number, colorId: string | null) {
+  async function saveSpool(slot: number, patch: Partial<Spool>) {
     if (!token) return;
-    const next = spools.map((s) => (s.slot === slot ? { ...s, color_id: colorId } : s));
+    const next = spools.map((s) => (s.slot === slot ? { ...s, ...patch } : s));
     setSpools(next);
     try {
       const saved = await putSpools(token, next);
@@ -266,7 +268,7 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
         </div>
       )}
 
-      <SpoolsPanel spools={spools} onChange={saveSpool} />
+      <SpoolsPanel spools={spools} syncedAt={amsSyncedAt} onChange={saveSpool} />
 
       <section class="mt-10">
         <h2 class="meta-caps text-[var(--text-muted)]">
@@ -293,21 +295,33 @@ export default function TallerDashboard({ manifest }: { manifest: LampImageManif
   );
 }
 
+const MATERIALS = ['PLA', 'PETG'];
+
 function SpoolsPanel({
   spools,
+  syncedAt,
   onChange,
 }: {
   spools: Spool[];
-  onChange: (slot: number, colorId: string | null) => void;
+  syncedAt: string | null;
+  onChange: (slot: number, patch: Partial<Spool>) => void;
 }) {
   return (
     <section class="mt-8 rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5">
-      <h2 class="meta-caps text-[var(--text-muted)]">AMS — qué hay cargado</h2>
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="meta-caps text-[var(--text-muted)]">AMS — qué hay cargado</h2>
+        {syncedAt && (
+          <span class="text-[10px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+            leído de la impresora: {formatSync(syncedAt)}
+          </span>
+        )}
+      </div>
       <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[0, 1, 2, 3].map((slot) => {
-          const current = spools.find((s) => s.slot === slot)?.color_id ?? null;
+          const spool = spools.find((s) => s.slot === slot);
+          const current = spool?.color_id ?? null;
           return (
-            <label key={slot} class="flex flex-col gap-1.5 text-sm">
+            <div key={slot} class="flex flex-col gap-1.5 text-sm">
               <span class="meta-caps text-[var(--text-faint)]">Ranura {slot + 1}</span>
               <div class="flex items-center gap-2">
                 <span
@@ -316,10 +330,11 @@ function SpoolsPanel({
                 />
                 <select
                   class="input-brand min-w-0 flex-1 py-1.5"
+                  aria-label={`Color ranura ${slot + 1}`}
                   value={current ?? ''}
                   onChange={(e) => {
                     const v = (e.target as HTMLSelectElement).value;
-                    onChange(slot, v === '' ? null : v);
+                    onChange(slot, { color_id: v === '' ? null : v });
                   }}
                 >
                   <option value="">vacío</option>
@@ -330,12 +345,34 @@ function SpoolsPanel({
                   ))}
                 </select>
               </div>
-            </label>
+              <select
+                class="input-brand min-w-0 py-1.5 text-xs"
+                aria-label={`Material ranura ${slot + 1}`}
+                value={spool?.material ?? ''}
+                onChange={(e) => {
+                  const v = (e.target as HTMLSelectElement).value;
+                  onChange(slot, { material: v === '' ? null : v });
+                }}
+              >
+                <option value="">material —</option>
+                {MATERIALS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
           );
         })}
       </div>
     </section>
   );
+}
+
+function formatSync(sqlUtc: string): string {
+  // D1 guarda 'YYYY-MM-DD HH:MM:SS' en UTC.
+  const date = new Date(sqlUtc.replace(' ', 'T') + 'Z');
+  return date.toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
 }
 
 function OrderCard({

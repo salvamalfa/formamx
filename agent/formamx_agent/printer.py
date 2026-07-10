@@ -86,6 +86,58 @@ class BambuPrinter:
         client.tls_insecure_set(True)
         return client
 
+    def read_ams(self, wait_seconds: int = 8) -> list[dict] | None:
+        """Lee las ranuras del AMS: [{'slot', 'material', 'color_hex'}] o None.
+
+        La impresora reporta tray_type (PLA/PETG/...) y tray_color (RGBA hex)
+        de cada ranura, tal como los configuraste en su pantalla o en Bambu
+        Studio.
+        """
+        state: dict = {'trays': None}
+        got = threading.Event()
+
+        def on_connect(client, _userdata, _flags, rc, _props=None):
+            if rc != 0:
+                got.set()
+                return
+            client.subscribe(f'device/{self.serial}/report')
+            client.publish(
+                f'device/{self.serial}/request',
+                json.dumps({'pushing': {'command': 'pushall', 'sequence_id': '1'}}),
+            )
+
+        def on_message(_client, _userdata, msg):
+            try:
+                data = json.loads(msg.payload)
+            except ValueError:
+                return
+            units = data.get('print', {}).get('ams', {}).get('ams')
+            if not units:
+                return
+            trays = []
+            for tray in units[0].get('tray', []):
+                tray_type = (tray.get('tray_type') or '').strip() or None
+                trays.append({
+                    'slot': int(tray.get('id', 0)),
+                    'material': tray_type,
+                    'color_hex': tray.get('tray_color') or None if tray_type else None,
+                })
+            state['trays'] = trays
+            got.set()
+
+        client = self._client()
+        client.on_connect = on_connect
+        client.on_message = on_message
+        try:
+            client.connect(self.ip, MQTT_PORT, keepalive=30)
+        except OSError as err:
+            raise PrinterError(f'impresora fuera de línea: {err}') from err
+        client.loop_start()
+        got.wait(wait_seconds)
+        client.loop_stop()
+        client.disconnect()
+        return state['trays']
+
     def current_state(self, wait_seconds: int = 8) -> str | None:
         """gcode_state actual (IDLE/RUNNING/PAUSE/FINISH/FAILED) o None si no reporta."""
         state: dict = {'gcode_state': None}

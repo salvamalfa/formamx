@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { bearer } from '../lib/auth';
-import { isSpoolColor, validateLampConfig } from '../lib/catalog';
+import { isSpoolColor, isSpoolMaterial, validateLampConfig } from '../lib/catalog';
 import { shapeJob, type PrintJobRow } from '../lib/jobs';
 import { canTransition } from '../lib/orders';
 
@@ -175,12 +175,15 @@ admin.patch('/orders/:id', async (c) => {
   return c.json(shapeOrder({ ...order, status: next }));
 });
 
-// Estado físico de la impresora (por ahora solo el candado de cama).
+// Estado físico de la impresora: candado de cama + última lectura del AMS.
 admin.get('/printer', async (c) => {
-  const flags = await c.env.DB.prepare('SELECT bed_clear FROM printer_flags WHERE id = 1').first<{
-    bed_clear: number;
-  }>();
-  return c.json({ bed_clear: Boolean(flags?.bed_clear ?? 1) });
+  const flags = await c.env.DB.prepare(
+    'SELECT bed_clear, ams_synced_at FROM printer_flags WHERE id = 1',
+  ).first<{ bed_clear: number; ams_synced_at: string | null }>();
+  return c.json({
+    bed_clear: Boolean(flags?.bed_clear ?? 1),
+    ams_synced_at: flags?.ams_synced_at ?? null,
+  });
 });
 
 // El taller confirma que retiró la pieza: el agente vuelve a recibir trabajos.
@@ -194,12 +197,13 @@ admin.post('/printer/bed-clear', async (c) => {
 interface SpoolRow {
   slot: number;
   color_id: string | null;
+  material: string | null;
 }
 
-// Estado de las 4 ranuras del AMS (qué color hay cargado en cada una).
+// Estado de las 4 ranuras del AMS (color y material cargados en cada una).
 admin.get('/spools', async (c) => {
   const { results } = await c.env.DB.prepare(
-    'SELECT slot, color_id FROM spool_slots ORDER BY slot',
+    'SELECT slot, color_id, material FROM spool_slots ORDER BY slot',
   ).all<SpoolRow>();
   return c.json({ slots: results });
 });
@@ -218,18 +222,21 @@ admin.put('/spools', async (c) => {
     if (s.color_id !== null && !isSpoolColor(s.color_id)) {
       return c.json({ error: 'color_invalido', slot: s.slot }, 400);
     }
+    if (s.material != null && !isSpoolMaterial(s.material)) {
+      return c.json({ error: 'material_invalido', slot: s.slot }, 400);
+    }
   }
 
   await c.env.DB.batch(
     slots.map((s) =>
       c.env.DB.prepare(
-        "UPDATE spool_slots SET color_id = ?, updated_at = datetime('now') WHERE slot = ?",
-      ).bind(s.color_id, s.slot),
+        "UPDATE spool_slots SET color_id = ?, material = ?, updated_at = datetime('now') WHERE slot = ?",
+      ).bind(s.color_id, s.material ?? null, s.slot),
     ),
   );
 
   const { results } = await c.env.DB.prepare(
-    'SELECT slot, color_id FROM spool_slots ORDER BY slot',
+    'SELECT slot, color_id, material FROM spool_slots ORDER BY slot',
   ).all<SpoolRow>();
   return c.json({ slots: results });
 });
