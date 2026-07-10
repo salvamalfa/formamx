@@ -16,7 +16,10 @@ const ORDER = {
   jobs: [] as unknown[],
 };
 
-async function mockApi(page: Page, opts: { spools?: (string | null)[] } = {}) {
+async function mockApi(
+  page: Page,
+  opts: { spools?: (string | null)[]; bedClear?: boolean } = {},
+) {
   const spools = opts.spools ?? [null, null, null, null];
   await page.route('**/api/admin/orders', (route) => {
     if (route.request().method() === 'GET') {
@@ -29,6 +32,9 @@ async function mockApi(page: Page, opts: { spools?: (string | null)[] } = {}) {
   );
   await page.route('**/api/admin/spools', (route) =>
     route.fulfill({ json: { slots: spools.map((color_id, slot) => ({ slot, color_id })) } }),
+  );
+  await page.route('**/api/admin/printer', (route) =>
+    route.fulfill({ json: { bed_clear: opts.bedClear ?? true } }),
   );
 }
 
@@ -148,6 +154,22 @@ test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page 
   await page.getByRole('button', { name: 'Actualizar' }).click();
   await expect(page.getByText('En progreso')).toBeVisible();
   await expect(page.getByText('Imprimiendo')).toHaveCount(0);
+});
+
+test('con la cama ocupada aparece el candado y se libera al confirmar', async ({ page }) => {
+  let confirmed = false;
+  await mockApi(page, { bedClear: false });
+  await page.route('**/api/admin/printer/bed-clear', (route) => {
+    confirmed = true;
+    return route.fulfill({ json: { bed_clear: true } });
+  });
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Hay una pieza en la cama.')).toBeVisible();
+  await page.getByRole('button', { name: 'Cama despejada' }).click();
+  await expect(page.getByText('Hay una pieza en la cama.')).toHaveCount(0);
+  expect(confirmed).toBe(true);
 });
 
 test('el botón avanza el estado del pedido', async ({ page }) => {

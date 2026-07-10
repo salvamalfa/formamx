@@ -74,6 +74,12 @@ export const putSpools = (token: string, slots: Spool[]) =>
     body: JSON.stringify({ slots }),
   }).then((r) => r.slots);
 
+export const getPrinter = (token: string) =>
+  call<{ bed_clear: boolean }>(token, '/printer');
+
+export const confirmBedClear = (token: string) =>
+  call<{ bed_clear: boolean }>(token, '/printer/bed-clear', { method: 'POST' });
+
 export const dispatchOrder = (token: string, id: string) =>
   call<{ jobs: PrintJob[] }>(token, `/orders/${id}/dispatch`, { method: 'POST' }).then(
     (r) => r.jobs,

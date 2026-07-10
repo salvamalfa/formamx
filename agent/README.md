@@ -80,6 +80,14 @@ programa: `py -3 -m formamx_agent C:\formamx\config.toml`, "Iniciar en":
 
 El log queda en `C:\formamx\agent.log`.
 
+## Entre impresiones: el candado de cama
+
+La A1 no sabe si ya retiraste la pieza, así que después de **cada** impresión
+(terminada o fallida a medias) el agente deja de recibir trabajos y en
+`/taller` aparece el aviso **"Hay una pieza en la cama"**. Retira la pieza y
+pulsa **"Cama despejada"**: la siguiente pieza arranca sola. El modo ensayo
+también pasa por esta confirmación, para que practiques el flujo completo.
+
 ## Comportamiento ante fallos
 
 - **Falta un color en el AMS** → el trabajo falla ANTES de tocar la impresora
