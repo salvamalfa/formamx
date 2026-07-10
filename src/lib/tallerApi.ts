@@ -29,7 +29,7 @@ export interface Order {
 export interface PrintJob {
   id: string;
   order_id: string;
-  part: 'pantalla' | 'cuerpo_tapa';
+  part: 'pantalla' | 'cuerpo' | 'tapa';
   file_key: string;
   colors: string[];
   status: 'queued' | 'claimed' | 'printing' | 'done' | 'failed' | 'canceled';

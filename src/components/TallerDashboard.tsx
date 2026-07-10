@@ -23,9 +23,12 @@ const TOKEN_KEY = 'taller_token';
 
 // Estados que el taller avanza a mano y la etiqueta del botón que lleva al
 // siguiente. Los estados terminales (enviada/cancelada) no tienen botón.
+// El paso en_cola→imprimiendo solo lo usan a mano los pedidos que no pasan
+// por la impresora (p. ej. la banca): para ellos "imprimiendo" se presenta
+// como "En progreso". Las lámparas avanzan solas cuando el agente imprime.
 const NEXT_STEP: Record<string, { status: string; label: string }> = {
   pagada: { status: 'en_cola', label: 'A la cola' },
-  en_cola: { status: 'imprimiendo', label: 'Imprimiendo' },
+  en_cola: { status: 'imprimiendo', label: 'Empezar' },
   imprimiendo: { status: 'lista', label: 'Marcar lista' },
   lista: { status: 'enviada', label: 'Marcar enviada' },
 };
@@ -40,6 +43,13 @@ const STATUS_LABEL: Record<string, string> = {
   cancelada: 'Cancelada',
 };
 
+// Estado visible según el tipo de pieza: lo que en una lámpara es
+// "Imprimiendo", en una pieza de madera es simplemente "En progreso".
+function statusLabel(order: Order): string {
+  if (!order.config && order.status === 'imprimiendo') return 'En progreso';
+  return STATUS_LABEL[order.status] ?? order.status;
+}
+
 const JOB_STATUS_LABEL: Record<PrintJob['status'], string> = {
   queued: 'en cola',
   claimed: 'preparando',
@@ -51,7 +61,8 @@ const JOB_STATUS_LABEL: Record<PrintJob['status'], string> = {
 
 const PART_LABEL: Record<PrintJob['part'], string> = {
   pantalla: 'Pantalla',
-  cuerpo_tapa: 'Cuerpo + tapa',
+  cuerpo: 'Cuerpo',
+  tapa: 'Tapa',
 };
 
 // Colores que puede cargar una bobina: blanco (cuerpo) + los 6 del catálogo.
@@ -311,12 +322,14 @@ function OrderCard({
   onDispatch: () => void;
   onRetry: (job: PrintJob) => void;
 }) {
-  const step = NEXT_STEP[order.status];
   const loaded = new Set(spools.map((s) => s.color_id).filter(Boolean) as string[]);
 
   // El pedido de lámpara en cola y sin despachar puede mandarse a imprimir;
   // solo si los 3 filamentos que necesita están cargados en el AMS.
   const canDispatch = order.config && order.status === 'en_cola' && order.jobs.length === 0;
+  // Las lámparas en cola avanzan solas cuando el agente imprime; el botón
+  // manual solo aplica a piezas que no pasan por la impresora (la banca).
+  const step = order.config && order.status === 'en_cola' ? undefined : NEXT_STEP[order.status];
   const missingColors = order.config
     ? ['blanco', order.config.pantalla, order.config.tapa].filter((c) => !loaded.has(c))
     : [];
@@ -327,7 +340,7 @@ function OrderCard({
 
       <div class="flex min-w-0 flex-1 flex-col gap-2">
         <div class="flex items-baseline justify-between gap-2">
-          <span class="meta-caps text-[var(--support)]">{STATUS_LABEL[order.status] ?? order.status}</span>
+          <span class="meta-caps text-[var(--support)]">{statusLabel(order)}</span>
           <span class="text-sm font-bold">{money(order.amount_mxn)}</span>
         </div>
 
@@ -354,11 +367,7 @@ function OrderCard({
             </button>
           )}
           {step && (
-            <button
-              type="button"
-              class={`btn btn-sm ${canDispatch ? 'btn-ghost' : 'btn-primary'}`}
-              onClick={onAdvance}
-            >
+            <button type="button" class="btn btn-sm btn-primary" onClick={onAdvance}>
               {step.label}
             </button>
           )}
