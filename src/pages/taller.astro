@@ -4,7 +4,7 @@
 // El manifest de imágenes se genera en build, igual que en /lampara, para
 // reusar exactamente las mismas capas del configurador en el preview.
 import BaseLayout from '../layouts/BaseLayout.astro';
-import TallerDashboard from '../components/TallerDashboard.tsx';
+import TallerShell from '../components/taller/TallerShell.tsx';
 import { buildLampImageManifest } from '../lib/lampImages';
 
 const manifest = await buildLampImageManifest();
@@ -16,6 +16,6 @@ const manifest = await buildLampImageManifest();
   </Fragment>
 
   <main class="brand-forma min-h-dvh bg-[var(--crema)] text-[var(--text-body)]">
-    <TallerDashboard client:only="preact" manifest={manifest} />
+    <TallerShell client:only="preact" manifest={manifest} />
   </main>
 </BaseLayout>

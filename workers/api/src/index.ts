@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { AppContext } from './env';
-import { admin } from './routes/admin';
+import { admin } from './routes/admin/index';
 import { agent } from './routes/agent';
 import { checkout } from './routes/checkout';
 import { products } from './routes/products';
