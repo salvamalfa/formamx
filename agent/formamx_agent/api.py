@@ -25,6 +25,13 @@ class TallerApi:
         r.raise_for_status()
         return r.json()
 
+    def sync_ams(self, trays: list[dict]) -> None:
+        """Sube lo que la impresora dice tener en el AMS (material y color hex)."""
+        r = self.session.post(
+            f'{self.base}/api/agent/ams', json={'slots': trays}, timeout=self.timeout
+        )
+        r.raise_for_status()
+
     def report(
         self,
         job_id: str,

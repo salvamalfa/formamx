@@ -31,10 +31,12 @@ async function mockApi(
     route.fulfill({ json: { ...ORDER, status: 'en_cola' } }),
   );
   await page.route('**/api/admin/spools', (route) =>
-    route.fulfill({ json: { slots: spools.map((color_id, slot) => ({ slot, color_id })) } }),
+    route.fulfill({
+      json: { slots: spools.map((color_id, slot) => ({ slot, color_id, material: null })) },
+    }),
   );
   await page.route('**/api/admin/printer', (route) =>
-    route.fulfill({ json: { bed_clear: opts.bedClear ?? true } }),
+    route.fulfill({ json: { bed_clear: opts.bedClear ?? true, ams_synced_at: null } }),
   );
 }
 
@@ -154,6 +156,27 @@ test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page 
   await page.getByRole('button', { name: 'Actualizar' }).click();
   await expect(page.getByText('En progreso')).toBeVisible();
   await expect(page.getByText('Imprimiendo')).toHaveCount(0);
+});
+
+test('cada ranura permite indicar el material y se guarda', async ({ page }) => {
+  let saved: unknown = null;
+  await mockApi(page, { spools: ['blanco', null, null, null] });
+  await page.route('**/api/admin/spools', (route) => {
+    if (route.request().method() === 'PUT') {
+      saved = route.request().postDataJSON();
+      return route.fulfill({ json: saved });
+    }
+    return route.fulfill({
+      json: { slots: [{ slot: 0, color_id: 'blanco', material: null }, { slot: 1, color_id: null, material: null }, { slot: 2, color_id: null, material: null }, { slot: 3, color_id: null, material: null }] },
+    });
+  });
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByLabel('Material ranura 1').selectOption('PETG');
+  await expect
+    .poll(() => saved)
+    .toMatchObject({ slots: [{ slot: 0, color_id: 'blanco', material: 'PETG' }, {}, {}, {}] });
 });
 
 test('con la cama ocupada aparece el candado y se libera al confirmar', async ({ page }) => {

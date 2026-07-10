@@ -14,13 +14,16 @@ import tomllib
 from pathlib import Path
 
 from .api import TallerApi
-from .mapping import FilamentoFaltante, compute_mapping
+from .mapping import FilamentoFaltante, compute_mapping, pick_file
 
 log = logging.getLogger('formamx')
 
 # Tras un error de impresora/red se espera esto antes de volver a intentar,
 # para no martillar ni la API ni la impresora.
 ERROR_BACKOFF_SECONDS = 300
+
+# Cada cuánto se sube al taller lo que la impresora dice tener en el AMS.
+AMS_SYNC_SECONDS = 300
 
 
 def setup_logging(log_file: str | None) -> None:
@@ -51,8 +54,19 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
         log.warning('trabajo %s sin filamentos: %s', job_id, err)
         return
 
-    # 2. Localizar el 3MF rebanado (en ensayo no es obligatorio que exista).
-    local_file = files_dir / f"{job['file_key']}.gcode.3mf"
+    # 2. Localizar el 3MF rebanado. El material de la ranura mapeada decide la
+    #    variante (p. ej. PETG usa tessera.petg.gcode.3mf); si no hay variante
+    #    se usa el archivo genérico. En ensayo no es obligatorio que exista.
+    material = next(
+        (s.get('material') for s in spools if s['slot'] == ams_mapping[0]),
+        None,
+    )
+    local_file, es_variante = pick_file(files_dir, job['file_key'], material)
+    if material and not es_variante:
+        log.info(
+            'sin variante %s para %s; uso el archivo genérico %s',
+            material, job['file_key'], local_file.name,
+        )
     if not local_file.exists():
         if dry:
             log.warning('[ensayo] falta %s; continúo de todos modos', local_file)
@@ -106,10 +120,23 @@ def main() -> None:
     api = TallerApi(cfg['api_base'], cfg['agent_token'])
     files_dir = Path(cfg.get('files_dir', '.'))
     poll = float(cfg.get('poll_seconds', 20))
+    last_ams_sync = 0.0
     log.info('agente listo; preguntando cada %ss a %s', poll, cfg['api_base'])
 
     while True:
         try:
+            # Sincroniza lo que la impresora dice tener en el AMS (material y
+            # color por ranura) para que /taller lo muestre solo.
+            if time.monotonic() - last_ams_sync >= AMS_SYNC_SECONDS:
+                try:
+                    trays = printer.read_ams()
+                    if trays:
+                        api.sync_ams(trays)
+                        log.info('AMS sincronizado: %s', trays)
+                except Exception as err:
+                    log.warning('no pude sincronizar el AMS: %s', err)
+                last_ams_sync = time.monotonic()
+
             # En real, no reclamar si la impresora ya está trabajando (por
             # ejemplo, algo lanzado a mano desde Bambu Studio).
             if not dry and printer.current_state() == 'RUNNING':

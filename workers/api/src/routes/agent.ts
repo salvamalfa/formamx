@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { bearer } from '../lib/auth';
+import { isSpoolMaterial, nearestCatalogColor } from '../lib/catalog';
 import { shapeJob, STALE_CLAIM_MINUTES, type PrintJobRow } from '../lib/jobs';
 import { notify } from '../lib/ntfy';
 
@@ -38,10 +39,41 @@ agent.get('/jobs/next', async (c) => {
   if (!job) return c.body(null, 204);
 
   const { results: spools } = await c.env.DB.prepare(
-    'SELECT slot, color_id FROM spool_slots ORDER BY slot',
-  ).all<{ slot: number; color_id: string | null }>();
+    'SELECT slot, color_id, material FROM spool_slots ORDER BY slot',
+  ).all<{ slot: number; color_id: string | null; material: string | null }>();
 
   return c.json({ job: shapeJob(job), spools });
+});
+
+// El agente reporta lo que la impresora dice tener cargado en el AMS
+// (tray_type y tray_color de cada ranura). El color hex se empareja con el
+// catálogo; si no se parece a ninguno queda sin asignar y se corrige a mano.
+agent.post('/ams', async (c) => {
+  const body = await c.req
+    .json<{ slots?: Array<{ slot: number; material?: string | null; color_hex?: string | null }> }>()
+    .catch(() => ({}) as { slots?: [] });
+  if (!Array.isArray(body.slots)) return c.json({ error: 'slots_requerido' }, 400);
+
+  const updates = body.slots
+    .filter((s) => typeof s.slot === 'number' && s.slot >= 0 && s.slot <= 3)
+    .map((s) => ({
+      slot: s.slot,
+      color_id: nearestCatalogColor(s.color_hex),
+      material: isSpoolMaterial(s.material) ? s.material : null,
+    }));
+
+  await c.env.DB.batch([
+    ...updates.map((s) =>
+      c.env.DB.prepare(
+        "UPDATE spool_slots SET color_id = ?, material = ?, updated_at = datetime('now') WHERE slot = ?",
+      ).bind(s.color_id, s.material, s.slot),
+    ),
+    c.env.DB.prepare(
+      "UPDATE printer_flags SET ams_synced_at = datetime('now') WHERE id = 1",
+    ),
+  ]);
+
+  return c.json({ slots: updates });
 });
 
 // Transiciones que puede reportar el agente. `printing` repetido actualiza
