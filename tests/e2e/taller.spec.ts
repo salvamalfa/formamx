@@ -141,6 +141,33 @@ test('un trabajo fallido muestra el motivo y permite reintentar', async ({ page 
   expect(requeued).toBe(true);
 });
 
+test('los pedidos se separan en Impresión 3D y Taller manual', async ({ page }) => {
+  const lampara = { ...ORDER, id: 'ord_l', production: 'impresion_3d' };
+  const banca = {
+    ...ORDER,
+    id: 'ord_b',
+    product_id: 'banca-001',
+    config: null,
+    production: 'manual',
+    status: 'pagada',
+  };
+  await mockApi(page);
+  await page.route('**/api/admin/orders', (route) =>
+    route.fulfill({ json: { orders: [lampara, banca] } }),
+  );
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  const seccion3d = page.locator('section', { has: page.getByRole('heading', { name: 'Impresión 3D' }) });
+  const seccionManual = page.locator('section', { has: page.getByRole('heading', { name: 'Taller manual' }) });
+  await expect(seccion3d.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(seccionManual.getByText('La banca de los abuelos')).toBeVisible();
+  // El panel AMS vive dentro de la sección de impresión.
+  await expect(seccion3d.getByText('AMS — qué hay cargado')).toBeVisible();
+  await expect(seccionManual.getByText('AMS — qué hay cargado')).toHaveCount(0);
+});
+
 test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page }) => {
   const banca = {
     ...ORDER,

@@ -21,7 +21,9 @@ interface OrderFullRow {
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
+  customer_id: string | null;
   shipping_json: string | null;
+  production?: string | null; // join a products
 }
 
 function parseJson<T>(raw: string | null): T | null {
@@ -38,6 +40,7 @@ function shapeOrder(row: OrderFullRow) {
     id: row.id,
     created_at: row.created_at,
     product_id: row.product_id,
+    production: row.production ?? 'manual',
     config: parseJson(row.config_json),
     amount_mxn: row.amount_mxn,
     status: row.status,
@@ -47,6 +50,7 @@ function shapeOrder(row: OrderFullRow) {
       email: row.customer_email,
       phone: row.customer_phone,
     },
+    customer_id: row.customer_id ?? null,
     shipping: parseJson(row.shipping_json),
   };
 }
@@ -59,12 +63,15 @@ admin.get('/orders', async (c) => {
 
   const query = status
     ? c.env.DB.prepare(
-        'SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC LIMIT ?',
+        `SELECT o.*, p.production FROM orders o
+         LEFT JOIN products p ON p.id = o.product_id
+         WHERE o.status = ? ORDER BY o.created_at DESC LIMIT ?`,
       ).bind(status, limit)
     : c.env.DB.prepare(
-        `SELECT * FROM orders
-         WHERE status NOT IN ('enviada', 'cancelada')
-         ORDER BY created_at DESC LIMIT ?`,
+        `SELECT o.*, p.production FROM orders o
+         LEFT JOIN products p ON p.id = o.product_id
+         WHERE o.status NOT IN ('enviada', 'cancelada')
+         ORDER BY o.created_at DESC LIMIT ?`,
       ).bind(limit);
 
   const { results } = await query.all<OrderFullRow>();
@@ -158,7 +165,9 @@ admin.patch('/orders/:id', async (c) => {
   const next = body.status;
   if (!next) return c.json({ error: 'status_requerido' }, 400);
 
-  const order = await c.env.DB.prepare('SELECT * FROM orders WHERE id = ?')
+  const order = await c.env.DB.prepare(
+    'SELECT o.*, p.production FROM orders o LEFT JOIN products p ON p.id = o.product_id WHERE o.id = ?',
+  )
     .bind(id)
     .first<OrderFullRow>();
   if (!order) return c.json({ error: 'no_existe' }, 404);

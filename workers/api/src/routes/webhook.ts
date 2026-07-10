@@ -92,12 +92,17 @@ async function onSessionCompleted(
     (session as { shipping_details?: unknown }).shipping_details ??
     null;
 
+  // Además del snapshot en el pedido, el cliente se normaliza en `customers`
+  // (por email) para que el CRM futuro nazca con historial completo.
+  const customerId = await upsertCustomer(env, session);
+
   const inserted = await env.DB.prepare(
     `INSERT OR IGNORE INTO orders (
        id, provider, provider_session_id, provider_payment_id, payment_method,
        product_id, config_json, amount_mxn, currency,
-       customer_name, customer_email, customer_phone, shipping_json, status
-     ) VALUES (?, 'stripe', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       customer_name, customer_email, customer_phone, customer_id,
+       shipping_json, status
+     ) VALUES (?, 'stripe', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       `ord_${crypto.randomUUID()}`,
@@ -111,6 +116,7 @@ async function onSessionCompleted(
       session.customer_details?.name ?? null,
       session.customer_details?.email ?? null,
       session.customer_details?.phone ?? null,
+      customerId,
       shipping ? JSON.stringify(shipping) : null,
       paid ? 'pagada' : 'pendiente',
     )
@@ -178,6 +184,35 @@ async function onOrderPaid(env: Env, ctx: WaitUntil, sessionId: string): Promise
     .join('\n');
 
   ctx.waitUntil(notify(env.NTFY_TOPIC, 'forma: pedido nuevo', body));
+}
+
+// Alta o actualización del cliente por email. Un fallo aquí no debe tirar el
+// webhook: sin email (o con error) el pedido simplemente queda sin FK.
+async function upsertCustomer(env: Env, session: Stripe.Checkout.Session): Promise<string | null> {
+  const email = session.customer_details?.email?.trim().toLowerCase();
+  if (!email) return null;
+  try {
+    await env.DB.prepare(
+      `INSERT INTO customers (id, name, email, phone) VALUES (?, ?, ?, ?)
+       ON CONFLICT(email) DO UPDATE SET
+         name = COALESCE(excluded.name, name),
+         phone = COALESCE(excluded.phone, phone)`,
+    )
+      .bind(
+        `cus_${crypto.randomUUID()}`,
+        session.customer_details?.name ?? null,
+        email,
+        session.customer_details?.phone ?? null,
+      )
+      .run();
+    const row = await env.DB.prepare('SELECT id FROM customers WHERE email = ?')
+      .bind(email)
+      .first<{ id: string }>();
+    return row?.id ?? null;
+  } catch (err) {
+    console.error('upsert de cliente fallo', err);
+    return null;
+  }
 }
 
 function cityFromShipping(shippingJson: string | null): string | null {
