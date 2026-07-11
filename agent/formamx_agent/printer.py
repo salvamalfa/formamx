@@ -56,6 +56,22 @@ class ImplicitFTPS(ftplib.FTP_TLS):
             )
         return conn, size
 
+    def storbinary(self, cmd, fp, blocksize=8192, callback=None, rest=None):
+        # Igual que ftplib.FTP.storbinary pero SIN el unwrap() final: el
+        # servidor de la Bambu nunca contesta el close_notify del cierre TLS
+        # y ftplib se queda esperándolo hasta expirar ("read operation timed
+        # out") aunque el archivo ya se haya transferido completo.
+        self.voidcmd('TYPE I')
+        with self.transfercmd(cmd, rest) as conn:
+            while True:
+                buf = fp.read(blocksize)
+                if not buf:
+                    break
+                conn.sendall(buf)
+                if callback:
+                    callback(buf)
+        return self.voidcmd()
+
 
 class PrinterError(Exception):
     pass
@@ -81,10 +97,13 @@ class BambuPrinter:
         ftps = ImplicitFTPS(context=_ssl_context())
         try:
             ftps.connect(self.ip, FTPS_PORT, timeout=20)
+            log.info('FTPS: conectado a %s', self.ip)
             ftps.login('bblp', self.access_code)
             ftps.prot_p()
+            log.info('FTPS: autenticado; subiendo %s', remote_name)
             with open(local_path, 'rb') as f:
                 ftps.storbinary(f'STOR {remote_name}', f)
+            log.info('FTPS: subida completa')
         # ftplib.all_errors ya es una tupla de excepciones (incluye OSError);
         # anidarla en otra tupla rompe el except en tiempo de ejecución.
         except ftplib.all_errors as err:
