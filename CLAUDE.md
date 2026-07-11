@@ -73,3 +73,9 @@ Fases pequeñas y desplegables; verificar SIEMPRE (pytest + Playwright +
 wrangler dev local con webhooks firmados) antes de mergear; squash-merge a
 `master`. Salva opera desde su teléfono (/taller) y su PC Windows (agente);
 dale pasos manuales con comandos exactos de PowerShell.
+
+**Salva NO toca GitHub.** Claude hace TODO el flujo de GitHub por su cuenta:
+crear la rama, el PR (draft), sacarlo de draft y el squash-merge a `master`
+(que dispara el deploy a Hostinger vía SSH). No le pidas a Salva que abra,
+revise o mergee PRs; hazlo tú y solo avísale el resultado y qué verificar en
+la web.
