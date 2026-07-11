@@ -22,7 +22,15 @@ MQTT_PORT = 8883
 
 
 class ImplicitFTPS(ftplib.FTP_TLS):
-    """FTPS implícito (puerto 990): el socket se envuelve en TLS antes del banner."""
+    """FTPS implícito (puerto 990) para la Bambu.
+
+    Dos cosas que ftplib estándar no hace y la impresora exige:
+    1. Envolver el socket de control en TLS ANTES del banner (implícito).
+    2. Reutilizar la sesión TLS de la conexión de control en la conexión de
+       datos. El servidor FTPS de Bambu rechaza (o cuelga) la conexión de
+       datos si no reutiliza la sesión; sin esto, la subida expira con
+       "read operation timed out".
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -37,6 +45,16 @@ class ImplicitFTPS(ftplib.FTP_TLS):
         if value is not None and not isinstance(value, ssl.SSLSocket):
             value = self.context.wrap_socket(value)
         self._sock = value
+
+    def ntransfercmd(self, cmd, rest=None):
+        conn, size = ftplib.FTP.ntransfercmd(self, cmd, rest)
+        if self._prot_p:
+            conn = self.context.wrap_socket(
+                conn,
+                server_hostname=self.host,
+                session=self.sock.session,  # reutiliza la sesión del control
+            )
+        return conn, size
 
 
 class PrinterError(Exception):
