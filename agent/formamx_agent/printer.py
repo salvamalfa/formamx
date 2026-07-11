@@ -67,7 +67,9 @@ class BambuPrinter:
             ftps.prot_p()
             with open(local_path, 'rb') as f:
                 ftps.storbinary(f'STOR {remote_name}', f)
-        except (OSError, ftplib.all_errors) as err:  # type: ignore[misc]
+        # ftplib.all_errors ya es una tupla de excepciones (incluye OSError);
+        # anidarla en otra tupla rompe el except en tiempo de ejecución.
+        except ftplib.all_errors as err:
             raise PrinterError(f'no pude subir el archivo: {err}') from err
         finally:
             try:
