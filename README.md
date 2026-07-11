@@ -1,43 +1,31 @@
-# Astro Starter Kit: Minimal
+# forma — formamx.com
+
+Taller de proyectos de una persona: bancas, lámparas, videos, música. Cada
+pieza se hace una vez. No es una tienda ni un portafolio: es documentación
+honesta del proceso — la venta existe, pero es consecuencia de la historia.
+
+Este repo contiene el sitio completo y el pipeline **compra → taller →
+impresión 3D automática**: alguien configura su lámpara y paga; el pedido cae
+al dashboard del taller; al despacharlo, un agente local manda cada pieza a
+la Bambu Lab A1 con los filamentos correctos del AMS.
+
+## Estructura
+
+| Carpeta | Qué es |
+| --- | --- |
+| `src/` | Sitio Astro 6 (Preact + Tailwind 4): bitácora, configurador de lámparas, `/taller` (dashboard privado) |
+| `workers/api/` | Backend en Cloudflare Workers + D1: checkout Stripe, webhook, cola de pedidos y trabajos de impresión ([README](workers/api/README.md)) |
+| `agent/` | Agente Python que corre junto a la impresora: FTPS + MQTT a la A1, sincronización del AMS ([README](agent/README.md)) |
+| `ds-bundle/` | Design system de forma: tokens, voz de marca, componentes |
+| `ROADMAP_ARQUITECTURA.md` | Cómo crece esto a ERP/MES por módulos sin refactorizar |
+| `CLAUDE.md` | Contexto operativo para sesiones de Claude Code |
+
+## Comandos
 
 ```sh
-npm create astro@latest -- --template minimal
+npm install && npm run dev      # sitio en localhost:4321
+npm run build                   # build estático (deploy: merge a master)
+npm run test:e2e                # suite Playwright
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+El backend y el agente tienen sus propios README con la puesta en marcha.
