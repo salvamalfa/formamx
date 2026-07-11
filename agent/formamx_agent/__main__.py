@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .api import TallerApi
 from .mapping import FilamentoFaltante, compute_mapping, pick_file
+from .printer import PrinterError
 
 log = logging.getLogger('formamx')
 
@@ -93,9 +94,17 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
             except Exception as err:
                 log.warning('no pude reportar progreso: %s', err)
 
-    printer.upload(local_file, 'model.3mf')
-    api.report(job_id, 'printing', progress_pct=0)
-    ok, error = printer.print_file('model.3mf', subtask, ams_mapping, on_progress)
+    try:
+        printer.upload(local_file, 'model.3mf')
+        api.report(job_id, 'printing', progress_pct=0)
+        ok, error = printer.print_file('model.3mf', subtask, ams_mapping, on_progress)
+    except PrinterError as err:
+        # Fallo de comunicación con la impresora ANTES de tocar la cama: el
+        # trabajo falla con su motivo visible en /taller (botón Reintentar)
+        # en vez de quedarse 'preparando' hasta el reencolado automático.
+        api.report(job_id, 'failed', message=str(err))
+        log.error('trabajo %s: %s', job_id, err)
+        return
     # La impresión tocó la cama (bien o mal): se activa el candado y no llegan
     # más trabajos hasta que confirmes en /taller que la despejaste.
     if ok:
