@@ -70,7 +70,7 @@ class ImplicitFTPS(ftplib.FTP_TLS):
                 conn.sendall(buf)
                 if callback:
                     callback(buf)
-        return self.voidcmd()
+        return self.voidresp()
 
 
 class PrinterError(Exception):
