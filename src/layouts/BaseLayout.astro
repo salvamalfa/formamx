@@ -16,6 +16,10 @@ const {
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+// La portada ya se titula "forma"; evitamos el sufijo redundante en la
+// pestaña. El resto de páginas conservan "… | formamx" para contexto y SEO.
+const fullTitle = title === 'forma' ? title : `${title} | formamx`;
 ---
 
 <!doctype html>
@@ -38,7 +42,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
       rel="stylesheet"
     />
 
-    <title>{title} | formamx</title>
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
 
