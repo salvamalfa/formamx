@@ -13,6 +13,9 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
 - **Agregar módulos al dashboard** (CRM, envíos, inventario, inbox, calidad,
   agente autónomo) o tocar la estructura de /taller →
   lee `ROADMAP_ARQUITECTURA.md` (convenciones y receta de activación).
+- **Agente de IA (Raspberry Pi, Telegram, LLM, métricas, prioridad de cola,
+  avisos)** → lee `docs/AGENTE_IA.md` (plan por fases aprobado, aún sin
+  implementar) ANTES de implementar cualquier fase.
 - **Marca, voz, estilos** → `ds-bundle/readme.md`. Regla corta: español de
   tú, primera persona, sin marketing, SIN emoji, sentence case, tokens de
   `src/styles/brand.css`.
