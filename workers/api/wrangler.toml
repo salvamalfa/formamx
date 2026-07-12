@@ -10,5 +10,13 @@ binding = "DB"
 database_name = "formamx"
 database_id = "98dbf2ef-7777-4e1e-85d5-02b3734148b4"
 
+# Rate limiting nativo de Workers para /api/checkout: máximo 10 sesiones de
+# Stripe por IP cada 60 s. Evita que alguien automatice miles de sesiones.
+[[unsafe.bindings]]
+name = "CHECKOUT_RL"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }
+
 [vars]
 SITE_ORIGIN = "https://formamx.com"

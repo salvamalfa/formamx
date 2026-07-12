@@ -9,6 +9,12 @@ export const checkout = new Hono<AppContext>();
 // El precio sale SIEMPRE de la base (nunca del cliente); la combinación de la
 // lámpara se valida contra el catálogo real del configurador.
 checkout.post('/', async (c) => {
+  // Rate limit por IP: crear una sesión de Stripe cuesta una llamada de red;
+  // sin esto alguien podría automatizar miles. La IP real la pone Cloudflare.
+  const ip = c.req.header('CF-Connecting-IP') ?? 'anon';
+  const { success } = await c.env.CHECKOUT_RL.limit({ key: ip });
+  if (!success) return c.json({ error: 'demasiadas_solicitudes' }, 429);
+
   let body: Record<string, unknown>;
   try {
     body = (await c.req.json()) ?? {};

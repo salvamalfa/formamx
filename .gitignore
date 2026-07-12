@@ -37,3 +37,7 @@ playwright-report/
 # Python (agente)
 __pycache__/
 *.pyc
+
+# Config real del agente (agent_token + access code de la impresora): NUNCA se sube
+config.toml
+agent/config.toml

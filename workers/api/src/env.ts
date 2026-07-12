@@ -1,5 +1,12 @@
+// Binding de rate limiting nativo de Cloudflare Workers.
+export interface RateLimit {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+}
+
 export interface Env {
   DB: D1Database;
+  // Límite de creación de sesiones de checkout por IP (ver wrangler.toml).
+  CHECKOUT_RL: RateLimit;
   STRIPE_SECRET_KEY: string;
   STRIPE_WEBHOOK_SECRET: string;
   // Topic de ntfy.sh para avisos de pedidos; el nombre del topic es el secreto.

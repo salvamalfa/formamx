@@ -175,38 +175,7 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
     </footer>
   </main>
 
-  <script>
-    // Menú móvil: alterna el panel, cambia el icono y cierra al navegar,
-    // al hacer clic fuera o con Escape.
-    const menuBtn = document.getElementById('menu-btn')!;
-    const menu = document.getElementById('menu-movil')!;
-    const setMenu = (abierto: boolean) => {
-      menu.hidden = !abierto;
-      menuBtn.setAttribute('aria-expanded', String(abierto));
-      menuBtn.setAttribute('aria-label', abierto ? 'Cerrar menú' : 'Abrir menú');
-      menuBtn.querySelector('[data-icon="abrir"]')!.classList.toggle('hidden', abierto);
-      menuBtn.querySelector('[data-icon="cerrar"]')!.classList.toggle('hidden', !abierto);
-    };
-    menuBtn.addEventListener('click', () => setMenu(menu.hidden));
-    menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setMenu(false)));
-    document.addEventListener('click', (e) => {
-      if (!menu.hidden && !menu.contains(e.target as Node) && !menuBtn.contains(e.target as Node)) setMenu(false);
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') setMenu(false);
-    });
-
-    // Filtro de categorías de la bitácora (equivalente al setState del prototipo).
-    const chips = document.querySelectorAll<HTMLButtonElement>('[data-cat-btn]');
-    const cards = document.querySelectorAll<HTMLElement>('[data-cat]');
-    chips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        const cat = chip.dataset.catBtn!;
-        chips.forEach((c) => c.classList.toggle('activo', c === chip));
-        cards.forEach((card) => {
-          card.style.display = cat === 'todos' || card.dataset.cat === cat ? '' : 'none';
-        });
-      });
-    });
-  </script>
+  <!-- Script externo (is:inline evita que Astro lo empaquete/inline): la CSP
+       del sitio no permite scripts inline. Ver public/scripts/home.js. -->
+  <script is:inline type="module" src="/scripts/home.js"></script>
 </BaseLayout>

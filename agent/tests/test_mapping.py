@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from formamx_agent.mapping import FilamentoFaltante, compute_mapping, pick_file
@@ -63,3 +65,16 @@ def test_pick_file_sin_material_es_error(tmp_path):
     # No existen archivos genéricos: sin material no hay archivo que elegir.
     with pytest.raises(ValueError):
         pick_file(tmp_path, 'tapa/tapa', None)
+
+
+def test_pick_file_rechaza_traversal_relativo(tmp_path):
+    # Un file_key con '..' no puede sacar al agente de files_dir.
+    with pytest.raises(ValueError):
+        pick_file(tmp_path, '../../etc/passwd', 'PLA')
+
+
+def test_pick_file_rechaza_ruta_absoluta(tmp_path):
+    # Una ruta absoluta en file_key colapsaría fuera de files_dir; se rechaza.
+    absoluta = '/etc/passwd' if os.name != 'nt' else 'C:/Windows/System32/x'
+    with pytest.raises(ValueError):
+        pick_file(tmp_path, absoluta, 'PLA')

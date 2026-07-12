@@ -22,6 +22,6 @@ dry_run_seconds = 20
 log_file = 'C:\formamx\agent.log'
 
 [printer]
-ip = "192.168.1.83"
+ip = "PEGA-AQUI-LA-IP-LOCAL"
 serial = "PEGA-AQUI-EL-NUMERO-DE-SERIE"
-access_code = "28433424"
+access_code = "PEGA-AQUI-EL-ACCESS-CODE"
