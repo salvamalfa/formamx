@@ -47,9 +47,10 @@ npx wrangler login
 npx wrangler d1 create formamx        # pega el database_id que devuelve en wrangler.toml
 npm run migrate:remote
 
-# 2. Secretos (Stripe → Developers → API keys)
+# 2. Secretos (Stripe → Developers → API keys; tokens con `openssl rand -hex 24`)
 npx wrangler secret put STRIPE_SECRET_KEY
-npx wrangler secret put NTFY_TOPIC    # string aleatorio largo; el nombre del topic ES el secreto
+npx wrangler secret put ADMIN_TOKEN   # el que pegas una vez en /taller
+npx wrangler secret put AGENT_TOKEN   # el del agente de la impresora
 
 # 3. Primer deploy (anota la URL *.workers.dev que imprime)
 npm run deploy
@@ -69,9 +70,11 @@ Después:
 
 - En Stripe: habilita **OXXO** (Settings → Payment methods) y los **recibos por
   email** de pagos exitosos (Settings → Emails).
-- Instala la app **ntfy** en el teléfono y suscríbete al topic del paso 2:
-  ahí llegan los avisos de pedido nuevo.
 - Pega la URL real del Worker en `src/config/api.ts` del sitio.
+
+Avisos: el secreto `NTFY_TOPIC` es legado y está **roto** (ntfy.sh bloquea a
+Workers); los avisos de pago llegan por la app de Stripe. El reemplazo
+(outbox en D1 + bot de Telegram) está planeado en `docs/AGENTE_IA.md`.
 
 ## Desarrollo local
 
@@ -82,7 +85,8 @@ npm run dev            # http://localhost:8787 con D1 local
 # Secretos de prueba para dev: crea workers/api/.dev.vars (ignorado por git):
 #   STRIPE_SECRET_KEY=sk_test_...
 #   STRIPE_WEBHOOK_SECRET=whsec_...
-#   NTFY_TOPIC=formamx-dev-loquesea
+#   ADMIN_TOKEN=... AGENT_TOKEN=...
+#   NTFY_TOPIC=formamx-dev-loquesea   # legado, ntfy está roto
 
 # Webhooks locales con la CLI de Stripe:
 stripe listen --forward-to localhost:8787/api/webhook/stripe

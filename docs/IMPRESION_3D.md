@@ -28,7 +28,7 @@ este documento cubre SOLO este proyecto.)
 | --- | --- |
 | Catálogo de modelos/colores (única fuente de verdad) | `src/config/lamps.ts` — la importan configurador, Worker y dashboard |
 | Configurador público | `src/components/LampConfigurator.tsx` + `src/pages/lampara.astro` |
-| Dashboard del taller | `src/components/taller/` (shell + módulos; ver `ROADMAP_ARQUITECTURA.md`) |
+| Dashboard del taller | `src/components/taller/` (shell + módulos; ver `docs/ROADMAP_ARQUITECTURA.md`) |
 | API de pedidos/trabajos | `workers/api/src/routes/admin/` y `routes/agent.ts`; lógica en `lib/jobs.ts` (`createJobsForOrder`), `lib/orders.ts` (grafo), `lib/catalog.ts` (validación + match de color hex) |
 | Agente | `agent/formamx_agent/` (`printer.py` = FTPS/MQTT; `mapping.py` = ams_mapping y elección de archivo) |
 
@@ -41,7 +41,9 @@ este documento cubre SOLO este proyecto.)
   G-code fija temperaturas al rebanar, un archivo sin material es ambiguo.
   El agente elige el archivo según el **material de la ranura mapeada**.
 - Los 3MF rebanados viven SOLO en la PC de Salva (`C:\formamx\3mf\
-  {pantalla|cuerpo|tapa}\`). El repo es público: jamás subir STL/3MF.
+  {pantalla|cuerpo|tapa}\`). Jamás subir STL/3MF al repo: son binarios
+  pesados y no son código (la regla nació cuando el repo era público y se
+  mantiene ahora que es privado).
   Hoy solo existe el modelo **Tessera**; los otros 4 (diamond, fluted,
   rhombus, torsion) se agregan cuando Salva los rebane.
 - **El AMS de la impresora dicta el estado**: el agente lo lee cada 5 min

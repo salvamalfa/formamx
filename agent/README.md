@@ -23,6 +23,7 @@ dashboard.
 mkdir C:\formamx
 cd C:\formamx
 git clone https://github.com/salvamalfa/formamx.git repo
+# (el repo es privado: git te pedirá iniciar sesión en GitHub la primera vez)
 cd repo\agent
 pip install -r requirements.txt
 

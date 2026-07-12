@@ -8,7 +8,7 @@ import { pedidos } from './pedidos';
 // aquí — ningún módulo puede olvidar el auth. Las rutas históricas se montan
 // en '/' (URLs congeladas); los módulos futuros se montan con prefijo:
 //   admin.route('/clientes', clientes)  →  /api/admin/clientes/...
-// Receta completa en ROADMAP_ARQUITECTURA.md.
+// Receta completa en docs/ROADMAP_ARQUITECTURA.md.
 export const admin = new Hono<AppContext>();
 
 admin.use('*', bearer('ADMIN_TOKEN'));

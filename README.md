@@ -17,7 +17,7 @@ la Bambu Lab A1 con los filamentos correctos del AMS.
 | `workers/api/` | Backend en Cloudflare Workers + D1: checkout Stripe, webhook, cola de pedidos y trabajos de impresión ([README](workers/api/README.md)) |
 | `agent/` | Agente Python que corre junto a la impresora: FTPS + MQTT a la A1, sincronización del AMS ([README](agent/README.md)) |
 | `ds-bundle/` | Design system de forma: tokens, voz de marca, componentes |
-| `ROADMAP_ARQUITECTURA.md` | Cómo crece esto a ERP/MES por módulos sin refactorizar |
+| `docs/` | Documentación por área: impresión 3D, agente de IA, roadmap de arquitectura (ERP/MES por módulos) |
 | `CLAUDE.md` | Contexto operativo para sesiones de Claude Code |
 
 ## Comandos

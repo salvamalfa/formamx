@@ -4,7 +4,7 @@ import { PedidosPanel } from './pedidos/PedidosPanel';
 
 // Registro de módulos del taller. Activar un módulo nuevo = agregar una
 // entrada aquí (el tab y el hash #<id> aparecen solos). La receta completa
-// está en ROADMAP_ARQUITECTURA.md.
+// está en docs/ROADMAP_ARQUITECTURA.md.
 export interface TallerModule {
   id: string;
   label: string;
