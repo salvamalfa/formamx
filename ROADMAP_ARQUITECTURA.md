@@ -163,8 +163,15 @@ agent_policies(id=1 CHECK(id=1), auto_dispatch INTEGER DEFAULT 0,
 agent_decisions(id PK, created_at, action, order_id NULL, job_id NULL, reason)
 ```
 No rehace nada: reutiliza `print_jobs`/`spool_slots`/`printer_flags` +
-`createJobsForOrder` (`lib/jobs.ts`). La decisión "qué imprimir" corre en el
-Worker (cron trigger de Cloudflare, gratis) o en el claim — no en la PC local.
+`createJobsForOrder` (`lib/jobs.ts`).
+
+**Actualización (2026-07):** el diseño detallado y aprobado vive en
+`docs/AGENTE_IA.md` — supersede este boceto. La decisión "qué imprimir" NO
+corre en un cron del Worker: la toma una Raspberry Pi (agente de IA con
+Telegram y LLM híbrido) que escribe `print_jobs.priority` vía `/api/ai/*`;
+el Worker sigue siendo la fuente de verdad y el claim solo cambia su
+`ORDER BY`. `agent_decisions` se mantiene tal cual; `agent_policies` queda
+para la fase de auto-dispatch.
 
 ## 8. Receta para activar un módulo `<m>` (ej. `envios`)
 
