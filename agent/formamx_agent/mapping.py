@@ -8,6 +8,8 @@ F2=rojo, con blanco en la ranura 0 y rojo en la 2, produce [0, 2].
 
 from __future__ import annotations
 
+from pathlib import Path
+
 
 class FilamentoFaltante(Exception):
     def __init__(self, faltantes: list[str]):
@@ -36,7 +38,17 @@ def pick_file(files_dir, file_key: str, material: str):
     """Ruta del 3MF a imprimir: el material va explícito en el nombre
     (tessera.petg.gcode.3mf). No existen archivos genéricos: el G-code fija
     temperaturas al rebanar, así que un archivo sin material es ambiguo.
+
+    Contención: la ruta resuelta debe quedar dentro de files_dir. Hoy file_key
+    lo genera el server desde un catálogo cerrado, pero el agente no confía en
+    la API: un file_key con '..' o una ruta absoluta (si la API se
+    comprometiera) no puede sacar al agente de su carpeta de archivos.
     """
     if not material:
         raise ValueError('material requerido para elegir el archivo')
-    return files_dir / f'{file_key}.{material.lower()}.gcode.3mf'
+    base = Path(files_dir).resolve()
+    target = base / f'{file_key}.{material.lower()}.gcode.3mf'
+    resolved = target.resolve()
+    if resolved != base and base not in resolved.parents:
+        raise ValueError(f'ruta fuera de files_dir: {file_key!r}')
+    return target
