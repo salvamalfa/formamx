@@ -12,7 +12,7 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
   lee `docs/IMPRESION_3D.md` ANTES de tocar cualquiera de esas piezas.
 - **Agregar módulos al dashboard** (CRM, envíos, inventario, inbox, calidad,
   agente autónomo) o tocar la estructura de /taller →
-  lee `ROADMAP_ARQUITECTURA.md` (convenciones y receta de activación).
+  lee `docs/ROADMAP_ARQUITECTURA.md` (convenciones y receta de activación).
 - **Agente de IA (Raspberry Pi, Telegram, LLM, métricas, prioridad de cola,
   avisos)** → lee `docs/AGENTE_IA.md` (plan por fases aprobado, aún sin
   implementar) ANTES de implementar cualquier fase.
@@ -54,12 +54,17 @@ Migraciones D1: numeración 4 dígitos, un tema por archivo, NUNCA editar una
 aplicada, enums sin CHECK. Orden de deploy: migración remota → worker →
 merge del sitio.
 
-## Secretos y cuentas (el repo es PÚBLICO — nada de secretos ni STL/3MF)
+## Secretos y cuentas (nada de secretos ni STL/3MF en git)
+
+El repo es **privado** desde julio 2026 (fue público). Eso NO relaja las
+reglas: los secretos jamás se commitean (viven en `wrangler secret`, en
+`.dev.vars` o en configs locales de las máquinas de Salva) y los STL/3MF
+siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 
 - Worker (`wrangler secret put`): `STRIPE_SECRET_KEY` (test),
   `STRIPE_WEBHOOK_SECRET`, `ADMIN_TOKEN`, `AGENT_TOKEN`, `NTFY_TOPIC`
-  (roto: ntfy.sh bloquea a Workers; los avisos de pago llegan por la app de
-  Stripe).
+  (legado, roto: ntfy.sh bloquea a Workers; los avisos de pago llegan por la
+  app de Stripe; el reemplazo es la fase 1-2 de `docs/AGENTE_IA.md`).
 - Cloudflare: cuenta de Salva (account id `15ac7395af783656f4131e2850e1a27b`,
   subdominio workers.dev `formamx`). Para desplegar pide a Salva el
   `CLOUDFLARE_API_TOKEN`; en sandbox, wrangler necesita `NODE_USE_ENV_PROXY=1`.
@@ -68,7 +73,8 @@ merge del sitio.
 
 - Stripe en modo prueba → pasar a live (llaves live + webhook live + 2 secretos).
 - Rotar el token de Cloudflare que circuló por chat; revocar llaves R2 sin uso.
-- Avisos custom muertos desde Workers (ntfy); alternativa futura: Telegram.
+- Avisos custom muertos desde Workers (ntfy); el reemplazo (outbox en D1 +
+  bot de Telegram en la Pi) ya está planeado en `docs/AGENTE_IA.md`, fases 1-2.
 
 ## Flujo de trabajo con Salva
 
@@ -82,3 +88,14 @@ crear la rama, el PR (draft), sacarlo de draft y el squash-merge a `master`
 (que dispara el deploy a Hostinger vía SSH). No le pidas a Salva que abra,
 revise o mergee PRs; hazlo tú y solo avísale el resultado y qué verificar en
 la web.
+
+Ramas: `master` es la única de larga vida (= producción). Cada cambio va en
+una rama corta desde `master`, se squash-mergea y muere; nunca se apilan
+commits sobre una rama ya mergeada (se reinicia desde `master`). Sin
+worktrees ni ramas de entorno.
+
+## Organización del repo
+
+Toda la documentación por área vive en `docs/`. En la raíz solo quedan
+`README.md` (presentación) y `CLAUDE.md` (este archivo). `ds-bundle/` no se
+reorganiza: su layout lo dicta el sync con Claude Design (`.design-sync/`).

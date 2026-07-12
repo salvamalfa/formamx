@@ -17,7 +17,7 @@ import { NEXT_STEP } from './pedidos/labels';
 // Datos "core" del taller: pedidos + estado de la impresora. Los comparten
 // los módulos pedidos e impresora (una tarjeta necesita las bobinas; el
 // candado de cama es global). Los módulos FUTUROS no entran aquí: cada uno
-// hace su propio fetch (ver ROADMAP_ARQUITECTURA.md).
+// hace su propio fetch (ver docs/ROADMAP_ARQUITECTURA.md).
 export interface TallerCore {
   orders: Order[];
   spools: Spool[];

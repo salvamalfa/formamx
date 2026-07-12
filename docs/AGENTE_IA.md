@@ -72,7 +72,7 @@ API key de Anthropic con saldo (fase 4).
 
 | Decisión | Elección | Por qué |
 | --- | --- | --- |
-| Auth del agente IA | Tercer token estático `AI_TOKEN` + sub-app propia `/api/ai/*` | Ampliar la unión de `bearer()` (`workers/api/src/lib/auth.ts`) cuesta una línea; `api_tokens` con scopes sigue diferida (`ROADMAP_ARQUITECTURA.md` §9). Regla existente: nunca compartir sub-app entre tokens. |
+| Auth del agente IA | Tercer token estático `AI_TOKEN` + sub-app propia `/api/ai/*` | Ampliar la unión de `bearer()` (`workers/api/src/lib/auth.ts`) cuesta una línea; `api_tokens` con scopes sigue diferida (`docs/ROADMAP_ARQUITECTURA.md` §9). Regla existente: nunca compartir sub-app entre tokens. |
 | Avisos (ntfy murió) | Tabla outbox `agent_events` en D1; la Pi la lee por cursor y manda Telegram | El Worker no alcanza ntfy.sh y no debe cargar el token de Telegram. Escrituras solo por evento real (~unidades/día, irrelevante para el presupuesto D1). Lectura por cursor = cero escrituras de polling. |
 | Prioridad de cola | Columna `print_jobs.priority`; el claim ordena `priority DESC, created_at` en el Worker | El agente de la PC no cambia nada: el orden es server-side. Solo cambia el `ORDER BY` del claim atómico (`workers/api/src/routes/agent.ts`). |
 | ¿El LLM decide cada orden? | No. Un scorer determinista en Python calcula prioridades; el LLM explica y propone ajustes acotados | El claim corre cada 20 s: un LLM ahí es lento, caro y no testeable. El scorer cubre el 95 % y se prueba con pytest; la explicación legible se guarda en `agent_decisions`. |
@@ -91,7 +91,7 @@ API key de Anthropic con saldo (fase 4).
   público, ventana de 24 h y plantillas aprobadas para salientes. Cuando se
   haga, será *orientado a clientes*: webhook en el Worker
   (`POST /api/webhook/whatsapp`, idempotencia estilo `webhook_events`) →
-  tabla `messages` (Inbox, `ROADMAP_ARQUITECTURA.md` §7) → la Pi lee y el
+  tabla `messages` (Inbox, `docs/ROADMAP_ARQUITECTURA.md` §7) → la Pi lee y el
   LLM redacta borradores que Salva aprueba por Telegram. Caso de uso
   distinto, fase futura.
 
@@ -176,7 +176,7 @@ pi/
 
 - `config.example.toml`: `api_base`, `ai_token`, `telegram_bot_token`,
   `allowed_chat_ids`, `poll_seconds = 45`. La copia real vive SOLO en la Pi
-  (mismo patrón que `agent/config.example.toml`; el repo es público).
+  (mismo patrón que `agent/config.example.toml`; los tokens jamás van a git).
 - Comandos: `/estado` (impresora + candado + AMS), `/cola`, `/pedidos` —
   todos contra `/api/ai/estado`.
 - Loop: cada 45 s lee eventos nuevos → manda mensajes → avanza el cursor.
@@ -199,7 +199,7 @@ por el panel y (fase 4) por el LLM. Es el "preparar la página".
   `admin.route('/metricas', metricas)` en `routes/admin/index.ts`.
 - `workers/api/src/routes/ai/metricas.ts` → las mismas funciones de lib
   bajo `/api/ai/metricas/*`.
-- Frontend (receta de `ROADMAP_ARQUITECTURA.md` §8):
+- Frontend (receta de `docs/ROADMAP_ARQUITECTURA.md` §8):
   `src/lib/taller/metricas.ts` (+ re-export en `index.ts`),
   `src/components/taller/metricas/MetricasPanel.tsx`, entrada
   `{ id: 'metricas', label: 'Métricas' }` en
@@ -272,7 +272,7 @@ reordenamiento queda explicado y auditable.
   minimizar cambios de bobina. El LLM produce la explicación (y puede
   proponer un ajuste acotado); POST al Worker; aviso por Telegram
   "Reordené la cola: …".
-- Actualizar `ROADMAP_ARQUITECTURA.md` §7 (la decisión corre en la Pi, no
+- Actualizar `docs/ROADMAP_ARQUITECTURA.md` §7 (la decisión corre en la Pi, no
   en un cron del Worker) y `docs/IMPRESION_3D.md` con el nuevo actor.
 - **Verifica**: pytest del scorer (función pura: pedido viejo contra
   agrupación de color, pedido a medias); curl contra `wrangler dev`
