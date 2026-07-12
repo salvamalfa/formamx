@@ -124,7 +124,9 @@ agent.post('/jobs/:id/status', async (c) => {
   )
     .bind(
       next,
-      typeof body.progress_pct === 'number' ? Math.round(body.progress_pct) : job.progress_pct,
+      typeof body.progress_pct === 'number'
+        ? Math.min(100, Math.max(0, Math.round(body.progress_pct)))
+        : job.progress_pct,
       body.message ?? job.message,
       id,
     )

@@ -50,18 +50,27 @@ webhook.post('/stripe', async (c) => {
 
   const session = event.data.object as Stripe.Checkout.Session;
 
-  switch (event.type) {
-    case 'checkout.session.completed':
-      await onSessionCompleted(c.env, c.executionCtx, session);
-      break;
-    case 'checkout.session.async_payment_succeeded':
-      await promotePendingOrder(c.env, c.executionCtx, session.id, 'pagada');
-      break;
-    case 'checkout.session.async_payment_failed':
-    case 'checkout.session.expired':
-      await promotePendingOrder(c.env, c.executionCtx, session.id, 'cancelada');
-      break;
-    // Otros tipos: aceptados y olvidados a propósito.
+  // Si el procesamiento falla (error transitorio de D1, etc.) se libera la fila
+  // de dedupe y se responde 500: así Stripe reintenta y el evento vuelve a
+  // procesarse en vez de quedar consumido con el pedido a medias o perdido.
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await onSessionCompleted(c.env, c.executionCtx, session);
+        break;
+      case 'checkout.session.async_payment_succeeded':
+        await promotePendingOrder(c.env, c.executionCtx, session.id, 'pagada');
+        break;
+      case 'checkout.session.async_payment_failed':
+      case 'checkout.session.expired':
+        await promotePendingOrder(c.env, c.executionCtx, session.id, 'cancelada');
+        break;
+      // Otros tipos: aceptados y olvidados a propósito.
+    }
+  } catch (err) {
+    console.error('procesando webhook fallo', event.id, err);
+    await c.env.DB.prepare('DELETE FROM webhook_events WHERE event_id = ?').bind(event.id).run();
+    return c.text('error', 500);
   }
 
   return c.text('ok', 200);
@@ -122,7 +131,10 @@ async function onSessionCompleted(
     )
     .run();
 
-  if (inserted.meta.changes && paid) {
+  // Los efectos de pago se disparan por el candado atómico de paid_at (dentro
+  // de onOrderPaid), no por si esta inserción fue la que creó el pedido: así un
+  // reintento del webhook sobre un pedido ya existente los completa igual.
+  if (paid) {
     await onOrderPaid(env, ctx, session.id);
   }
 }
@@ -136,21 +148,33 @@ async function promotePendingOrder(
   sessionId: string,
   outcome: 'pagada' | 'cancelada',
 ): Promise<void> {
-  const updated = await env.DB.prepare(
+  await env.DB.prepare(
     `UPDATE orders SET status = ?, updated_at = datetime('now')
      WHERE provider_session_id = ? AND status = 'pendiente'`,
   )
     .bind(outcome, sessionId)
     .run();
 
-  if (updated.meta.changes && outcome === 'pagada') {
+  // No se condiciona a que ESTE update haya movido el estado: si un intento
+  // previo ya lo pasó a 'pagada' pero murió antes de los efectos, el candado
+  // de paid_at en onOrderPaid los corre ahora (y los evita si ya corrieron).
+  if (outcome === 'pagada') {
     await onOrderPaid(env, ctx, sessionId);
   }
 }
 
 // Efectos de entrar a `pagada`: descontar stock de piezas únicas y avisar al
-// taller. Corre exactamente una vez por pedido (los llamadores lo garantizan).
+// taller. Corre exactamente una vez por pedido: el candado atómico de paid_at
+// deja pasar solo al primer llamador, aunque el webhook se reintente.
 async function onOrderPaid(env: Env, ctx: WaitUntil, sessionId: string): Promise<void> {
+  const claimed = await env.DB.prepare(
+    "UPDATE orders SET paid_at = datetime('now') WHERE provider_session_id = ? AND paid_at IS NULL",
+  )
+    .bind(sessionId)
+    .run();
+  // Otro procesamiento (o un reintento) ya corrió los efectos: no repetir.
+  if (!claimed.meta.changes) return;
+
   const order = await env.DB.prepare('SELECT * FROM orders WHERE provider_session_id = ?')
     .bind(sessionId)
     .first<OrderRow>();

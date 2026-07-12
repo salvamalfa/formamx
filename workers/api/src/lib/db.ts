@@ -16,4 +16,5 @@ export interface OrderRow {
   customer_name: string | null;
   shipping_json: string | null;
   status: string;
+  paid_at: string | null;
 }

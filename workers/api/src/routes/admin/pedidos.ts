@@ -68,9 +68,16 @@ pedidos.patch('/orders/:id', async (c) => {
     return c.json({ error: 'transicion_invalida', from: order.status, to: next }, 409);
   }
 
-  await c.env.DB.prepare("UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ?")
-    .bind(next, id)
+  // UPDATE guardado por el estado leído: si otro proceso (webhook, agente, otra
+  // pestaña) cambió el estado entre el SELECT y aquí, no se pisa nada.
+  const moved = await c.env.DB.prepare(
+    "UPDATE orders SET status = ?, updated_at = datetime('now') WHERE id = ? AND status = ?",
+  )
+    .bind(next, id, order.status)
     .run();
+  if (!moved.meta.changes) {
+    return c.json({ error: 'transicion_concurrente', from: order.status, to: next }, 409);
+  }
   return c.json(shapeOrder({ ...order, status: next }));
 });
 
@@ -92,7 +99,18 @@ pedidos.post('/orders/:id/dispatch', async (c) => {
     .first<{ n: number }>();
   if (existing && existing.n > 0) return c.json({ error: 'ya_despachado' }, 409);
 
-  const jobs = await createJobsForOrder(c.env.DB, id, config);
+  // El índice único (order_id, part) cierra la carrera: si dos despachos entran
+  // a la vez y ambos pasan el COUNT, el segundo choca con el UNIQUE y aquí se
+  // traduce a 409 en vez de crear un segundo juego de trabajos.
+  let jobs;
+  try {
+    jobs = await createJobsForOrder(c.env.DB, id, config);
+  } catch (err) {
+    if (err instanceof Error && /UNIQUE/i.test(err.message)) {
+      return c.json({ error: 'ya_despachado' }, 409);
+    }
+    throw err;
+  }
   return c.json({ jobs: jobs.map(shapeJob) });
 });
 

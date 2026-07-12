@@ -7,21 +7,25 @@ import { checkout } from './routes/checkout';
 import { products } from './routes/products';
 import { webhook } from './routes/webhook';
 
-const ALLOWED_ORIGINS = [
-  'https://formamx.com',
-  'https://www.formamx.com',
-  'http://localhost:4321',
-  'http://127.0.0.1:4321',
-];
+const PROD_ORIGINS = ['https://formamx.com', 'https://www.formamx.com'];
+const DEV_ORIGINS = ['http://localhost:4321', 'http://127.0.0.1:4321'];
 
 const app = new Hono<AppContext>();
 
-// CORS con lista cerrada de orígenes. Al webhook no le afecta: Stripe llama
-// server-to-server sin header Origin y el middleware no agrega nada.
+// CORS con lista cerrada. Los orígenes de desarrollo (localhost) solo se
+// permiten cuando el propio worker corre en local (wrangler dev sirve en
+// localhost); en producción, sobre workers.dev, quedan fuera. Al webhook no le
+// afecta: Stripe llama server-to-server sin header Origin.
 app.use(
   '/api/*',
   cors({
-    origin: ALLOWED_ORIGINS,
+    origin: (origin, c) => {
+      if (PROD_ORIGINS.includes(origin)) return origin;
+      const host = new URL(c.req.url).hostname;
+      const local = host === 'localhost' || host === '127.0.0.1';
+      if (local && DEV_ORIGINS.includes(origin)) return origin;
+      return null;
+    },
     allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   }),
