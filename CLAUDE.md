@@ -16,6 +16,10 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
 - **Agente de IA (Raspberry Pi, Telegram, LLM, métricas, prioridad de cola,
   avisos)** → lee `docs/AGENTE_IA.md` (plan por fases aprobado, aún sin
   implementar) ANTES de implementar cualquier fase.
+- **Negocio (Stripe live, SAS/RFC, páginas legales, precio y envío, CFDI,
+  post-venta, respaldos, monitoreo, CI, analytics)** → lee `docs/NEGOCIO.md`
+  (plan por fases, ordenado por importancia, aún sin implementar). Los textos
+  legales de ahí son borradores: abogado/contador antes de confiar en ellos.
 - **Marca, voz, estilos** → `ds-bundle/readme.md`. Regla corta: español de
   tú, primera persona, sin marketing, SIN emoji, sentence case, tokens de
   `src/styles/brand.css`.
@@ -71,10 +75,15 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 
 ## Pendientes conocidos
 
-- Stripe en modo prueba → pasar a live (llaves live + webhook live + 2 secretos).
-- Rotar el token de Cloudflare que circuló por chat; revocar llaves R2 sin uso.
+- Stripe en modo prueba → pasar a live (llaves live + webhook live + 2
+  secretos). Secuencia SAS/RFC/banco → live en `docs/NEGOCIO.md` §1.
+- Rotar el token de Cloudflare que circuló por chat; revocar llaves R2 sin
+  uso. Pasos en `docs/NEGOCIO.md` §5 (hacerlo la semana 1).
 - Avisos custom muertos desde Workers (ntfy); el reemplazo (outbox en D1 +
   bot de Telegram en la Pi) ya está planeado en `docs/AGENTE_IA.md`, fases 1-2.
+- Falta lo legal y operativo para vender de verdad (aviso de privacidad,
+  términos, CFDI, envíos, respaldos, CI, analytics): plan completo ordenado
+  por importancia en `docs/NEGOCIO.md`.
 
 ## Flujo de trabajo con Salva
 
