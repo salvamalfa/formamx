@@ -153,6 +153,11 @@ jobs:
                 exit 1
               fi
 
+              if [[ "${review_state}" != "COMMENTED" && "${review_state}" != "APPROVED" ]]; then
+                sleep 10
+                continue
+              fi
+
               blocking_threads="$(count_blocking_threads)"
 
               if [[ "${blocking_threads}" != "0" ]]; then
