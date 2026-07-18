@@ -2,11 +2,13 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [master]
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -70,3 +72,36 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+
+  codex-review:
+    name: Codex / review complete
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Wait for Codex review of the current commit
+        shell: bash
+        run: |
+          for attempt in {1..90}; do
+            review_id="$(
+              gh api --paginate \
+                "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews" \
+                --jq ".[] | select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\") | .id" \
+                | head -n 1
+            )"
+
+            if [[ -n "${review_id}" ]]; then
+              echo "Codex reviewed ${HEAD_SHA}."
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "Codex did not review the current commit within 15 minutes." >&2
+          echo "Request a new review with: @codex review" >&2
+          exit 1
