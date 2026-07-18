@@ -18,7 +18,7 @@ merge y el worker no.
 
 | # | Módulo | Migración | Estado |
 | --- | --- | --- | --- |
-| 1 | clientes | ninguna (customers existe, 0008) | pendiente |
+| 1 | clientes | ninguna (customers existe, 0008) | mergeado |
 | 2 | envios | 0011_envios.sql | pendiente |
 | 3 | inventario | 0012_inventario.sql | pendiente |
 | 4 | calidad | 0013_calidad.sql | pendiente |

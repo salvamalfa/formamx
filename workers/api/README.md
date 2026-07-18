@@ -18,6 +18,9 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `POST /api/admin/orders/:id/dispatch` | `Bearer ADMIN_TOKEN` | Manda un pedido `en_cola` a imprimir: crea 3 trabajos (pantalla, cuerpo y tapa). |
 | `POST /api/admin/jobs/:id/requeue` | `Bearer ADMIN_TOKEN` | Reencola un trabajo fallido. |
 | `GET/POST /api/admin/printer[/bed-clear]` | `Bearer ADMIN_TOKEN` | Candado de cama: estado y confirmación de que se retiró la pieza. |
+| `GET /api/admin/clientes` | `Bearer ADMIN_TOKEN` | CRM: lista de clientes con nº de pedidos y fecha del último. `?limit=`. |
+| `GET /api/admin/clientes/:id` | `Bearer ADMIN_TOKEN` | Detalle del cliente + su historial de pedidos (máx. 50). |
+| `PATCH /api/admin/clientes/:id` | `Bearer ADMIN_TOKEN` | Guarda las notas del cliente. Body `{"notes":"..."}`; cadena vacía las borra. |
 | `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada o la cama sigue ocupada. |
 | `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`; con `bed_dirty` activa el candado de cama. |
 
