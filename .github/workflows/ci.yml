@@ -1,0 +1,248 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to recheck after a late Codex review
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site:
+    name: Site / check and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+
+  worker:
+    name: Worker / typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: workers/api/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+
+  agent:
+    name: Agent / tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: agent/requirements.txt
+      - run: python -m pip install -r requirements.txt pytest
+      - run: python -m pytest tests
+
+  e2e:
+    name: Site / end-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  codex-review:
+    name: Codex / review complete
+    if: >-
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Wait for Codex review of the current commit
+        shell: bash
+        run: |
+          pr_head_sha="$(
+            gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.sha'
+          )"
+
+          if [[ "${pr_head_sha}" != "${HEAD_SHA}" ]]; then
+            echo "PR #${PR_NUMBER} points to ${pr_head_sha}, not workflow HEAD ${HEAD_SHA}." >&2
+            exit 1
+          fi
+
+          count_blocking_threads() {
+            local cursor=""
+            local total=0
+
+            while true; do
+              local variables=(
+                -F owner="${GITHUB_REPOSITORY_OWNER}"
+                -F repo="${GITHUB_REPOSITORY#*/}"
+                -F number="${PR_NUMBER}"
+              )
+
+              if [[ -n "${cursor}" ]]; then
+                variables+=(-F cursor="${cursor}")
+              fi
+
+              local response
+              response="$(
+                gh api graphql "${variables[@]}" \
+                  -f query='query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                    repository(owner: $owner, name: $repo) {
+                      pullRequest(number: $number) {
+                        reviewThreads(first: 100, after: $cursor) {
+                          nodes {
+                            isResolved
+                            comments(first: 100) {
+                              nodes { author { login } body }
+                            }
+                          }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }
+                  }'
+              )"
+
+              local page_count
+              page_count="$(
+                jq '[
+                  .data.repository.pullRequest.reviewThreads.nodes[]
+                  | select(.isResolved == false)
+                  | select(any(
+                      .comments.nodes[];
+                      (.author.login | startswith("chatgpt-codex-connector"))
+                      and (.body | test("P[01] Badge"))
+                    ))
+                ] | length' <<< "${response}"
+              )"
+              total=$((total + page_count))
+
+              if [[ "$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage' <<< "${response}")" != "true" ]]; then
+                break
+              fi
+
+              cursor="$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor' <<< "${response}")"
+            done
+
+            echo "${total}"
+          }
+
+          for attempt in {1..90}; do
+            trigger="$(
+              gh api --paginate \
+                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+                | jq -sr --arg marker "<!-- codex-review-head:${HEAD_SHA} -->" \
+                  '(add // []) | map(select(.body | contains($marker))) | (last // empty) | [.id, .created_at] | @tsv'
+            )"
+
+            if [[ -z "${trigger}" ]]; then
+              sleep 10
+              continue
+            fi
+
+            IFS=$'\t' read -r trigger_id trigger_created_at <<< "${trigger}"
+
+            review_state="$(
+              gh api --paginate \
+                "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" \
+                | jq -sr --arg head_sha "${HEAD_SHA}" \
+                  '(add // []) | map(select(.user.login == "chatgpt-codex-connector[bot]" and .commit_id == $head_sha)) | last | .state // empty'
+            )"
+
+            if [[ -n "${review_state}" ]]; then
+              if [[ "${review_state}" == "CHANGES_REQUESTED" ]]; then
+                echo "Codex requested changes on ${HEAD_SHA}." >&2
+                exit 1
+              fi
+
+              if [[ "${review_state}" != "COMMENTED" && "${review_state}" != "APPROVED" ]]; then
+                sleep 10
+                continue
+              fi
+
+              blocking_threads="$(count_blocking_threads)"
+
+              if [[ "${blocking_threads}" != "0" ]]; then
+                echo "Codex has ${blocking_threads} unresolved P0/P1 thread(s)." >&2
+                exit 1
+              fi
+
+              echo "Codex reviewed ${HEAD_SHA} with no unresolved P0/P1 findings."
+              exit 0
+            fi
+
+            clean_reaction="$(
+              gh api --paginate \
+                "repos/${GITHUB_REPOSITORY}/issues/comments/${trigger_id}/reactions?per_page=100" \
+                | jq -s '(add // []) | any(.[]; .user.login == "chatgpt-codex-connector[bot]" and .content == "+1")'
+            )"
+
+            reviewed_commit="**Reviewed commit:** \`${HEAD_SHA:0:10}\`"
+            clean_comment="$(
+              gh api --paginate \
+                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+                | jq -s \
+                  --arg created_after "${trigger_created_at}" \
+                  --arg reviewed_commit "${reviewed_commit}" \
+                  '(add // []) | any(.[];
+                    .user.login == "chatgpt-codex-connector[bot]"
+                    and .created_at > $created_after
+                    and (.body | contains($reviewed_commit))
+                    and (.body | test("did(n.t| not) find any major issues|no major issues"; "i"))
+                  )'
+            )"
+
+            if [[ "${clean_reaction}" == "true" || "${clean_comment}" == "true" ]]; then
+              blocking_threads="$(count_blocking_threads)"
+
+              if [[ "${blocking_threads}" != "0" ]]; then
+                echo "Codex has ${blocking_threads} unresolved P0/P1 thread(s)." >&2
+                exit 1
+              fi
+
+              echo "Codex completed a clean review of ${HEAD_SHA}."
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "Codex did not review the current commit within 15 minutes." >&2
+          echo "Request a new review with: @codex review" >&2
+          exit 1
