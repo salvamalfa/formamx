@@ -58,6 +58,9 @@ migraciones remotas como parte de una revisión.
 
 - El autor corrige los hallazgos y solicita una nueva revisión con el marcador
   del nuevo SHA.
+- Si Codex responde después del timeout del gate, el autor reejecuta el mismo
+  workflow sobre la rama del PR con `gh workflow run ci.yml --ref RAMA -f
+  pr_number=NUMERO`; no crea un commit vacío.
 - Todos los checks requeridos y las conversaciones deben quedar resueltos.
 - Claude puede hacer squash-merge cuando todos los checks requeridos estén
   verdes, Codex haya terminado la revisión sin hallazgos P0/P1 pendientes y

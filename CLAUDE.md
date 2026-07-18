@@ -112,6 +112,11 @@ marcador `<!-- codex-review-head:SHA_COMPLETO_DE_HEAD -->`. Si haces otra
 corrección, repite la solicitud con el nuevo SHA; el check requerido rechaza
 revisiones de commits anteriores.
 
+Si Codex responde después de que el gate agote sus 15 minutos, reejecuta CI
+sobre la rama del PR con `gh workflow run ci.yml --ref NOMBRE_DE_RAMA -f
+pr_number=NUMERO_DEL_PR`. Esta ejecución vuelve a asociar el check al mismo
+`HEAD`; no hagas un commit vacío para reintentarlo.
+
 Ramas: `master` es la única de larga vida (= producción). Cada cambio va en
 una rama corta desde `master`, se squash-mergea y muere; nunca se apilan
 commits sobre una rama ya mergeada (se reinicia desde `master`). Sin
