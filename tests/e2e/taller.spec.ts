@@ -319,6 +319,83 @@ test('el detalle del cliente muestra su historial y guarda notas', async ({ page
   expect(patched).toBe(true);
 });
 
+const ENVIO = {
+  id: 'shp_1',
+  order_id: 'ord_1',
+  carrier: 'Estafeta',
+  service: null,
+  tracking_number: 'EST123456',
+  label_url: null,
+  cost_mxn: 15000,
+  status: 'creada',
+  created_at: '2026-07-15 12:00:00',
+  shipped_at: null,
+  delivered_at: null,
+  pedido: { id: 'ord_1', customer_name: 'Ana Prueba', shipping: ORDER.shipping },
+};
+
+test('el módulo envíos crea una guía para un pedido listo', async ({ page }) => {
+  let posted = false;
+  await mockApi(page);
+  // El select del form pide los pedidos y filtra los 'lista'.
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { orders: [{ ...ORDER, status: 'lista' }] } });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/admin/envios', (route) => {
+    if (route.request().method() === 'POST') {
+      posted = true;
+      return route.fulfill({ json: ENVIO });
+    }
+    return route.fulfill({ json: { envios: [] } });
+  });
+  await page.goto('/taller#envios');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('Sin guías activas.', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Nueva guía' }).click();
+  await page.getByLabel('Pedido').selectOption('ord_1');
+  await page.getByPlaceholder('Paquetería').fill('Estafeta');
+  await page.getByPlaceholder('Número de guía').fill('EST123456');
+  await page.getByRole('button', { name: 'Crear guía' }).click();
+
+  await expect(page.getByText('EST123456')).toBeVisible();
+  await expect(page.getByText('Guía creada')).toBeVisible();
+  expect(posted).toBe(true);
+});
+
+test('la guía avanza por el grafo y al entregarla sale de la lista', async ({ page }) => {
+  let patched = false;
+  await mockApi(page);
+  await page.route('**/api/admin/envios', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { envios: [ENVIO] } });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/admin/envios/*', (route) => {
+    patched = true;
+    return route.fulfill({
+      json: { ...ENVIO, status: 'en_transito', shipped_at: '2026-07-15 13:00:00' },
+    });
+  });
+  await page.goto('/taller#envios');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('EST123456')).toBeVisible();
+  await page.getByRole('button', { name: 'Marcar en tránsito' }).click();
+  await expect(page.getByText('En tránsito')).toBeVisible();
+  expect(patched).toBe(true);
+
+  // Entregada: sale de la lista al instante (optimista).
+  await page.getByRole('button', { name: 'Marcar entregada' }).click();
+  await expect(page.getByText('EST123456')).toHaveCount(0);
+});
+
 test('el botón avanza el estado del pedido', async ({ page }) => {
   let patched = false;
   await mockApi(page);
