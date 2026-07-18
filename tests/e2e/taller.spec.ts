@@ -451,8 +451,9 @@ test('el módulo inventario da de alta una bobina y edita su peso', async ({ pag
   await page.getByPlaceholder('Marca').fill('Creality');
   await page.getByRole('button', { name: 'Agregar bobina' }).click();
 
-  await expect(page.getByText('Azul')).toBeVisible();
-  await expect(page.getByText('1000 g / 1000 g')).toBeVisible();
+  const bobina = page.getByRole('listitem').filter({ hasText: '1000 g / 1000 g' });
+  await expect(bobina.getByText('Azul', { exact: true })).toBeVisible();
+  await expect(bobina.getByText('1000 g / 1000 g')).toBeVisible();
   expect(posted).toBe(true);
 
   await page.getByLabel('Peso restante en gramos').fill('650');
