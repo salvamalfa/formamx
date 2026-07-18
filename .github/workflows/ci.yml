@@ -139,7 +139,7 @@ jobs:
               gh api --paginate \
                 "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
                 | jq -sr --arg marker "<!-- codex-review-head:${HEAD_SHA} -->" \
-                  '(add // []) | map(select(.body | contains($marker))) | (last // empty) | .id'
+                  '(add // []) | map(select(.body | contains($marker))) | (last // empty) | [.id, .created_at] | @tsv'
             )"
 
             if [[ -z "${trigger}" ]]; then
@@ -147,7 +147,7 @@ jobs:
               continue
             fi
 
-            trigger_id="${trigger}"
+            IFS=$'\t' read -r trigger_id trigger_created_at <<< "${trigger}"
 
             review_state="$(
               gh api --paginate \
@@ -184,7 +184,22 @@ jobs:
                 | jq -s '(add // []) | any(.[]; .user.login == "chatgpt-codex-connector[bot]" and .content == "+1")'
             )"
 
-            if [[ "${clean_reaction}" == "true" ]]; then
+            reviewed_commit="**Reviewed commit:** \`${HEAD_SHA:0:10}\`"
+            clean_comment="$(
+              gh api --paginate \
+                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+                | jq -s \
+                  --arg created_after "${trigger_created_at}" \
+                  --arg reviewed_commit "${reviewed_commit}" \
+                  '(add // []) | any(.[];
+                    .user.login == "chatgpt-codex-connector[bot]"
+                    and .created_at > $created_after
+                    and (.body | contains($reviewed_commit))
+                    and (.body | test("did(n.t| not) find any major issues|no major issues"; "i"))
+                  )'
+            )"
+
+            if [[ "${clean_reaction}" == "true" || "${clean_comment}" == "true" ]]; then
               blocking_threads="$(count_blocking_threads)"
 
               if [[ "${blocking_threads}" != "0" ]]; then
