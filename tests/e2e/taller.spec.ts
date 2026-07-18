@@ -396,6 +396,99 @@ test('la guía avanza por el grafo y al entregarla sale de la lista', async ({ p
   await expect(page.getByText('EST123456')).toHaveCount(0);
 });
 
+const BOBINA = {
+  id: 'bob_1',
+  color_id: 'azul',
+  material: 'PLA',
+  brand: 'Creality',
+  weight_g: 1000,
+  weight_left_g: 1000,
+  cost_mxn: 35000,
+  status: 'nueva',
+  created_at: '2026-07-16 10:00:00',
+  updated_at: '2026-07-16 10:00:00',
+};
+
+const PIEZA = {
+  id: 'pza_1',
+  product_id: 'lampara',
+  config: { model: 'tessera', pantalla: 'azul', tapa: 'rojo' },
+  print_job_id: null,
+  order_id: null,
+  qc_status: 'ok',
+  status: 'en_stock',
+  location: 'repisa A',
+  created_at: '2026-07-16 11:00:00',
+};
+
+test('el módulo inventario da de alta una bobina y edita su peso', async ({ page }) => {
+  let posted = false;
+  let patchedPeso = false;
+  await mockApi(page);
+  // Lista y alta comparten glob con el detalle: se discrimina por método y
+  // el detalle (bobinas/*) se registra aparte.
+  await page.route('**/api/admin/inventario/bobinas', (route) => {
+    if (route.request().method() === 'POST') {
+      posted = true;
+      return route.fulfill({ json: BOBINA });
+    }
+    return route.fulfill({ json: { bobinas: [] } });
+  });
+  await page.route('**/api/admin/inventario/bobinas/*', (route) => {
+    if (route.request().method() === 'PATCH') {
+      patchedPeso = true;
+      return route.fulfill({ json: { ...BOBINA, weight_left_g: 650 } });
+    }
+    return route.fallback();
+  });
+  await page.goto('/taller#inventario');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('Aún no hay bobinas registradas.', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Nueva bobina' }).click();
+  await page.getByLabel('Color').selectOption('azul');
+  await page.getByPlaceholder('Marca').fill('Creality');
+  await page.getByRole('button', { name: 'Agregar bobina' }).click();
+
+  await expect(page.getByText('Azul')).toBeVisible();
+  await expect(page.getByText('1000 g / 1000 g')).toBeVisible();
+  expect(posted).toBe(true);
+
+  await page.getByLabel('Peso restante en gramos').fill('650');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByText('650 g / 1000 g')).toBeVisible();
+  expect(patchedPeso).toBe(true);
+});
+
+test('la sección piezas del inventario reserva una pieza en stock', async ({ page }) => {
+  let patched = false;
+  await mockApi(page);
+  await page.route('**/api/admin/inventario/bobinas', (route) =>
+    route.fulfill({ json: { bobinas: [] } }),
+  );
+  await page.route('**/api/admin/inventario/piezas', (route) =>
+    route.fulfill({ json: { piezas: [PIEZA] } }),
+  );
+  await page.route('**/api/admin/inventario/piezas/*', (route) => {
+    if (route.request().method() === 'PATCH') {
+      patched = true;
+      return route.fulfill({ json: { ...PIEZA, status: 'reservada' } });
+    }
+    return route.fallback();
+  });
+  await page.goto('/taller#inventario');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await page.getByRole('button', { name: 'Piezas' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page.getByText('QC ok')).toBeVisible();
+  await page.getByRole('button', { name: 'Reservar' }).click();
+  await expect(page.getByText('Reservada')).toBeVisible();
+  expect(patched).toBe(true);
+});
+
 test('el botón avanza el estado del pedido', async ({ page }) => {
   let patched = false;
   await mockApi(page);

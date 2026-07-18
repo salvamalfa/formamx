@@ -4,6 +4,7 @@ import { bearer } from '../../lib/auth';
 import { clientes } from './clientes';
 import { envios } from './envios';
 import { impresora } from './impresora';
+import { inventario } from './inventario';
 import { pedidos } from './pedidos';
 
 // /api/admin: un sub-app Hono por módulo. El bearer se aplica UNA sola vez
@@ -18,3 +19,4 @@ admin.route('/', pedidos);
 admin.route('/', impresora);
 admin.route('/clientes', clientes);
 admin.route('/envios', envios);
+admin.route('/inventario', inventario);
