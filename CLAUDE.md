@@ -70,8 +70,11 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
   (legado, roto: ntfy.sh bloquea a Workers; los avisos de pago llegan por la
   app de Stripe; el reemplazo es la fase 1-2 de `docs/AGENTE_IA.md`).
 - Cloudflare: cuenta de Salva (account id `15ac7395af783656f4131e2850e1a27b`,
-  subdominio workers.dev `formamx`). Para desplegar pide a Salva el
-  `CLOUDFLARE_API_TOKEN`; en sandbox, wrangler necesita `NODE_USE_ENV_PROXY=1`.
+  subdominio workers.dev `formamx`). El `CLOUDFLARE_API_TOKEN` (rotado en
+  julio 2026) vive como variable de entorno del entorno de Claude Code —
+  las sesiones nuevas lo traen puesto y wrangler lo toma solo; NUNCA pedirlo
+  por chat ni escribirlo en archivos. En sandbox, wrangler necesita
+  `NODE_USE_ENV_PROXY=1`.
 
 ## Pendientes conocidos
 
