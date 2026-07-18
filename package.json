@@ -15,15 +15,15 @@
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.1",
-    "@tailwindcss/vite": "^4.2.2",
-    "astro": "^6.1.5",
-    "preact": "^10.29.4",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.1.1",
+    "preact": "^10.29.7",
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.8",
+    "@astrojs/check": "^0.9.9",
     "@playwright/test": "^1.61.1",
-    "@types/node": "^26.1.0",
-    "typescript": "^5.9.3"
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
   }
 }
