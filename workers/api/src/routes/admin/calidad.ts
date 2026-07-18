@@ -6,7 +6,7 @@ import { CHECKLISTS, shapeQc, validateChecklist, type QcRow } from '../../lib/ca
 // propósito — repetir la revisión de una pieza es crear otro registro; el
 // historial no se edita. Este módulo NO toca el grafo de pedidos: marcar un
 // pedido 'lista' sigue siendo decisión humana en /taller (decisión de diseño
-// registrada en docs/PLAN_MODULOS_TALLER.md).
+// registrada en docs/ROADMAP_ARQUITECTURA.md §7, Control de calidad).
 export const calidad = new Hono<AppContext>();
 
 // Partes válidas de una lámpara; NULL (sin part) = pieza completa.

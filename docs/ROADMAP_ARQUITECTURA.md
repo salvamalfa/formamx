@@ -56,7 +56,8 @@ src/components/taller/
   pedidos/             PedidosPanel, OrderCard, JobsStrip, LampPreview,
                        FilamentNeeds, labels.ts
   impresora/           ImpresoraPanel (AMS solo lectura), BedAlert (candado)
-  # futuros: clientes/  envios/  inventario/  inbox/  calidad/  agente/
+  clientes/  envios/  inventario/  calidad/  inbox/   (activados 2026-07)
+  # futuros: agente/
 ```
 
 **Contrato shell → panel:** cada `Panel` recibe `{ manifest }` y es dueño de sus
@@ -113,11 +114,17 @@ Ningún módulo escribe colores/radios a mano: clases de marca y primitivas de `
 
 ## 7. Módulos futuros (bocetos, no compromisos)
 
-### CRM — clientes
+**Actualización (2026-07): clientes, envíos, inventario, calidad e inbox ya
+están IMPLEMENTADOS** siguiendo estos bocetos y la receta §8 (migraciones
+0011-0014; rutas en la tabla de `workers/api/README.md`). Los bocetos se
+conservan abajo como registro del diseño; el único módulo pendiente es el
+agente autónomo (plan en `docs/AGENTE_IA.md`).
+
+### CRM — clientes — implementado (sin migración; tabla de 0008)
 Tabla ya creada. Historial = `SELECT * FROM orders WHERE customer_id = ?`.
 Panel: lista + detalle con pedidos y notas. Opcional después: `tags_json`.
 
-### Envíos
+### Envíos — implementado (migración 0011)
 ```
 shipments(id 'shp_' PK, order_id FK NOT NULL, carrier, service,
           tracking_number, label_url, cost_mxn, raw_json,
@@ -126,7 +133,7 @@ shipments(id 'shp_' PK, order_id FK NOT NULL, carrier, service,
 ```
 1 pedido → N guías (reenvíos). `orders.enviada` no cambia; el detalle vive aquí.
 
-### Inventario de bodega
+### Inventario de bodega — implementado (migración 0012)
 ```
 bobinas(id 'bob_' PK, color_id, material, brand, weight_g, weight_left_g,
         cost_mxn, status: nueva|en_uso|agotada, created_at, updated_at)
@@ -137,7 +144,7 @@ piezas(id 'pza_' PK, product_id FK, config_json, print_job_id NULL FK,
 `spool_slots` sigue siendo "qué está montado en el AMS" (estado físico);
 `bobinas` es el almacén. Se unen con `spool_slots.bobina_id` (diferido).
 
-### Inbox
+### Inbox — implementado (migración 0014)
 ```
 messages(id 'msg_' PK, channel: email|whatsapp|web|manual, direction: in|out,
          external_id UNIQUE NULL,  -- idempotencia, patrón webhook_events
@@ -146,7 +153,7 @@ messages(id 'msg_' PK, channel: email|whatsapp|web|manual, direction: in|out,
 ```
 Sin tabla de hilos: `customer_id` + orden cronológico ES el hilo.
 
-### Control de calidad
+### Control de calidad — implementado (migración 0013)
 ```
 qc_registros(id 'qc_' PK, order_id FK NOT NULL, print_job_id NULL FK,
              part NULL, checklist_json NOT NULL, passed NOT NULL,
@@ -154,7 +161,9 @@ qc_registros(id 'qc_' PK, order_id FK NOT NULL, print_job_id NULL FK,
 ```
 Las **definiciones** de checklist viven en código (`lib/calidad.ts`, por
 `products.production`) — fuente de verdad en código, resultados en D1, igual
-que el catálogo vive en `lamps.ts`. Enganche natural: `imprimiendo → lista`.
+que el catálogo vive en `lamps.ts`. Nota de la implementación: NO se enganchó
+al gate `imprimiendo → lista` (marcar Lista sigue siendo decisión humana en
+Pedidos); el panel solo sugiere qué falta por revisar. Registros inmutables.
 
 ### Agente autónomo
 ```
