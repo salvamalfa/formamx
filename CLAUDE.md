@@ -75,6 +75,11 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
   las sesiones nuevas lo traen puesto y wrangler lo toma solo; NUNCA pedirlo
   por chat ni escribirlo en archivos. En sandbox, wrangler necesita
   `NODE_USE_ENV_PROXY=1`.
+- Al tocar features de Cloudflare que este repo aún no usa, o ante errores
+  raros de plataforma/wrangler: consulta la guía oficial para agentes
+  (https://developers.cloudflare.com/agent-setup/prompt.md y el repo
+  cloudflare/skills) ANTES de improvisar. Para lo ya establecido (deploy,
+  migraciones D1, secretos) mandan las convenciones de este repo.
 
 ## Pendientes conocidos
 
