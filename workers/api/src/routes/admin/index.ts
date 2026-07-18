@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { AppContext } from '../../env';
 import { bearer } from '../../lib/auth';
 import { clientes } from './clientes';
+import { envios } from './envios';
 import { impresora } from './impresora';
 import { pedidos } from './pedidos';
 
@@ -16,3 +17,4 @@ admin.use('*', bearer('ADMIN_TOKEN'));
 admin.route('/', pedidos);
 admin.route('/', impresora);
 admin.route('/clientes', clientes);
+admin.route('/envios', envios);
