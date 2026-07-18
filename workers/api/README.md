@@ -28,6 +28,9 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `PATCH /api/admin/inventario/bobinas/:id` | `Bearer ADMIN_TOKEN` | Edita el peso restante (`{"weight_left_g"}`) y/o avanza `nueva → en_uso → agotada`; llegar a 0 g no agota solo. Salto ilegal → 409. |
 | `GET/POST /api/admin/inventario/piezas` | `Bearer ADMIN_TOKEN` | Piezas terminadas; por defecto las vivas (ni vendidas ni merma, `?status=`). POST da de alta (`{"product_id","config?","location?","order_id?"}`). |
 | `PATCH /api/admin/inventario/piezas/:id` | `Bearer ADMIN_TOKEN` | Avanza `en_stock ⇄ reservada → vendida\|merma`, edita `location` y el veredicto manual `qc_status` (`ok\|rechazada`); salto ilegal → 409. |
+| `GET /api/admin/calidad/checklists` | `Bearer ADMIN_TOKEN` | Definiciones de los checklists de revisión por tipo de producción; viven en código (`lib/calidad.ts`) y el panel las pinta tal cual. |
+| `GET /api/admin/calidad` | `Bearer ADMIN_TOKEN` | Registros de calidad con resumen del pedido, más recientes primero. `?order_id=`, `?limit=`. |
+| `POST /api/admin/calidad` | `Bearer ADMIN_TOKEN` | Registra una revisión. Body `{"order_id","checklist","part?","print_job_id?","notes?"}`; `passed` lo calcula el worker con las respuestas. Registros inmutables: repetir revisión = registro nuevo (sin PATCH). |
 | `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada o la cama sigue ocupada. |
 | `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`; con `bed_dirty` activa el candado de cama. |
 

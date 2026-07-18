@@ -1,5 +1,6 @@
 import type { JSX } from 'preact';
 import type { LampImageManifest } from '../../config/lamps';
+import { CalidadPanel } from './calidad/CalidadPanel';
 import { ClientesPanel } from './clientes/ClientesPanel';
 import { EnviosPanel } from './envios/EnviosPanel';
 import { InventarioPanel } from './inventario/InventarioPanel';
@@ -19,5 +20,6 @@ export const MODULES: TallerModule[] = [
   { id: 'clientes', label: 'Clientes', Panel: ClientesPanel },
   { id: 'envios', label: 'Envíos', Panel: EnviosPanel },
   { id: 'inventario', label: 'Inventario', Panel: InventarioPanel },
-  // futuros: calidad, inbox, agente
+  { id: 'calidad', label: 'Calidad', Panel: CalidadPanel },
+  // futuros: inbox, agente
 ];
