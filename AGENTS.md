@@ -27,6 +27,13 @@ migraciones remotas como parte de una revisión.
   aplicables en una rama nueva y resuelve la conversación después de corregir;
   si un hallazgo no aplica, deja una explicación breve y resuélvelo. Esta
   comprobación es responsabilidad del agente: Salva no tiene que solicitarla.
+- Para cambios visuales o de UX cuyo resultado necesite juicio de Salva
+  (colores, tamaños, espacios, composición, tipografía o animaciones), trabaja
+  primero en una rama corta sin abrir un pull request. Ejecuta una vista local,
+  muéstrale una captura clara e itera en la misma rama hasta que confirme que
+  le gusta. Su confirmación autoriza abrir el pull request y continuar con
+  checks y squash-merge sin pedir otra aprobación. No añadas esta pausa a
+  cambios técnicos, invisibles o mecánicos con un resultado ya definido.
 - Cada cambio va en una rama corta y un pull request hacia `master`.
 - Todos los checks requeridos y las conversaciones deben quedar resueltos.
 - Claude puede hacer squash-merge cuando todos los checks requeridos estén

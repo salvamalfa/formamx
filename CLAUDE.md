@@ -110,8 +110,17 @@ resuelve la conversación después de corregir. Si un hallazgo no aplica, deja
 una explicación breve y resuélvelo. Haz esta comprobación por iniciativa
 propia: Salva no tiene que recordártela ni estar pendiente de GitHub.
 
+Para cambios visuales o de UX cuyo resultado necesite el juicio de Salva
+(colores, tamaños, espacios, composición, tipografía o animaciones), crea una
+rama corta, implementa y ejecuta una vista local, pero no abras todavía el PR.
+Muéstrale una captura clara e itera en esa misma rama hasta que confirme que le
+gusta. Esa confirmación es sobre el resultado visual y autoriza abrir el PR y
+continuar con checks y squash-merge sin pedirle otra aprobación de GitHub. No
+añadas esta pausa a cambios técnicos, invisibles o mecánicos cuyo resultado ya
+esté completamente definido.
+
 Claude hace el trabajo operativo de GitHub: crea la rama, implementa, abre el
-PR en borrador y corrige los hallazgos de CI y de Codex. Puede hacer
+PR cuando corresponda y corrige los hallazgos de CI y de Codex. Puede hacer
 squash-merge cuando los checks requeridos estén verdes y todas las
 conversaciones estén resueltas. El merge a `master` dispara el deploy a
 Hostinger.
