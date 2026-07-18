@@ -95,6 +95,15 @@ jobs:
       - name: Wait for Codex review of the current commit
         shell: bash
         run: |
+          pr_head_sha="$(
+            gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.head.sha'
+          )"
+
+          if [[ "${pr_head_sha}" != "${HEAD_SHA}" ]]; then
+            echo "PR #${PR_NUMBER} points to ${pr_head_sha}, not workflow HEAD ${HEAD_SHA}." >&2
+            exit 1
+          fi
+
           count_blocking_threads() {
             gh api graphql \
               -F owner="${GITHUB_REPOSITORY_OWNER}" \
