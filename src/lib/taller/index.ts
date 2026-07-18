@@ -2,3 +2,4 @@
 export { call } from './http';
 export * from './pedidos';
 export * from './impresora';
+export * from './clientes';

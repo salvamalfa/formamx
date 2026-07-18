@@ -246,6 +246,79 @@ test('con la cama ocupada aparece el candado y se libera al confirmar', async ({
   expect(confirmed).toBe(true);
 });
 
+const CLIENTES = [
+  {
+    id: 'cus_1',
+    created_at: '2026-07-01 12:00:00',
+    name: 'Ana Prueba',
+    email: 'ana@example.com',
+    phone: '+525511112222',
+    notes: null,
+    order_count: 2,
+    last_order_at: '2026-07-07 20:00:00',
+  },
+  {
+    id: 'cus_2',
+    created_at: '2026-06-20 10:00:00',
+    name: 'Bruno Madera',
+    email: 'bruno@example.com',
+    phone: '+525533334444',
+    notes: 'Prefiere entrega en mano',
+    order_count: 1,
+    last_order_at: '2026-06-21 09:00:00',
+  },
+];
+
+test('el módulo clientes lista y el filtro oculta a quien no coincide', async ({ page }) => {
+  await mockApi(page);
+  await page.route('**/api/admin/clientes', (route) =>
+    route.fulfill({ json: { clientes: CLIENTES } }),
+  );
+  await page.goto('/taller#clientes');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('Ana Prueba')).toBeVisible();
+  await expect(page.getByText('Bruno Madera')).toBeVisible();
+  await expect(page.getByText('2 pedidos')).toBeVisible();
+
+  await page.getByPlaceholder('Buscar por nombre, email o teléfono').fill('bruno');
+  await expect(page.getByText('Ana Prueba')).toHaveCount(0);
+  await expect(page.getByText('Bruno Madera')).toBeVisible();
+});
+
+test('el detalle del cliente muestra su historial y guarda notas', async ({ page }) => {
+  let patched = false;
+  await mockApi(page);
+  await page.route('**/api/admin/clientes', (route) =>
+    route.fulfill({ json: { clientes: CLIENTES } }),
+  );
+  // Detalle y notas comparten glob: se discrimina por método (como mockApi).
+  await page.route('**/api/admin/clientes/*', (route) => {
+    if (route.request().method() === 'PATCH') {
+      patched = true;
+      return route.fulfill({ json: { ...CLIENTES[0], notes: 'Cliente frecuente' } });
+    }
+    return route.fulfill({ json: { cliente: CLIENTES[0], pedidos: [ORDER] } });
+  });
+  await page.goto('/taller#clientes');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await page.getByText('Ana Prueba').click();
+  await expect(page.getByRole('button', { name: '← Clientes' })).toBeVisible();
+  await expect(page.locator('a[href="mailto:ana@example.com"]')).toBeVisible();
+  await expect(page.locator('a[href="tel:+525511112222"]')).toBeVisible();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+
+  await page
+    .getByPlaceholder('Preferencias, acuerdos, lo que haga falta recordar')
+    .fill('Cliente frecuente');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByText('Notas guardadas.')).toBeVisible();
+  expect(patched).toBe(true);
+});
+
 test('el botón avanza el estado del pedido', async ({ page }) => {
   let patched = false;
   await mockApi(page);
