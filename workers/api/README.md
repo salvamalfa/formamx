@@ -31,6 +31,9 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `GET /api/admin/calidad/checklists` | `Bearer ADMIN_TOKEN` | Definiciones de los checklists de revisión por tipo de producción; viven en código (`lib/calidad.ts`) y el panel las pinta tal cual. |
 | `GET /api/admin/calidad` | `Bearer ADMIN_TOKEN` | Registros de calidad con resumen del pedido, más recientes primero. `?order_id=`, `?limit=`. |
 | `POST /api/admin/calidad` | `Bearer ADMIN_TOKEN` | Registra una revisión. Body `{"order_id","checklist","part?","print_job_id?","notes?"}`; `passed` lo calcula el worker con las respuestas. Registros inmutables: repetir revisión = registro nuevo (sin PATCH). |
+| `GET /api/admin/inbox` | `Bearer ADMIN_TOKEN` | Mensajes con clientes (con `customer_name` por JOIN), más recientes primero; por defecto los no archivados. `?status=`, `?customer_id=`, `?limit=`. |
+| `POST /api/admin/inbox` | `Bearer ADMIN_TOKEN` | Registra un mensaje. Body `{"channel","body","direction?","subject?","customer_id?","order_id?"}`; uno enviado (`out`) nace `respondido`, uno recibido (`in`, default) nace `nuevo`. |
+| `PATCH /api/admin/inbox/:id` | `Bearer ADMIN_TOKEN` | Avanza el estado del mensaje (`nuevo → leido → respondido → archivado`, saltos del grafo permitidos); salto ilegal → 409. |
 | `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada o la cama sigue ocupada. |
 | `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`; con `bed_dirty` activa el candado de cama. |
 

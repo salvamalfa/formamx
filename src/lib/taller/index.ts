@@ -6,3 +6,4 @@ export * from './clientes';
 export * from './envios';
 export * from './inventario';
 export * from './calidad';
+export * from './inbox';

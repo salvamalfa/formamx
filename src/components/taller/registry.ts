@@ -3,6 +3,7 @@ import type { LampImageManifest } from '../../config/lamps';
 import { CalidadPanel } from './calidad/CalidadPanel';
 import { ClientesPanel } from './clientes/ClientesPanel';
 import { EnviosPanel } from './envios/EnviosPanel';
+import { InboxPanel } from './inbox/InboxPanel';
 import { InventarioPanel } from './inventario/InventarioPanel';
 import { PedidosPanel } from './pedidos/PedidosPanel';
 
@@ -21,5 +22,6 @@ export const MODULES: TallerModule[] = [
   { id: 'envios', label: 'Envíos', Panel: EnviosPanel },
   { id: 'inventario', label: 'Inventario', Panel: InventarioPanel },
   { id: 'calidad', label: 'Calidad', Panel: CalidadPanel },
-  // futuros: inbox, agente
+  { id: 'inbox', label: 'Inbox', Panel: InboxPanel },
+  // futuros: agente
 ];
