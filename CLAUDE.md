@@ -68,7 +68,8 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 - Worker (`wrangler secret put`): `STRIPE_SECRET_KEY` (test),
   `STRIPE_WEBHOOK_SECRET`, `ADMIN_TOKEN`, `AGENT_TOKEN`, `NTFY_TOPIC`
   (legado, roto: ntfy.sh bloquea a Workers; los avisos de pago llegan por la
-  app de Stripe; el reemplazo es la fase 1-2 de `docs/AGENTE_IA.md`).
+  app de Stripe; el reemplazo está en las fases B1-B2 de
+  `docs/AGENTE_IA.md`).
 - Cloudflare: cuenta de Salva (account id `15ac7395af783656f4131e2850e1a27b`,
   subdominio workers.dev `formamx`). El `CLOUDFLARE_API_TOKEN` (rotado en
   julio 2026) vive como variable de entorno del entorno de Claude Code —
@@ -100,6 +101,14 @@ Fases pequeñas y desplegables; verifica los checks requeridos antes de
 mergear; squash-merge a `master`. Salva opera desde su teléfono (/taller) y su
 PC Windows (agente actual; futura estación de trabajo); dale pasos manuales con
 comandos exactos de PowerShell o del shell de la Mac, según la máquina.
+
+Al iniciar cada sesión, antes del trabajo nuevo, revisa si Codex dejó
+conversaciones o comentarios pendientes en PR anteriores, incluidos los ya
+mergeados. Si la sesión genera más de un PR, repite la revisión antes de crear
+el siguiente. Atiende primero los hallazgos aplicables en una rama nueva y
+resuelve la conversación después de corregir. Si un hallazgo no aplica, deja
+una explicación breve y resuélvelo. Haz esta comprobación por iniciativa
+propia: Salva no tiene que recordártela ni estar pendiente de GitHub.
 
 Claude hace el trabajo operativo de GitHub: crea la rama, implementa, abre el
 PR en borrador y corrige los hallazgos de CI y de Codex. Puede hacer
