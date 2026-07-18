@@ -5,6 +5,7 @@ import { calidad } from './calidad';
 import { clientes } from './clientes';
 import { envios } from './envios';
 import { impresora } from './impresora';
+import { inbox } from './inbox';
 import { inventario } from './inventario';
 import { pedidos } from './pedidos';
 
@@ -21,4 +22,5 @@ admin.route('/', impresora);
 admin.route('/calidad', calidad);
 admin.route('/clientes', clientes);
 admin.route('/envios', envios);
+admin.route('/inbox', inbox);
 admin.route('/inventario', inventario);

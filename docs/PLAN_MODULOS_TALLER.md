@@ -22,7 +22,7 @@ merge y el worker no.
 | 2 | envios | 0011_envios.sql | mergeado |
 | 3 | inventario | 0012_inventario.sql | mergeado |
 | 4 | calidad | 0013_calidad.sql | mergeado |
-| 5 | inbox | 0014_inbox.sql | pendiente |
+| 5 | inbox | 0014_inbox.sql | mergeado |
 | — | cierre (ROADMAP + borrar este doc) | — | pendiente |
 
 Cada PR de módulo actualiza su fila a "mergeado". La numeración de
