@@ -95,21 +95,15 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 
 ## Flujo de trabajo con Salva
 
-Fases pequeñas y desplegables; verifica los checks aplicables al área y riesgo
-del cambio antes de mergear; squash-merge a `master`. Salva opera desde su
-teléfono (/taller) y su PC Windows (agente); dale pasos manuales con comandos
-exactos de PowerShell.
+Fases pequeñas y desplegables; verifica los checks requeridos antes de
+mergear; squash-merge a `master`. Salva opera desde su teléfono (/taller) y su
+PC Windows (agente); dale pasos manuales con comandos exactos de PowerShell.
 
 Claude hace el trabajo operativo de GitHub: crea la rama, implementa, abre el
-PR en borrador y corrige los hallazgos aplicables de CI y de Codex. Usa la
-revisión automática estándar de Codex; no publiques marcadores de SHA ni esperes
-un gate personalizado. Si Codex deja un hallazgo antes del merge, corrígelo y
-puedes solicitar otra pasada con `@codex review`.
-
-Puede hacer squash-merge cuando los checks requeridos estén verdes y todas las
-conversaciones existentes estén resueltas, aunque la revisión automática siga
-en curso. Si llega un hallazgo después del merge, abre un PR corto de
-seguimiento. El merge a `master` dispara el deploy a Hostinger.
+PR en borrador y corrige los hallazgos de CI y de Codex. Puede hacer
+squash-merge cuando los checks requeridos estén verdes y todas las
+conversaciones estén resueltas. El merge a `master` dispara el deploy a
+Hostinger.
 
 Ramas: `master` es la única de larga vida (= producción). Cada cambio va en
 una rama corta desde `master`, se squash-mergea y muere; nunca se apilan
