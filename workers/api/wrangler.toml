@@ -1,6 +1,9 @@
 # API de formamx: checkout con Stripe, webhook de pagos y cola de pedidos.
 # Secretos (nunca aquí): wrangler secret put STRIPE_SECRET_KEY | STRIPE_WEBHOOK_SECRET | NTFY_TOPIC
+# El account_id no es secreto; fija la cuenta para deploys no interactivos
+# (CLOUDFLARE_API_TOKEN llega por variable de entorno, jamás por archivo).
 name = "formamx-api"
+account_id = "15ac7395af783656f4131e2850e1a27b"
 main = "src/index.ts"
 compatibility_date = "2026-06-01"
 compatibility_flags = ["nodejs_compat"]
