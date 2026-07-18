@@ -176,8 +176,8 @@ No rehace nada: reutiliza `print_jobs`/`spool_slots`/`printer_flags` +
 
 **Actualización (2026-07):** el diseño detallado y aprobado vive en
 `docs/AGENTE_IA.md` — supersede este boceto. La decisión "qué imprimir" NO
-corre en un cron del Worker: la toma una Raspberry Pi (agente de IA con
-Telegram y LLM híbrido) que escribe `print_jobs.priority` vía `/api/ai/*`;
+corre en un cron del Worker: la propone la futura Mac mini (servidor de IA
+local con Telegram y modelos abiertos) que escribe `print_jobs.priority` vía `/api/ai/*`;
 el Worker sigue siendo la fuente de verdad y el claim solo cambia su
 `ORDER BY`. `agent_decisions` se mantiene tal cual; `agent_policies` queda
 para la fase de auto-dispatch.

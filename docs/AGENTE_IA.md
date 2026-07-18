@@ -1,311 +1,393 @@
-# Agente de IA local — plan por fases (Raspberry Pi + LLM híbrido)
+# Servidor de IA local — plan por fases (Mac mini + modelos abiertos)
 
-Plan de referencia para convertir la capa operativa del taller en un agente
-de IA real. Léelo completo antes de implementar cualquier fase. **Estado:
-ninguna fase está implementada; este documento es el plan aprobado con
-Salva (julio 2026).** Las fases se ejecutan una por una, cuando Salva lo
-pida, y cada una se mergea sola.
+Plan de referencia para incorporar agentes de IA propios a forma: revisión de
+pull requests, avisos por Telegram, consultas del negocio, métricas y
+priorización de la cola de impresión. Léelo completo antes de implementar
+cualquier fase.
+
+**Estado: ninguna fase está implementada.** Es un plan futuro aprobado con
+Salva en julio de 2026. No comprar hardware, cambiar el flujo de GitHub ni
+implementar una fase hasta que Salva lo pida. Cada fase debe ser pequeña,
+verificable y mergearse por separado.
 
 ## La visión, en corto
 
-Hoy el "agente" (`agent/`, la PC Windows junto a la Bambu A1) es un ejecutor:
-imprime lo que sigue en la fila y ya. El plan lo complementa con un asistente
-de verdad — una Raspberry Pi siempre prendida que:
+Una Mac mini dedicada funcionará como el pequeño servidor de IA del taller. No
+será fuente de verdad ni controlará directamente la producción al principio:
 
-1. Te avisa por Telegram de lo que importa (pago recibido, pieza terminada,
-   impresión fallida) — y de paso revive los avisos que ntfy dejó muertos.
-2. Responde preguntas del negocio con datos reales ("¿cómo van las ventas
-   contra el mes pasado?").
-3. Ordena la cola de impresión con criterio (terminar pedidos empezados,
-   agrupar por color del AMS, respetar antigüedad) y explica cada decisión.
+1. Revisará con un modelo local los PR que realmente sean sensibles; los
+   cambios visuales sencillos no esperarán esa revisión.
+2. Enviará avisos por Telegram y responderá preguntas usando datos del negocio.
+3. Propondrá y explicará prioridades de impresión mediante reglas comprobables.
+4. Ejecutará el agente actual de la Bambu A1 y guardará los 3MF, para que la PC
+   Windows no tenga que permanecer encendida.
+5. Más adelante podrá ayudar a monitorear la impresora con su cámara.
 
-La meta larga: que la capa operativa y de datos la administre la IA para que
-Salva se dedique a desarrollar productos. Inventario de filamento, monitoreo
-con cámara y despacho automático quedan esbozados como fases futuras.
+La meta es no depender de una suscripción ni de una API de IA para estas
+funciones. La compra del equipo y la electricidad son los únicos costos
+necesarios. Codex puede convivir con el revisor local mientras se valida, pero
+no forma parte de la arquitectura final obligatoria.
+
+## Por qué una Mac mini
+
+Es la escala correcta para un taller de una persona: pocos PR, un bot privado y
+una impresora. La memoria unificada permite ejecutar modelos mayores que los
+que caben en la GPU de 8 GB de la PC actual, con poco ruido, consumo y
+mantenimiento. Un clúster, Kubernetes o un servidor con varias GPU agregarían
+complejidad sin aportar valor a este volumen.
+
+Referencia de compra a julio de 2026, no pedido inmediato:
+
+- Mac mini de clase Pro con **64 GB de memoria unificada** y SSD de **1 TB**.
+- Ethernet por cable; UPS recomendable si operará todo el día.
+- La generación exacta se vuelve a elegir al comprar: importa más contar con
+  al menos 64 GB y buen ancho de banda de memoria que conservar un modelo/año
+  específico.
+- La Mac reemplazará a la PC Windows como ejecutor de impresión después de una
+  prueba FTPS/MQTT real y supervisada. La PC sólo se encenderá cuando Salva
+  quiera trabajar en ella o preparar archivos.
+
+La Mac es un único punto de servicio. Si está apagada, no arrancan nuevas
+impresiones, Telegram y las tareas locales esperan; los cambios de UI siguen su
+curso y sólo los PR sensibles quedan en cola hasta que vuelva a encenderse. Una
+impresión ya iniciada continúa dentro de la A1, pero el agente deja de reportar
+hasta recuperarse; por eso la recuperación tras reinicio forma parte del corte.
 
 ## Qué corre dónde
 
-```
-┌────────────────┐  /api/admin/* ADMIN   ┌──────────────────────┐
-│ Sitio /taller  │ ◄───────────────────► │ Worker (Hono) + D1   │
-│ Astro/Hostinger│                       │ FUENTE DE VERDAD     │
-└────────────────┘                       │  · pedidos/trabajos  │
-                                         │  · outbox de eventos │
-┌────────────────┐  /api/agent/* AGENT   │  · métricas          │
-│ PC Windows     │ ◄───────────────────► │  · prioridad/claim   │
-│ (impresora A1) │   SIN CAMBIOS         └──────────▲───────────┘
-└────────────────┘                                  │ /api/ai/* AI
-                                         ┌──────────┴───────────┐
-              Telegram (long polling) ◄─►│ Raspberry Pi         │
-              Claude API (sin PII)    ◄─►│  · bot + router LLM  │
-              Ollama/Gemma (local)    ◄─►│  · scorer de cola    │
-                                         │  · cursor local      │
-                                         └──────────────────────┘
-```
-
-- **Worker/D1**: única fuente de verdad. Tokens, outbox `agent_events`,
-  métricas, `print_jobs.priority`, `agent_decisions`, claim.
-- **Raspberry Pi**: orquesta y conversa. Nunca guarda estado canónico; solo
-  cachea (su cursor de eventos es un archivo local — perderlo solo re-manda
-  avisos).
-- **Cloud (Claude API)**: solo inferencia, con agregados sin PII.
-- **PC Windows (impresora)**: sin cambios en las fases 0-5. Su protocolo
-  (`/api/agent/*`) queda congelado.
-- **/taller**: gana el módulo Métricas (fase 3) y el módulo Agente con la
-  bitácora de decisiones (fase 5).
-
-## Costos y reparto de trabajo
-
-| Qué | Cuánto |
-| --- | --- |
-| Raspberry Pi 5 8 GB + fuente 27 W + SSD | ~$2,500–3,500 MXN, una sola vez |
-| Electricidad | la Pi consume 5-10 W, unos pesos al mes |
-| Claude API (`claude-haiku-4-5`) | a este volumen, <$50 MXN/mes, prepagado |
-| Telegram | gratis |
-
-Claude hace todo el código, pruebas, PRs, merges y deploys. A Salva le toca
-solo lo físico, siempre con pasos exactos: comprar y encender la Pi (fase 0),
-crear el bot con BotFather y pegar dos tokens en la Pi (fase 2), sacar una
-API key de Anthropic con saldo (fase 4).
-
-## Decisiones de diseño
-
-| Decisión | Elección | Por qué |
-| --- | --- | --- |
-| Auth del agente IA | Tercer token estático `AI_TOKEN` + sub-app propia `/api/ai/*` | Ampliar la unión de `bearer()` (`workers/api/src/lib/auth.ts`) cuesta una línea; `api_tokens` con scopes sigue diferida (`docs/ROADMAP_ARQUITECTURA.md` §9). Regla existente: nunca compartir sub-app entre tokens. |
-| Avisos (ntfy murió) | Tabla outbox `agent_events` en D1; la Pi la lee por cursor y manda Telegram | El Worker no alcanza ntfy.sh y no debe cargar el token de Telegram. Escrituras solo por evento real (~unidades/día, irrelevante para el presupuesto D1). Lectura por cursor = cero escrituras de polling. |
-| Prioridad de cola | Columna `print_jobs.priority`; el claim ordena `priority DESC, created_at` en el Worker | El agente de la PC no cambia nada: el orden es server-side. Solo cambia el `ORDER BY` del claim atómico (`workers/api/src/routes/agent.ts`). |
-| ¿El LLM decide cada orden? | No. Un scorer determinista en Python calcula prioridades; el LLM explica y propone ajustes acotados | El claim corre cada 20 s: un LLM ahí es lento, caro y no testeable. El scorer cubre el 95 % y se prueba con pytest; la explicación legible se guarda en `agent_decisions`. |
-| Métricas | Lógica en `workers/api/src/lib/metricas.ts`, expuesta dos veces: `/api/admin/metricas/*` (panel) y `/api/ai/metricas/*` (LLM) | Una sola implementación sirve al humano y a la IA; sigue "rutas delgadas, lógica en lib". |
-| PII hacia el LLM cloud | Garantía estructural: `/api/ai/*` JAMÁS devuelve `customer_name/email/phone/shipping_json` — solo agregados, IDs de pedido y montos | Si el endpoint no lo devuelve, no puede filtrarse por un bug de prompt. Más robusto que anonimizar en la Pi. |
-| Framework en la Pi | Paquete propio `pi/` calcando `agent/`: loop simple + `python-telegram-bot` + SDK `anthropic` (tool runner) + `ollama`. Sin LangChain ni frameworks de agentes | Proyecto de una persona: pocas dependencias bien documentadas y el patrón `TallerApi` (`agent/formamx_agent/api.py`) ya probado. El router local/cloud son ~30 líneas. |
-| Modelos | Local: Gemma 3 4B QAT (`ollama pull gemma3:4b-it-qat`, ~3.3 GB) para intención y plantillas. Cloud: `claude-haiku-4-5` por default, configurable | El modelo es un campo de config (`pi/config.toml`), fácil de subir cuando salga algo mejor que quepa en la Pi. |
-
-### Telegram sí, WhatsApp después
-
-- **Telegram**: crear el bot toma 2 minutos, el long polling desde la Pi no
-  necesita endpoint público ni secretos en el Worker, y es gratis. Es la
-  interfaz operativa de Salva.
-- **WhatsApp (Meta Cloud API)**: viable pero con fricción — cuenta Meta
-  Business con verificación de negocio, número dedicado, webhook HTTPS
-  público, ventana de 24 h y plantillas aprobadas para salientes. Cuando se
-  haga, será *orientado a clientes*: webhook en el Worker
-  (`POST /api/webhook/whatsapp`, idempotencia estilo `webhook_events`) →
-  tabla `messages` (Inbox, `docs/ROADMAP_ARQUITECTURA.md` §7) → la Pi lee y el
-  LLM redacta borradores que Salva aprueba por Telegram. Caso de uso
-  distinto, fase futura.
-
-## Fase 0 — setup de la Raspberry Pi (sin código en el repo)
-
-**Corre en: Pi.** Objetivo: hardware listo con Ollama sirviendo el modelo
-local.
-
-- Hardware: Raspberry Pi 5 **8 GB** (16 GB solo si se quiere holgura para
-  modelos 7-8B), SSD por USB o HAT NVMe (mejor que microSD), fuente oficial
-  de 27 W, disipador activo.
-- Software: Raspberry Pi OS Lite 64-bit, Ollama
-  (`curl -fsSL https://ollama.com/install.sh | sh`),
-  `ollama pull gemma3:4b-it-qat`. Opcional: Tailscale para SSH remoto —
-  cero puertos abiertos.
-- Entregable en el repo: `docs/pi.md` con la receta paso a paso (entra con
-  el PR de la fase 2).
-- **Verifica**: `ollama run gemma3:4b-it-qat "hola"` responde;
-  `curl localhost:11434/api/tags` lista el modelo.
-
-## Fase 1 — Worker: token IA + outbox de eventos
-
-**Corre en: Worker/D1.** Objetivo: la puerta segura para la Pi y los avisos
-registrados. Útil sola: deja los eventos guardados aunque la Pi no exista
-todavía.
-
-- Migración `workers/api/migrations/0011_agent_events.sql`:
-
-  ```sql
-  CREATE TABLE agent_events (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,  -- cursor natural para la Pi
-    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
-    kind         TEXT NOT NULL,   -- pago_recibido|pieza_terminada|pedido_completo|impresion_fallida|... (sin CHECK, lección 0004)
-    order_id     TEXT,
-    job_id       TEXT,
-    payload_json TEXT
-  );
-  ```
-
-- `workers/api/src/env.ts`: agregar `AI_TOKEN`; quitar `NTFY_TOPIC`.
-- `workers/api/src/lib/auth.ts`: la unión de `bearer()` pasa a
-  `'ADMIN_TOKEN' | 'AGENT_TOKEN' | 'AI_TOKEN'`.
-- `workers/api/src/lib/eventos.ts` (nuevo):
-  `publishEvent(db, kind, { orderId, jobId, payload })`.
-- Sustituir las 4 llamadas a `notify()` en `workers/api/src/routes/agent.ts`
-  y la de `workers/api/src/routes/webhook.ts` por `publishEvent`; borrar
-  `workers/api/src/lib/ntfy.ts` (código muerto desde que ntfy bloqueó a
-  Workers).
-- `workers/api/src/routes/ai/index.ts` (nuevo): sub-app con
-  `bearer('AI_TOKEN')`, montada como `app.route('/api/ai', ai)` en
-  `workers/api/src/index.ts`. Endpoints:
-  - `GET /api/ai/events?after=<id>&limit=50` — lectura pura por cursor, sin
-    ack en D1.
-  - `GET /api/ai/estado` — snapshot sin PII: cola (jobs queued/printing con
-    part y colores), `printer_flags`, `spool_slots`, conteo de pedidos por
-    status.
-- Documentar en `workers/api/README.md`.
-- **Verifica**: `migrate:local` + `wrangler dev` + curl con los tres tokens
-  (el AI ve `/api/ai/*` y recibe 401 en `/api/admin/*`); typecheck del
-  worker; e2e existentes en verde.
-- **Deploy**: migración remota → `wrangler secret put AI_TOKEN` → worker.
-
-## Fase 2 — Pi: bot de Telegram + notificaciones (sin LLM todavía)
-
-**Corre en: Pi.** Objetivo: Salva recupera los avisos al teléfono y gana
-comandos de consulta. Útil sola.
-
-Estructura nueva en el repo (calca de `agent/`):
-
-```
-pi/
-  README.md  config.example.toml  requirements.txt
-  deploy/formamx-pi.service        # systemd
-  formamx_pi/
-    __main__.py   # loop principal
-    api.py        # cliente del Worker (patrón agent/formamx_agent/api.py, token AI)
-    events.py     # cursor local (~/.formamx/cursor) + fetch de /api/ai/events
-    bot.py        # python-telegram-bot, long polling, allowlist de chat_id
-    format.py     # evento -> mensaje legible en español
-  tests/          # pytest: format, cursor, api con requests mockeado
+```text
+┌──────────────────┐      /api/admin/*       ┌────────────────────────┐
+│ Sitio /taller    │ ◄─────────────────────► │ Worker (Hono) + D1     │
+│ Astro/Hostinger  │                          │ FUENTE DE VERDAD        │
+└──────────────────┘                          │ · pedidos y trabajos    │
+                                              │ · eventos y métricas    │
+                                              └───────────▲────────────┘
+                                                │ /api/agent/* + /api/ai/*
+┌──────────────────┐   PR/checks   ┌────────────┴───────────┐
+│ GitHub           │ ◄───────────► │ Mac mini               │
+│ PR + Actions     │                │ · Ollama o MLX-LM      │
+└──────────────────┘                │ · revisor de PR         │
+                                    │ · bot de Telegram       │
+Telegram ◄────────────────────────► │ · métricas/scheduler    │
+                                    │ · agente Bambu + 3MF    │
+                                    └───────────┬────────────┘
+                                                │ FTPS/MQTT por LAN
+                                    ┌───────────▼────────────┐
+                                    │ Bambu A1 + AMS         │
+                                    └────────────────────────┘
 ```
 
-- `config.example.toml`: `api_base`, `ai_token`, `telegram_bot_token`,
-  `allowed_chat_ids`, `poll_seconds = 45`. La copia real vive SOLO en la Pi
-  (mismo patrón que `agent/config.example.toml`; los tokens jamás van a git).
-- Comandos: `/estado` (impresora + candado + AMS), `/cola`, `/pedidos` —
-  todos contra `/api/ai/estado`.
-- Loop: cada 45 s lee eventos nuevos → manda mensajes → avanza el cursor.
-- **Verifica**: `pytest pi/tests`; corrida manual contra `wrangler dev`;
-  prueba real: pago de prueba en Stripe → aviso en Telegram.
-- **Deploy**: merge (no toca sitio ni worker) → `git pull` + restart del
-  systemd en la Pi.
+- **Worker/D1:** única fuente de verdad del negocio. La Mac sólo lee, propone
+  acciones por endpoints autorizados y conserva cachés reconstruibles.
+- **Mac mini:** sirve los modelos, orquesta agentes, conserva los 3MF y ejecuta
+  el agente actual de impresión por FTPS/MQTT. Sus servicios de IA sólo hacen
+  conexiones salientes; ningún endpoint de Ollama/MLX se publica en Internet.
+- **PC Windows:** estación de trabajo opcional, no servidor. Puede preparar un
+  3MF y copiarlo a la carpeta compartida de la Mac; después puede apagarse.
+- **Bambu A1:** sigue ejecutando cada impresión de forma autónoma una vez
+  iniciada. La Mac la monitorea y reporta el resultado.
+- **GitHub:** conserva CI determinista (`check`, build, typecheck, pytest y
+  E2E). El revisor de IA complementa esas pruebas; nunca las sustituye.
+- **/taller:** gana métricas y la bitácora de decisiones en sus fases.
 
-## Fase 3 — Worker + /taller: métricas del negocio
+## Principios que no se negocian
 
-**Corre en: Worker + navegador.** Objetivo: agregados de ventas consultables
-por el panel y (fase 4) por el LLM. Es el "preparar la página".
+- **Sencillez:** una máquina, servicios pequeños y configuraciones legibles.
+  Sin Kubernetes, LangChain ni una plataforma de agentes hasta que exista una
+  necesidad concreta.
+- **Sin mensualidad obligatoria:** modelos locales con licencia compatible y
+  sin fallback cloud activado por defecto.
+- **Revisión proporcional al riesgo:** un ajuste visual no debe tardar diez
+  minutos por un modelo; pagos, autenticación, datos, Worker, agente y CI sí
+  merecen esperar.
+- **Pruebas antes que opiniones:** lint, tipos, tests y build siguen siendo los
+  gates principales. Un LLM no declara correcto un cambio que rompe CI.
+- **Separación de funciones:** Claude implementa y corrige; otro modelo revisa.
+  El revisor no escribe código en el PR ni ejecuta código proveniente del PR.
+- **Prioridad de producción:** el agente de impresión es un servicio separado y
+  ligero. Una revisión de código o consulta de IA nunca debe detenerlo ni
+  consumir toda la memoria disponible.
+- **Privacidad estructural:** los endpoints de IA no entregan nombre, correo,
+  teléfono ni dirección. No basta con pedirle al prompt que ignore la PII.
+- **Auditoría:** cada decisión operativa de IA se guarda con entrada, resultado
+  y explicación; siempre existe una regla determinista de respaldo.
+- **Actualización prudente:** las versiones de modelos se fijan. Un modelo nuevo
+  pasa la evaluación antes de reemplazar al anterior.
 
-- `workers/api/src/lib/metricas.ts` (nuevo): funciones puras —
-  `resumenVentas(db, desde, hasta)` → total_mxn, número de pedidos, ticket
-  promedio, por producto, por `payment_method`, embudo de estados;
-  `serieVentas(db, granularidad)` → por día/semana/mes sobre `paid_at`.
-  Solo lee `orders`/`products`; JAMÁS columnas `customer_*`.
-- `workers/api/src/routes/admin/metricas.ts` → montar
-  `admin.route('/metricas', metricas)` en `routes/admin/index.ts`.
-- `workers/api/src/routes/ai/metricas.ts` → las mismas funciones de lib
-  bajo `/api/ai/metricas/*`.
-- Frontend (receta de `docs/ROADMAP_ARQUITECTURA.md` §8):
-  `src/lib/taller/metricas.ts` (+ re-export en `index.ts`),
-  `src/components/taller/metricas/MetricasPanel.tsx`, entrada
-  `{ id: 'metricas', label: 'Métricas' }` en
-  `src/components/taller/registry.ts`.
-- Specs en `tests/e2e/taller.spec.ts` con la API mockeada (`page.route`).
-- **Verifica**: curl contra `wrangler dev` con seed local; Playwright;
-  `npx astro check`.
-- **Deploy**: worker → sitio (sin migración; el frontend nuevo llega después
-  del worker, regla §8.7).
+## Modelos y servidor de inferencia
 
-## Fase 4 — Pi: LLM conectado (preguntas de negocio por Telegram)
+No se fija para siempre un modelo que podría quedar obsoleto antes de comprar
+la Mac. Al implementar, se compararán los modelos de código vigentes que:
 
-**Corre en: Pi (orquestación + modelo local) y cloud (análisis).** Objetivo:
-"¿cómo van las ventas este mes contra el pasado?" respondido en Telegram.
+- quepan en un máximo aproximado de **45–50 GB** cuantizados, dejando memoria
+  para el sistema y los demás agentes;
+- tengan licencia permisiva para este uso;
+- funcionen de forma estable con Ollama o MLX-LM;
+- acepten el contexto necesario para el diff y las instrucciones del repo;
+- completen una revisión sensible en menos de diez minutos;
+- superen la evaluación propia descrita abajo.
 
-- `pi/formamx_pi/llm.py`: el router — mensajes que matchean comandos o
-  plantillas → local (Ollama, Gemma) o respuesta directa; pregunta libre →
-  cloud vía SDK `anthropic` con su tool runner (`@beta_tool` +
-  `client.beta.messages.tool_runner`), modelo default `claude-haiku-4-5`
-  configurable en `config.toml` (`anthropic_api_key`, `cloud_model`).
-- `pi/formamx_pi/tools.py`: herramientas delgadas sobre `api.py`:
-  `get_metricas(desde, hasta)`, `get_serie(granularidad)`, `get_estado()`,
-  `get_cola()`. La PII no puede llegar al prompt porque los endpoints no la
-  devuelven.
-- `pi/formamx_pi/prompts.py`: system prompt del negocio (qué vende forma,
-  estados de pedido, montos en centavos MXN).
-- `bot.py`: los mensajes libres pasan a `llm.answer(text)`.
-- **Verifica**: pytest del router y del shaping de herramientas (API
-  mockeada); E2E manual por Telegram con datos de prueba.
-- **Deploy**: solo la Pi (los endpoints ya existen desde las fases 1 y 3).
+**Baseline actual para la evaluación:** Devstral Small 2 24B cuantizado. No se
+elige porque sea el modelo absoluto más potente, sino porque cabe holgadamente
+en una Mac de 64 GB y está especializado en código. Qwen Coder u otro modelo
+que entonces quepa se probará como alternativa.
 
-## Fase 5 — priorización inteligente de la cola
+GLM-5.2 y Kimi K2.7 Code son candidatos potentes en servidores o mediante API,
+pero sus pesos completos no caben en 64 GB; que sean MoE reduce el cálculo por
+token, no elimina la necesidad de alojar todos sus pesos. No son candidatos
+residentes para esta Mac salvo que aparezca una versión pequeña oficial que
+cumpla los criterios.
 
-**Corre en: Worker (claim + registro), Pi (decisión) y /taller
-(visibilidad).** Objetivo: la cola deja de ser FIFO ciego y cada
-reordenamiento queda explicado y auditable.
+Para Telegram y clasificación de intenciones puede usarse un modelo general
+más pequeño y rápido, escogido con la misma regla de evaluación. El modelo de
+código no tiene que atender todas las tareas.
 
-- Migración `workers/api/migrations/0012_prioridad_agente.sql`:
+Ollama es la primera opción por sencillez y API compatible; MLX-LM queda como
+alternativa si ofrece mejor rendimiento en el hardware comprado. La API escucha
+en `localhost`, donde no requiere ni debe asumir autenticación.
 
-  ```sql
-  ALTER TABLE print_jobs ADD COLUMN priority INTEGER NOT NULL DEFAULT 0;
-  CREATE INDEX idx_jobs_claim ON print_jobs(status, priority, created_at);
-  CREATE TABLE agent_decisions (          -- boceto §7 del roadmap, tal cual
-    id         TEXT PRIMARY KEY,
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    action     TEXT NOT NULL,
-    order_id   TEXT,
-    job_id     TEXT,
-    reason     TEXT NOT NULL
-  );
-  ```
+## Línea A — revisión local de pull requests
 
-- `workers/api/src/routes/agent.ts`: el claim pasa a
-  `ORDER BY priority DESC, created_at LIMIT 1` — único cambio que ve la
-  impresora; la PC Windows no se modifica.
-- `workers/api/src/routes/ai/cola.ts`: `GET /api/ai/cola` (jobs queued con
-  colores/part + edad del pedido, sin PII) y
-  `POST /api/ai/cola/prioridades` `{ items: [{job_id, priority}], reason }`
-  → batch UPDATE + INSERT en `agent_decisions`. Validación (solo jobs
-  `queued`) en `workers/api/src/lib/jobs.ts`.
-- `workers/api/src/routes/admin/agente.ts`:
-  `GET /api/admin/agente/decisiones` + módulo `agente` en /taller
-  (`src/components/taller/agente/AgentePanel.tsx`, cliente
-  `src/lib/taller/agente.ts`, entrada en `registry.ts`): la lista de
-  decisiones con su porqué.
-- Pi `pi/formamx_pi/scheduler.py`: se dispara con eventos del outbox (pago
-  nuevo, job done/failed) y como red de seguridad cada 15 min. El scorer
-  determinista ordena por: (1) piezas de pedidos ya empezados primero,
-  (2) antigüedad del pago, (3) agrupar por color montado en el AMS para
-  minimizar cambios de bobina. El LLM produce la explicación (y puede
-  proponer un ajuste acotado); POST al Worker; aviso por Telegram
-  "Reordené la cola: …".
-- Actualizar `docs/ROADMAP_ARQUITECTURA.md` §7 (la decisión corre en la Pi, no
-  en un cron del Worker) y `docs/IMPRESION_3D.md` con el nuevo actor.
-- **Verifica**: pytest del scorer (función pura: pedido viejo contra
-  agrupación de color, pedido a medias); curl contra `wrangler dev`
-  comprobando que el claim respeta `priority`; Playwright del panel.
-  Escrituras D1 solo por evento, no por intervalo.
-- **Deploy**: migración remota → worker → sitio → Pi.
+### A0 — integración segura, todavía sin bloquear merges
 
-## Fases futuras (esbozo, sin comprometer diseño)
+**Corre en: GitHub + Mac.** Objetivo: comparar al revisor local contra Codex
+sin cambiar el flujo actual.
 
-1. **Inventario de bobinas**: tablas `bobinas`/`piezas` del roadmap §7 +
-   `spool_slots.bobina_id`; el descuento de gramos por trabajo necesita una
-   tabla estática gramos-por-pieza en código (`lib/`). La Pi avisaría
-   "bobina roja al 15 %".
-2. **Cámara de la A1**: 720p por protocolo propietario LAN (puerto 6000,
-   access code); hay librerías comunitarias que extraen frames JPEG. Diseño
-   natural: capturar frame → visión con Claude para detectar spaghetti o
-   despegue → evento + pausa. Evaluar la estabilidad de las librerías antes
-   de comprometer.
-3. **Pausa remota**: el comando MQTT `print pause` existe. Ruta: flag
-   `printer_flags.pause_requested` en D1 que el agente de la PC lee en su
-   loop de reporte y ejecuta — cambio pequeño y único en
-   `agent/formamx_agent/printer.py`.
-4. **WhatsApp**: ver "Telegram sí, WhatsApp después" arriba.
-5. **Auto-dispatch**: `agent_policies` (roadmap §7) + endpoint
-   `/api/ai/pedidos/:id/dispatch` reusando `createJobsForOrder`
-   (`workers/api/src/lib/jobs.ts`), con el gate `auto_dispatch` apagado por
-   default.
+- Instalar el runner privado de GitHub como servicio con una etiqueta exclusiva
+  (`formamx-ai`) y PR-Agent en un entorno Python fijado por versión.
+- Ollama/MLX corre como servicio separado y PR-Agent lo consulta por localhost.
+- El workflow recibe metadatos y el diff del PR mediante la API de GitHub. No
+  hace checkout ni ejecuta scripts, Actions o código del PR en la Mac.
+- Permisos mínimos: leer contenido/PR y escribir checks/comentarios. Ningún
+  secreto del Worker, Stripe, Hostinger o la impresora entra al workflow.
+- El resultado se publica como comentario/check informativo. Codex continúa
+  con su revisión automática estándar durante la comparación.
 
-## Verificación global por fase
+Evaluación antes de confiar en el modelo:
 
-pytest (`agent/` y `pi/`), `npx astro check`, typecheck del worker,
-`wrangler dev` local con `migrate:local`, Playwright
-(`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test`).
-Orden de deploy siempre: migración remota → worker → sitio → Pi. Cada fase
-se mergea sola (squash a `master`) con el flujo de GitHub que Claude ejecuta
-completo.
+- 12 PR de prueba con defectos sembrados y al menos 10 PR reales en paralelo
+  con Codex.
+- Debe encontrar el 100 % de los defectos preparados de seguridad, pagos y
+  autenticación, y al menos 80 % del total.
+- Menos de 30 % de hallazgos falsos o no accionables.
+- Percentil 95 inferior a diez minutos para PR sensibles del tamaño habitual.
+- Ningún secreto en prompts, logs, comentarios o artefactos.
+
+Si ningún modelo local alcanza esos mínimos, se conserva Codex y no se activa
+el gate. Comprar el hardware no obliga a aceptar una revisión inferior.
+
+### A1 — gate basado en riesgo
+
+**Se activa sólo después de superar A0.** Objetivo: autonomía sin retrasar los
+cambios triviales.
+
+Un clasificador determinista de rutas y archivos decide si el PR necesita al
+revisor local. No se usa otro LLM para decidirlo.
+
+Revisión local obligatoria cuando el cambio toca, entre otros:
+
+- `workers/**`, `agent/**`, `.github/**`;
+- migraciones, dependencias, lockfiles o configuración de build/deploy;
+- `src/lib/**`, `src/config/**` y la lógica de `/taller`;
+- autenticación, autorización, Stripe/checkout, APIs o persistencia de datos.
+
+Documentación, assets, CSS y componentes puramente presentacionales pasan sin
+esperar a la Mac. Claude puede forzar la revisión añadiendo la etiqueta
+`local-ai-review-required` cuando el contexto sea sensible aunque las rutas no
+lo revelen.
+
+El workflow deja un check estable llamado `Local AI review`:
+
+1. clasifica el PR en un runner hospedado por GitHub;
+2. si es bajo riesgo, marca el check correcto inmediatamente;
+3. si es sensible, encola la revisión en la Mac;
+4. PR-Agent publica únicamente hallazgos concretos y accionables;
+5. Claude corrige, resuelve las conversaciones y solicita otra pasada;
+6. con CI y el check local verdes, Claude puede hacer squash-merge a `master`.
+
+La regla de `master` requiere ese check, además de los checks deterministas ya
+existentes. Si la Mac está apagada, sólo los PR sensibles esperan. No se crea
+un marcador de SHA ni otro gate personalizado encima de éste.
+
+Después de activarlo, Codex puede seguir como segunda opinión mientras Salva
+mantenga su suscripción. Si algún día se cancela, el flujo local continúa sin
+cambios.
+
+## Línea B — asistente operativo del taller
+
+Estas fases sustituyen el plan anterior de Raspberry Pi. Pueden avanzar después
+de preparar la Mac aunque la línea A todavía esté en evaluación.
+
+### B0 — preparación de la Mac mini y migración de la impresora
+
+**Corre en: Mac + una transición supervisada desde Windows.** Objetivo: un solo
+equipo encendido para IA y producción, recuperable y administrable.
+
+- Crear usuario dedicado `formamx-ai`, configurar actualizaciones de seguridad
+  y registrar inventario/receta de instalación en `docs/mac-mini.md`. Decidir
+  FileVault conscientemente: protege el disco, pero un arranque en frío requiere
+  que Salva lo desbloquee físicamente antes de que inicien los servicios.
+- Instalar Tailscale sólo para administración remota, sin abrir puertos en el
+  router. Ollama/MLX permanece ligado a localhost.
+- Instalar runtime de Python, GitHub runner, Ollama/MLX y supervisión como
+  servicios que reinicien automáticamente.
+- Guardar configuración y tokens fuera del repo, con permisos sólo para el
+  usuario de servicio. Respaldar únicamente configuración; los modelos se
+  pueden volver a descargar.
+- Registrar espacio libre, memoria, temperatura, salud de servicios, tiempos de
+  inferencia y tamaño de las colas. Alertar por Telegram si un servicio falla.
+- Ejecutar el `agent/` existente en macOS: su código es portable; las rutas de
+  Windows y el Programador de tareas se sustituyen por rutas POSIX y un servicio
+  `launchd`. No reescribir FTPS/MQTT sin que una prueba lo justifique.
+- Mover los 3MF a una carpeta fuera del repo en la Mac, por ejemplo
+  `/Users/formamx-ai/formamx/3mf/`, y compartirla sólo en la LAN/Tailscale para
+  que Salva pueda copiar nuevos archivos desde Windows. Bambu Studio también
+  puede instalarse en macOS si Salva prefiere preparar ahí los archivos.
+- Antes del corte, añadir y probar recuperación de trabajo activo tras reinicio:
+  persistir localmente el `job_id` en curso, consultar el estado de la A1 y
+  reconciliar `printing → done/failed` sin duplicar una impresión.
+- Probar primero `dry_run`, luego lectura real del AMS, subida FTPS y finalmente
+  una impresión completa supervisada con el candado de cama.
+- Para el corte, detener el agente de Windows, iniciar el de la Mac y confirmar
+  que sólo existe un ejecutor activo. Después deshabilitar la tarea programada
+  de Windows; conservar su configuración temporalmente como rollback.
+- Ejecutar una inferencia pesada durante una prueba de monitoreo y confirmar que
+  MQTT, progreso y keepalive no se retrasan. Limitar concurrencia/memoria del
+  servidor de modelos si compiten.
+
+**Verifica:** reiniciar la Mac, confirmar que los servicios vuelven solos, que
+la inferencia responde por localhost, que nada escucha públicamente y que el
+agente se reconcilia con una impresión en curso. La migración sólo se considera
+terminada después de una impresión real completa y un reinicio controlado. Un
+UPS es altamente recomendable antes de dejar la Mac como único ejecutor.
+
+### B1 — Worker: token IA + outbox de eventos
+
+**Corre en: Worker/D1.** Objetivo: puerta segura para el asistente y avisos
+persistentes aunque la Mac esté apagada.
+
+- Crear migración para `agent_events` con cursor creciente, fecha, tipo,
+  `order_id`, `job_id` y `payload_json` sin PII.
+- Agregar `AI_TOKEN` y una sub-app propia `/api/ai/*`; nunca compartir rutas ni
+  token con `/api/admin/*` o `/api/agent/*`.
+- Sustituir el aviso roto de ntfy por escrituras al outbox sólo cuando ocurre
+  un evento real.
+- Exponer `GET /api/ai/events?after=<id>` y `GET /api/ai/estado`, ambos sin PII.
+- Mantener D1 como fuente de verdad; el cursor local de la Mac sólo es caché.
+
+**Verifica:** migración local, typecheck, auth cruzada con los tres tokens y
+pruebas del Worker. **Deploy:** migración remota → secreto → Worker.
+
+### B2 — Telegram + notificaciones, todavía sin LLM
+
+**Corre en: Mac.** Objetivo: avisos y consultas deterministas.
+
+Crear `ai-server/` con un paquete Python pequeño: cliente del Worker, lector del
+outbox con cursor local, bot de Telegram por long polling, allowlist de
+`chat_id`, formato de eventos, configuración de ejemplo y pytest. Comandos
+iniciales: `/estado`, `/cola`, `/pedidos_hoy` y `/ayuda`.
+
+Los tokens reales viven sólo en la Mac. Telegram no requiere webhook público.
+El sistema debe reintentar con backoff, no perder eventos durante un reinicio y
+evitar duplicados dentro de lo razonable.
+
+### B3 — métricas del negocio
+
+**Corre en: Worker + `/taller` + Mac.** Objetivo: una sola lógica de métricas
+sirve al panel y al asistente.
+
+- Implementar funciones de métricas en `workers/api/src/lib/metricas.ts`.
+- Exponerlas por `/api/admin/metricas/*` y `/api/ai/metricas/*`; la segunda
+  forma nunca devuelve columnas `customer_*`.
+- Añadir el módulo Métricas a `/taller` siguiendo
+  `docs/ROADMAP_ARQUITECTURA.md`.
+- Agregar comandos de Telegram sobre ventas, pedidos y producción usando esos
+  endpoints, no SQL duplicado en la Mac.
+
+### B4 — preguntas libres con modelo local
+
+**Corre en: Mac.** Objetivo: responder preguntas como “¿cómo van las ventas
+este mes contra el pasado?” sin API de pago.
+
+- Un router simple resuelve comandos/plantillas directamente y envía sólo las
+  preguntas libres al modelo general local.
+- Herramientas permitidas: `get_metricas`, `get_serie`, `get_estado` y
+  `get_cola`; todas llaman a `/api/ai/*`.
+- El modelo recibe agregados e IDs, nunca PII ni secretos.
+- Las herramientas empiezan como sólo lectura. Cualquier acción futura se
+  agrega explícitamente con validaciones y bitácora.
+
+No añadir un framework de agentes mientras este router y funciones Python sean
+suficientes.
+
+### B5 — priorización inteligente de la cola
+
+**Corre en: Worker + Mac + `/taller`.** Objetivo: dejar FIFO ciego sin entregar
+el control final a una respuesta impredecible.
+
+- Agregar `print_jobs.priority` y `agent_decisions`; el claim del Worker ordena
+  por `priority DESC, created_at`.
+- La Mac calcula la prioridad con un scorer determinista y probado: terminar
+  pedidos empezados, respetar antigüedad y reducir cambios de color del AMS.
+- El LLM explica la decisión y puede proponer un ajuste acotado; no inventa el
+  estado ni ejecuta directamente la impresión.
+- `/taller` muestra la bitácora y el motivo de cada reordenamiento.
+- El agente de impresión en la Mac no cambia: recibe el siguiente trabajo ya
+  ordenado por el Worker.
+
+**Deploy:** migración remota → Worker → sitio → Mac.
+
+## Fases futuras, todavía sin diseño comprometido
+
+1. **Inventario de bobinas:** consumo estimado y aviso de nivel bajo.
+2. **Cámara de la A1:** capturar frames desde el actor que tenga acceso LAN,
+   evaluar modelos de visión locales y avisar ante spaghetti/despegue. Primero
+   sólo observar; pausar exige una fase separada y pruebas contra falsos
+   positivos.
+3. **Pausa remota:** flag en D1 que el agente de la Mac lee y ejecuta por MQTT; nunca
+   acceso directo del LLM a la impresora.
+4. **WhatsApp:** orientado a clientes, con borradores que Salva aprueba; Telegram
+   sigue siendo la interfaz operativa privada.
+5. **Auto-dispatch:** políticas explícitas y apagadas por defecto, reusando la
+   lógica existente de trabajos.
+6. **Separar nuevamente el ejecutor:** sólo si las cargas de IA afectan de forma
+   medible la confiabilidad de impresión; no mantener dos equipos por defecto.
+
+## Verificación y operación por fase
+
+- Ejecutar únicamente los checks aplicables definidos en `AGENTS.md`.
+- Probar migraciones en D1 local antes de cualquier migración remota.
+- Nunca usar pedidos reales, PII, secretos ni archivos 3MF en pruebas.
+- Medir calidad y latencia; no asumir que un benchmark público representa los
+  PR o las preguntas de forma.
+- Documentar instalación, rollback y recuperación antes de dejar un servicio
+  como obligatorio.
+- Desplegar en orden: migración remota → Worker → sitio → Mac.
+- Una fase por PR, squash a `master`; `master` sigue siendo producción.
+
+## Señales para cambiar de arquitectura
+
+Mantener una sola Mac mientras atienda cómodamente el volumen. Reevaluar Linux
+con GPU, una segunda máquina o una cola más compleja sólo si ocurre alguno:
+
+- varias revisiones o tareas compiten diariamente por memoria y tardan más de
+  diez minutos de forma habitual;
+- la indisponibilidad de una sola máquina afecta ventas u operación crítica;
+- los modelos necesarios dejan de caber en memoria;
+- se incorporan más repositorios, usuarios o impresoras;
+- monitoreo de video continuo exige aceleración independiente.
+
+Si la IA crece pero la impresión sigue siendo ligera, la primera separación
+razonable sería mover sólo la inferencia pesada a otra máquina y conservar el
+agente Bambu en la Mac estable, no volver a depender de la PC de trabajo.
+
+Hasta entonces, la Mac mini dedicada es la solución deliberadamente sencilla
+y proporcionada para forma.
+
+## Referencias de implementación
+
+- [GitHub: self-hosted runners](https://docs.github.com/en/actions/reference/runners/self-hosted-runners)
+- [PR-Agent: GitHub con Ollama local](https://docs.pr-agent.ai/installation/github/)
+- [Ollama: API compatible con OpenAI](https://docs.ollama.com/api/openai-compatibility)
+- [Apple: agentes locales con MLX](https://developer.apple.com/videos/play/wwdc2026/232/)
+- [Bambu Studio: versiones oficiales para macOS](https://github.com/bambulab/BambuStudio/releases)
