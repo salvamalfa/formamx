@@ -385,8 +385,8 @@ de prueba; el nuevo despliega. **Dependencias:** ninguna.
 ### Fase 6a — export de D1
 
 **Recomendación: GitHub Actions con cron semanal.** La PC de Salva no está
-siempre encendida y la Pi no existe todavía; Actions corre solo y el repo ya
-es privado. Workflow `.github/workflows/backup-d1.yml`: cron semanal →
+siempre encendida y la futura Mac mini tampoco; Actions corre solo y el repo
+ya es privado. Workflow `.github/workflows/backup-d1.yml`: cron semanal →
 `npx wrangler d1 export formamx --remote --output=backup.sql` → subir como
 **artifact** con retención de 90 días. **NO commitear el dump:** contiene PII
 de clientes y el historial de git es para siempre. Secreto
@@ -428,9 +428,9 @@ reaparece tras la tarea; revisar el `.log`. **Claude:** comandos y doc.
 
 ### Fase 7a — uptime
 
-**Recomendación: UptimeRobot gratis ya, y NO moverlo a la Pi después.** La Pi
-(`docs/AGENTE_IA.md` fase 2) avisará de eventos de negocio, pero un monitor de
-uptime debe mirar desde FUERA de tu red y no morir con tu luz — son roles
+**Recomendación: UptimeRobot gratis ya, y NO moverlo a la Mac después.** La Mac
+(`docs/AGENTE_IA.md` fase B2) avisará de eventos de negocio, pero un monitor
+de uptime debe mirar desde FUERA de tu red y no morir con tu luz — son roles
 distintos, no duplicados. Monitores: `https://formamx.com` y un endpoint del
 Worker que toque D1 (empezar con `/api/products/lampara`; un `/health` trivial
 después si molesta). Alertas al correo de Salva; cuando el bot exista,
@@ -474,7 +474,7 @@ menciona en una línea por transparencia).
   interfiere.
 - **Embudo del configurador, versión simple:** NO añadir eventos custom
   todavía. Métrica proxy: pageviews de /lampara (CF Analytics) vs pedidos en
-  D1 (módulo de métricas de `docs/AGENTE_IA.md` fase 3). Si algún día hace
+  D1 (módulo de métricas de `docs/AGENTE_IA.md` fase B3). Si algún día hace
   falta el paso "abrió el configurador", la opción barata es un
   `navigator.sendBeacon` a un endpoint del Worker con contador diario
   agregado — se difiere con criterio de reevaluación.
