@@ -87,15 +87,54 @@ jobs:
         shell: bash
         run: |
           for attempt in {1..90}; do
-            review_id="$(
-              gh api --paginate \
-                "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews" \
-                --jq ".[] | select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\") | .id" \
-                | head -n 1
+            review_state="$(
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" \
+                --jq "map(select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\")) | last | .state // empty"
             )"
 
-            if [[ -n "${review_id}" ]]; then
-              echo "Codex reviewed ${HEAD_SHA}."
+            if [[ -n "${review_state}" ]]; then
+              if [[ "${review_state}" == "CHANGES_REQUESTED" ]]; then
+                echo "Codex requested changes on ${HEAD_SHA}." >&2
+                exit 1
+              fi
+
+              blocking_threads="$(
+                gh api graphql \
+                  -F owner="${GITHUB_REPOSITORY_OWNER}" \
+                  -F repo="${GITHUB_REPOSITORY#*/}" \
+                  -F number="${PR_NUMBER}" \
+                  -f query='query($owner: String!, $repo: String!, $number: Int!) {
+                    repository(owner: $owner, name: $repo) {
+                      pullRequest(number: $number) {
+                        reviewThreads(first: 100) {
+                          nodes {
+                            isResolved
+                            comments(first: 100) {
+                              nodes { author { login } body }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }' \
+                  --jq '[
+                    .data.repository.pullRequest.reviewThreads.nodes[]
+                    | select(.isResolved == false)
+                    | select(any(
+                        .comments.nodes[];
+                        (.author.login | startswith("chatgpt-codex-connector"))
+                        and (.body | test("P[01] Badge"))
+                      ))
+                  ] | length'
+              )"
+
+              if [[ "${blocking_threads}" != "0" ]]; then
+                echo "Codex has ${blocking_threads} unresolved P0/P1 thread(s)." >&2
+                exit 1
+              fi
+
+              echo "Codex reviewed ${HEAD_SHA} with no unresolved P0/P1 findings."
               exit 0
             fi
 
