@@ -24,6 +24,10 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `GET /api/admin/envios` | `Bearer ADMIN_TOKEN` | Guías de envío con resumen del pedido; por defecto las no entregadas. `?status=`, `?order_id=`, `?limit=`. |
 | `POST /api/admin/envios` | `Bearer ADMIN_TOKEN` | Registra una guía (nace `creada`). Body `{"order_id","carrier?","service?","tracking_number?","label_url?","cost_mxn?"}`. |
 | `PATCH /api/admin/envios/:id` | `Bearer ADMIN_TOKEN` | Avanza el estado de la guía (`creada → en_transito → entregada`, con `incidencia`); salto ilegal → 409. Sin edición de tracking: guía equivocada = crear otra. |
+| `GET/POST /api/admin/inventario/bobinas` | `Bearer ADMIN_TOKEN` | Almacén de filamento; por defecto las no agotadas (`?status=`). POST da de alta (nace `nueva` con `weight_left_g = weight_g`, 1000 g por defecto). |
+| `PATCH /api/admin/inventario/bobinas/:id` | `Bearer ADMIN_TOKEN` | Edita el peso restante (`{"weight_left_g"}`) y/o avanza `nueva → en_uso → agotada`; llegar a 0 g no agota solo. Salto ilegal → 409. |
+| `GET/POST /api/admin/inventario/piezas` | `Bearer ADMIN_TOKEN` | Piezas terminadas; por defecto las vivas (ni vendidas ni merma, `?status=`). POST da de alta (`{"product_id","config?","location?","order_id?"}`). |
+| `PATCH /api/admin/inventario/piezas/:id` | `Bearer ADMIN_TOKEN` | Avanza `en_stock ⇄ reservada → vendida\|merma`, edita `location` y el veredicto manual `qc_status` (`ok\|rechazada`); salto ilegal → 409. |
 | `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada o la cama sigue ocupada. |
 | `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`; con `bed_dirty` activa el candado de cama. |
 

@@ -4,3 +4,4 @@ export * from './pedidos';
 export * from './impresora';
 export * from './clientes';
 export * from './envios';
+export * from './inventario';
