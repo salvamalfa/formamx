@@ -119,9 +119,10 @@ jobs:
 
           for attempt in {1..90}; do
             trigger="$(
-              gh api \
+              gh api --paginate \
                 "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-                --jq "map(select(.body | contains(\"<!-- codex-review-head:${HEAD_SHA} -->\"))) | (last // empty) | [.id, .created_at] | @tsv"
+                | jq -sr --arg marker "<!-- codex-review-head:${HEAD_SHA} -->" \
+                  '(add // []) | map(select(.body | contains($marker))) | (last // empty) | .id'
             )"
 
             if [[ -z "${trigger}" ]]; then
@@ -129,12 +130,13 @@ jobs:
               continue
             fi
 
-            IFS=$'\t' read -r trigger_id trigger_created_at <<< "${trigger}"
+            trigger_id="${trigger}"
 
             review_state="$(
-              gh api \
+              gh api --paginate \
                 "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" \
-                --jq "map(select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\")) | last | .state // empty"
+                | jq -sr --arg head_sha "${HEAD_SHA}" \
+                  '(add // []) | map(select(.user.login == "chatgpt-codex-connector[bot]" and .commit_id == $head_sha)) | last | .state // empty'
             )"
 
             if [[ -n "${review_state}" ]]; then
@@ -155,26 +157,12 @@ jobs:
             fi
 
             clean_reaction="$(
-              gh api \
+              gh api --paginate \
                 "repos/${GITHUB_REPOSITORY}/issues/comments/${trigger_id}/reactions?per_page=100" \
-                --jq 'any(.[]; .user.login == "chatgpt-codex-connector[bot]" and .content == "+1")'
+                | jq -s '(add // []) | any(.[]; .user.login == "chatgpt-codex-connector[bot]" and .content == "+1")'
             )"
 
-            clean_comment="$(
-              gh api \
-                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-                --jq "any(.[];
-                  .user.login == \"chatgpt-codex-connector[bot]\"
-                  and .created_at > \"${trigger_created_at}\"
-                  and (
-                    (.body | ascii_downcase | contains(\"didn't find any major issues\"))
-                    or (.body | ascii_downcase | contains(\"did not find any major issues\"))
-                    or (.body | ascii_downcase | contains(\"no major issues\"))
-                  )
-                )"
-            )"
-
-            if [[ "${clean_reaction}" == "true" || "${clean_comment}" == "true" ]]; then
+            if [[ "${clean_reaction}" == "true" ]]; then
               blocking_threads="$(count_blocking_threads)"
 
               if [[ "${blocking_threads}" != "0" ]]; then
