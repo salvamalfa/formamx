@@ -119,9 +119,9 @@ jobs:
 
           for attempt in {1..90}; do
             trigger="$(
-              gh api --paginate --slurp \
+              gh api \
                 "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-                --jq "add | map(select(.body | contains(\"<!-- codex-review-head:${HEAD_SHA} -->\"))) | (last // empty) | [.id, .created_at] | @tsv"
+                --jq "map(select(.body | contains(\"<!-- codex-review-head:${HEAD_SHA} -->\"))) | (last // empty) | [.id, .created_at] | @tsv"
             )"
 
             if [[ -z "${trigger}" ]]; then
@@ -132,9 +132,9 @@ jobs:
             IFS=$'\t' read -r trigger_id trigger_created_at <<< "${trigger}"
 
             review_state="$(
-              gh api --paginate --slurp \
+              gh api \
                 "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" \
-                --jq "add | map(select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\")) | last | .state // empty"
+                --jq "map(select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\")) | last | .state // empty"
             )"
 
             if [[ -n "${review_state}" ]]; then
@@ -161,9 +161,9 @@ jobs:
             )"
 
             clean_comment="$(
-              gh api --paginate --slurp \
+              gh api \
                 "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-                --jq "add | any(.[];
+                --jq "any(.[];
                   .user.login == \"chatgpt-codex-connector[bot]\"
                   and .created_at > \"${trigger_created_at}\"
                   and (
