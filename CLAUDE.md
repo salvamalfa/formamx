@@ -100,11 +100,12 @@ wrangler dev local con webhooks firmados) antes de mergear; squash-merge a
 `master`. Salva opera desde su teléfono (/taller) y su PC Windows (agente);
 dale pasos manuales con comandos exactos de PowerShell.
 
-**Salva NO toca GitHub.** Claude hace TODO el flujo de GitHub por su cuenta:
-crear la rama, el PR (draft), sacarlo de draft y el squash-merge a `master`
-(que dispara el deploy a Hostinger vía SSH). No le pidas a Salva que abra,
-revise o mergee PRs; hazlo tú y solo avísale el resultado y qué verificar en
-la web.
+Claude hace el trabajo operativo de GitHub: crea la rama, implementa, abre el
+PR en borrador y corrige los hallazgos de CI y de Codex. Puede hacer
+squash-merge cuando todos los checks requeridos estén verdes, Codex haya
+terminado la revisión sin hallazgos P0/P1 pendientes y todas las conversaciones
+estén resueltas. Si falta cualquiera de esas condiciones, no debe fusionar ni
+desplegar. El merge a `master` dispara el deploy a Hostinger.
 
 Ramas: `master` es la única de larga vida (= producción). Cada cambio va en
 una rama corta desde `master`, se squash-mergea y muere; nunca se apilan
