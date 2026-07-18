@@ -48,7 +48,16 @@ migraciones remotas como parte de una revisión.
 ## Flujo de GitHub
 
 - Cada cambio va en una rama corta y un pull request hacia `master`.
-- El autor corrige los hallazgos y solicita una nueva revisión.
+- Después del último push, el autor solicita la revisión con este formato,
+  sustituyendo el valor por el SHA completo de `HEAD`:
+
+  ```md
+  @codex review
+  <!-- codex-review-head:0123456789abcdef0123456789abcdef01234567 -->
+  ```
+
+- El autor corrige los hallazgos y solicita una nueva revisión con el marcador
+  del nuevo SHA.
 - Todos los checks requeridos y las conversaciones deben quedar resueltos.
 - Claude puede hacer squash-merge cuando todos los checks requeridos estén
   verdes, Codex haya terminado la revisión sin hallazgos P0/P1 pendientes y

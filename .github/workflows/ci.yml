@@ -86,11 +86,54 @@ jobs:
       - name: Wait for Codex review of the current commit
         shell: bash
         run: |
+          count_blocking_threads() {
+            gh api graphql \
+              -F owner="${GITHUB_REPOSITORY_OWNER}" \
+              -F repo="${GITHUB_REPOSITORY#*/}" \
+              -F number="${PR_NUMBER}" \
+              -f query='query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    reviewThreads(first: 100) {
+                      nodes {
+                        isResolved
+                        comments(first: 100) {
+                          nodes { author { login } body }
+                        }
+                      }
+                    }
+                  }
+                }
+              }' \
+              --jq '[
+                .data.repository.pullRequest.reviewThreads.nodes[]
+                | select(.isResolved == false)
+                | select(any(
+                    .comments.nodes[];
+                    (.author.login | startswith("chatgpt-codex-connector"))
+                    and (.body | test("P[01] Badge"))
+                  ))
+              ] | length'
+          }
+
           for attempt in {1..90}; do
+            trigger="$(
+              gh api --paginate --slurp \
+                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+                --jq "add | map(select(.body | contains(\"<!-- codex-review-head:${HEAD_SHA} -->\"))) | last | [.id, .created_at] | @tsv"
+            )"
+
+            if [[ -z "${trigger}" ]]; then
+              sleep 10
+              continue
+            fi
+
+            IFS=$'\t' read -r trigger_id trigger_created_at <<< "${trigger}"
+
             review_state="$(
-              gh api \
+              gh api --paginate --slurp \
                 "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/reviews?per_page=100" \
-                --jq "map(select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\")) | last | .state // empty"
+                --jq "add | map(select(.user.login == \"chatgpt-codex-connector[bot]\" and .commit_id == \"${HEAD_SHA}\")) | last | .state // empty"
             )"
 
             if [[ -n "${review_state}" ]]; then
@@ -99,35 +142,7 @@ jobs:
                 exit 1
               fi
 
-              blocking_threads="$(
-                gh api graphql \
-                  -F owner="${GITHUB_REPOSITORY_OWNER}" \
-                  -F repo="${GITHUB_REPOSITORY#*/}" \
-                  -F number="${PR_NUMBER}" \
-                  -f query='query($owner: String!, $repo: String!, $number: Int!) {
-                    repository(owner: $owner, name: $repo) {
-                      pullRequest(number: $number) {
-                        reviewThreads(first: 100) {
-                          nodes {
-                            isResolved
-                            comments(first: 100) {
-                              nodes { author { login } body }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }' \
-                  --jq '[
-                    .data.repository.pullRequest.reviewThreads.nodes[]
-                    | select(.isResolved == false)
-                    | select(any(
-                        .comments.nodes[];
-                        (.author.login | startswith("chatgpt-codex-connector"))
-                        and (.body | test("P[01] Badge"))
-                      ))
-                  ] | length'
-              )"
+              blocking_threads="$(count_blocking_threads)"
 
               if [[ "${blocking_threads}" != "0" ]]; then
                 echo "Codex has ${blocking_threads} unresolved P0/P1 thread(s)." >&2
@@ -135,6 +150,38 @@ jobs:
               fi
 
               echo "Codex reviewed ${HEAD_SHA} with no unresolved P0/P1 findings."
+              exit 0
+            fi
+
+            clean_reaction="$(
+              gh api \
+                "repos/${GITHUB_REPOSITORY}/issues/comments/${trigger_id}/reactions?per_page=100" \
+                --jq 'any(.[]; .user.login == "chatgpt-codex-connector[bot]" and .content == "+1")'
+            )"
+
+            clean_comment="$(
+              gh api --paginate --slurp \
+                "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+                --jq "add | any(.[];
+                  .user.login == \"chatgpt-codex-connector[bot]\"
+                  and .created_at > \"${trigger_created_at}\"
+                  and (
+                    (.body | ascii_downcase | contains(\"didn't find any major issues\"))
+                    or (.body | ascii_downcase | contains(\"did not find any major issues\"))
+                    or (.body | ascii_downcase | contains(\"no major issues\"))
+                  )
+                )"
+            )"
+
+            if [[ "${clean_reaction}" == "true" || "${clean_comment}" == "true" ]]; then
+              blocking_threads="$(count_blocking_threads)"
+
+              if [[ "${blocking_threads}" != "0" ]]; then
+                echo "Codex has ${blocking_threads} unresolved P0/P1 thread(s)." >&2
+                exit 1
+              fi
+
+              echo "Codex completed a clean review of ${HEAD_SHA}."
               exit 0
             fi
 

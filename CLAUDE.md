@@ -107,6 +107,11 @@ terminado la revisión sin hallazgos P0/P1 pendientes y todas las conversaciones
 estén resueltas. Si falta cualquiera de esas condiciones, no debe fusionar ni
 desplegar. El merge a `master` dispara el deploy a Hostinger.
 
+Después del último push, solicita siempre la revisión con `@codex review` y el
+marcador `<!-- codex-review-head:SHA_COMPLETO_DE_HEAD -->`. Si haces otra
+corrección, repite la solicitud con el nuevo SHA; el check requerido rechaza
+revisiones de commits anteriores.
+
 Ramas: `master` es la única de larga vida (= producción). Cada cambio va en
 una rama corta desde `master`, se squash-mergea y muere; nunca se apilan
 commits sobre una rama ya mergeada (se reinicia desde `master`). Sin
