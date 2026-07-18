@@ -13,9 +13,9 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
 - **Agregar módulos al dashboard** (CRM, envíos, inventario, inbox, calidad,
   agente autónomo) o tocar la estructura de /taller →
   lee `docs/ROADMAP_ARQUITECTURA.md` (convenciones y receta de activación).
-- **Agente de IA (Raspberry Pi, Telegram, LLM, métricas, prioridad de cola,
-  avisos)** → lee `docs/AGENTE_IA.md` (plan por fases aprobado, aún sin
-  implementar) ANTES de implementar cualquier fase.
+- **Servidor de IA (Mac mini, revisión local de PR, Telegram, modelos abiertos,
+  métricas, prioridad de cola y avisos)** → lee `docs/AGENTE_IA.md` (plan por
+  fases aprobado, aún sin implementar) ANTES de implementar cualquier fase.
 - **Negocio (Stripe live, SAS/RFC, páginas legales, precio y envío, CFDI,
   post-venta, respaldos, monitoreo, CI, analytics)** → lee `docs/NEGOCIO.md`
   (plan por fases, ordenado por importancia, aún sin implementar). Los textos
@@ -88,7 +88,8 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 - Rotar el token de Cloudflare que circuló por chat; revocar llaves R2 sin
   uso. Pasos en `docs/NEGOCIO.md` §5 (hacerlo la semana 1).
 - Avisos custom muertos desde Workers (ntfy); el reemplazo (outbox en D1 +
-  bot de Telegram en la Pi) ya está planeado en `docs/AGENTE_IA.md`, fases 1-2.
+  bot de Telegram en la futura Mac mini) está planeado en
+  `docs/AGENTE_IA.md`, fases B1-B2.
 - Falta lo legal y operativo para vender de verdad (aviso de privacidad,
   términos, CFDI, envíos, respaldos, CI, analytics): plan completo ordenado
   por importancia en `docs/NEGOCIO.md`.
@@ -97,7 +98,8 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 
 Fases pequeñas y desplegables; verifica los checks requeridos antes de
 mergear; squash-merge a `master`. Salva opera desde su teléfono (/taller) y su
-PC Windows (agente); dale pasos manuales con comandos exactos de PowerShell.
+PC Windows (agente actual; futura estación de trabajo); dale pasos manuales con
+comandos exactos de PowerShell o del shell de la Mac, según la máquina.
 
 Claude hace el trabajo operativo de GitHub: crea la rama, implementa, abre el
 PR en borrador y corrige los hallazgos de CI y de Codex. Puede hacer
