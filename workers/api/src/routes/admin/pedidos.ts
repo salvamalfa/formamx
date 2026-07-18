@@ -50,6 +50,29 @@ pedidos.get('/orders', async (c) => {
   });
 });
 
+// Detalle de un pedido + sus trabajos de impresión (para el detalle del
+// tablero, incluidos pedidos ya enviados/cancelados que la lista no trae).
+// GET distingue de POST /orders/:id/dispatch por método y ruta.
+pedidos.get('/orders/:id', async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB.prepare(
+    `SELECT o.*, p.production FROM orders o
+     LEFT JOIN products p ON p.id = o.product_id
+     WHERE o.id = ?`,
+  )
+    .bind(id)
+    .first<OrderFullRow>();
+  if (!row) return c.json({ error: 'no_existe' }, 404);
+
+  const { results: jobs } = await c.env.DB.prepare(
+    'SELECT * FROM print_jobs WHERE order_id = ? ORDER BY created_at',
+  )
+    .bind(id)
+    .all<PrintJobRow>();
+
+  return c.json({ ...shapeOrder(row), jobs: jobs.map(shapeJob) });
+});
+
 // Avanza el estado del pedido siguiendo el grafo permitido.
 pedidos.patch('/orders/:id', async (c) => {
   const id = c.req.param('id');

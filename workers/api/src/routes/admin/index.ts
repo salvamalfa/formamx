@@ -7,6 +7,7 @@ import { impresora } from './impresora';
 import { inbox } from './inbox';
 import { inventario } from './inventario';
 import { pedidos } from './pedidos';
+import { resumen } from './resumen';
 
 // /api/admin: un sub-app Hono por módulo. El bearer se aplica UNA sola vez
 // aquí — ningún módulo puede olvidar el auth. Las rutas históricas se montan
@@ -22,3 +23,4 @@ admin.route('/clientes', clientes);
 admin.route('/envios', envios);
 admin.route('/inbox', inbox);
 admin.route('/inventario', inventario);
+admin.route('/resumen', resumen);

@@ -47,6 +47,14 @@ export const getOrders = (token: string) =>
     })),
   );
 
+export const getOrder = (token: string, id: string) =>
+  call<Order>(token, `/orders/${id}`).then((o) => ({
+    // Misma normalización que getOrders por si responde un worker anterior.
+    ...o,
+    jobs: o.jobs ?? [],
+    production: o.production ?? (o.config ? 'impresion_3d' : 'manual'),
+  }));
+
 export const patchOrder = (token: string, id: string, status: string) =>
   call<Order>(token, `/orders/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
 
