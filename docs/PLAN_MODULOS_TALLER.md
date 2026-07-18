@@ -21,7 +21,7 @@ merge y el worker no.
 | 1 | clientes | ninguna (customers existe, 0008) | mergeado |
 | 2 | envios | 0011_envios.sql | mergeado |
 | 3 | inventario | 0012_inventario.sql | mergeado |
-| 4 | calidad | 0013_calidad.sql | pendiente |
+| 4 | calidad | 0013_calidad.sql | mergeado |
 | 5 | inbox | 0014_inbox.sql | pendiente |
 | — | cierre (ROADMAP + borrar este doc) | — | pendiente |
 

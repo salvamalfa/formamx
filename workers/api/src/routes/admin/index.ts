@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../../env';
 import { bearer } from '../../lib/auth';
+import { calidad } from './calidad';
 import { clientes } from './clientes';
 import { envios } from './envios';
 import { impresora } from './impresora';
@@ -17,6 +18,7 @@ export const admin = new Hono<AppContext>();
 admin.use('*', bearer('ADMIN_TOKEN'));
 admin.route('/', pedidos);
 admin.route('/', impresora);
+admin.route('/calidad', calidad);
 admin.route('/clientes', clientes);
 admin.route('/envios', envios);
 admin.route('/inventario', inventario);
