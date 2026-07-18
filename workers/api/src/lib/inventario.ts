@@ -60,8 +60,8 @@ export function canTransitionPieza(from: string, to: string): boolean {
 export const BOBINA_STATUSES = Object.keys(BOBINA_TRANSITIONS) as BobinaStatus[];
 export const PIEZA_STATUSES = Object.keys(PIEZA_TRANSITIONS) as PiezaStatus[];
 
-// Veredicto manual de calidad sobre la pieza (denormalizado; el registro
-// formal llega con el módulo calidad).
+// Veredicto manual sobre la pieza (denormalizado, editado a mano desde
+// /taller); no depende de ningún otro módulo.
 export const QC_VALUES = ['ok', 'rechazada'];
 
 export function shapeBobina(row: BobinaRow) {

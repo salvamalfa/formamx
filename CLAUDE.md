@@ -10,7 +10,7 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
 - **Configurador de lámparas, dashboard /taller (sección Impresión 3D),
   agente local, Bambu A1, AMS, trabajos de impresión** →
   lee `docs/IMPRESION_3D.md` ANTES de tocar cualquiera de esas piezas.
-- **Agregar módulos al dashboard** (CRM, envíos, inventario, inbox, calidad,
+- **Agregar módulos al dashboard** (CRM, envíos, inventario, inbox,
   agente autónomo) o tocar la estructura de /taller →
   lee `docs/ROADMAP_ARQUITECTURA.md` (convenciones y receta de activación).
 - **Servidor de IA (Mac mini, revisión local de PR, Telegram, modelos abiertos,

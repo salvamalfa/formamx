@@ -56,7 +56,7 @@ src/components/taller/
   pedidos/             PedidosPanel, OrderCard, JobsStrip, LampPreview,
                        FilamentNeeds, labels.ts
   impresora/           ImpresoraPanel (AMS solo lectura), BedAlert (candado)
-  clientes/  envios/  inventario/  calidad/  inbox/   (activados 2026-07)
+  clientes/  envios/  inventario/  inbox/   (activados 2026-07)
   # futuros: agente/
 ```
 
@@ -153,7 +153,11 @@ messages(id 'msg_' PK, channel: email|whatsapp|web|manual, direction: in|out,
 ```
 Sin tabla de hilos: `customer_id` + orden cronológico ES el hilo.
 
-### Control de calidad — implementado (migración 0013)
+### Control de calidad — dado de baja en 2026-07 (migración 0013 → DROP en 0015)
+Boceto conservado como registro del diseño; el módulo se dio de baja por
+decisión del dueño (Fase 1 del rediseño de /taller, 2026-07) — sin lector
+ni escritor en el worker, tabla `qc_registros` eliminada en la migración
+0015.
 ```
 qc_registros(id 'qc_' PK, order_id FK NOT NULL, print_job_id NULL FK,
              part NULL, checklist_json NOT NULL, passed NOT NULL,
