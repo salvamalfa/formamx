@@ -10,5 +10,4 @@
 - [ ] Ejecuté los checks aplicables localmente.
 - [ ] Añadí o actualicé pruebas cuando cambió el comportamiento.
 - [ ] No se desplegó ni se aplicaron migraciones remotas desde esta rama.
-- [ ] Codex terminó la revisión sin hallazgos P0/P1 pendientes.
 - [ ] Todos los checks están verdes y las conversaciones están resueltas.
