@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
   pull-requests: read
 
 concurrency:
@@ -120,7 +121,7 @@ jobs:
             trigger="$(
               gh api --paginate --slurp \
                 "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-                --jq "add | map(select(.body | contains(\"<!-- codex-review-head:${HEAD_SHA} -->\"))) | last | [.id, .created_at] | @tsv"
+                --jq "add | map(select(.body | contains(\"<!-- codex-review-head:${HEAD_SHA} -->\"))) | (last // empty) | [.id, .created_at] | @tsv"
             )"
 
             if [[ -z "${trigger}" ]]; then
