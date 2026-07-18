@@ -105,33 +105,62 @@ jobs:
           fi
 
           count_blocking_threads() {
-            gh api graphql \
-              -F owner="${GITHUB_REPOSITORY_OWNER}" \
-              -F repo="${GITHUB_REPOSITORY#*/}" \
-              -F number="${PR_NUMBER}" \
-              -f query='query($owner: String!, $repo: String!, $number: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $number) {
-                    reviewThreads(first: 100) {
-                      nodes {
-                        isResolved
-                        comments(first: 100) {
-                          nodes { author { login } body }
+            local cursor=""
+            local total=0
+
+            while true; do
+              local variables=(
+                -F owner="${GITHUB_REPOSITORY_OWNER}"
+                -F repo="${GITHUB_REPOSITORY#*/}"
+                -F number="${PR_NUMBER}"
+              )
+
+              if [[ -n "${cursor}" ]]; then
+                variables+=(-F cursor="${cursor}")
+              fi
+
+              local response
+              response="$(
+                gh api graphql "${variables[@]}" \
+                  -f query='query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                    repository(owner: $owner, name: $repo) {
+                      pullRequest(number: $number) {
+                        reviewThreads(first: 100, after: $cursor) {
+                          nodes {
+                            isResolved
+                            comments(first: 100) {
+                              nodes { author { login } body }
+                            }
+                          }
+                          pageInfo { hasNextPage endCursor }
                         }
                       }
                     }
-                  }
-                }
-              }' \
-              --jq '[
-                .data.repository.pullRequest.reviewThreads.nodes[]
-                | select(.isResolved == false)
-                | select(any(
-                    .comments.nodes[];
-                    (.author.login | startswith("chatgpt-codex-connector"))
-                    and (.body | test("P[01] Badge"))
-                  ))
-              ] | length'
+                  }'
+              )"
+
+              local page_count
+              page_count="$(
+                jq '[
+                  .data.repository.pullRequest.reviewThreads.nodes[]
+                  | select(.isResolved == false)
+                  | select(any(
+                      .comments.nodes[];
+                      (.author.login | startswith("chatgpt-codex-connector"))
+                      and (.body | test("P[01] Badge"))
+                    ))
+                ] | length' <<< "${response}"
+              )"
+              total=$((total + page_count))
+
+              if [[ "$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.hasNextPage' <<< "${response}")" != "true" ]]; then
+                break
+              fi
+
+              cursor="$(jq -r '.data.repository.pullRequest.reviewThreads.pageInfo.endCursor' <<< "${response}")"
+            done
+
+            echo "${total}"
           }
 
           for attempt in {1..90}; do
