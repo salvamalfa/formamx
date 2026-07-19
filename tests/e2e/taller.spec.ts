@@ -490,55 +490,8 @@ const CLIENTES = [
   },
 ];
 
-test('el módulo clientes lista y el filtro oculta a quien no coincide', async ({ page }) => {
-  await mockApi(page);
-  await page.route('**/api/admin/clientes', (route) =>
-    route.fulfill({ json: { clientes: CLIENTES } }),
-  );
-  await page.goto('/taller#clientes');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await expect(page.getByText('Ana Prueba')).toBeVisible();
-  await expect(page.getByText('Bruno Madera')).toBeVisible();
-  await expect(page.getByText('2 pedidos')).toBeVisible();
-
-  await page.getByPlaceholder('Buscar por nombre, email o teléfono').fill('bruno');
-  await expect(page.getByText('Ana Prueba')).toHaveCount(0);
-  await expect(page.getByText('Bruno Madera')).toBeVisible();
-});
-
-test('el detalle del cliente muestra su historial y guarda notas', async ({ page }) => {
-  let patched = false;
-  await mockApi(page);
-  await page.route('**/api/admin/clientes', (route) =>
-    route.fulfill({ json: { clientes: CLIENTES } }),
-  );
-  // Detalle y notas comparten glob: se discrimina por método (como mockApi).
-  await page.route('**/api/admin/clientes/*', (route) => {
-    if (route.request().method() === 'PATCH') {
-      patched = true;
-      return route.fulfill({ json: { ...CLIENTES[0], notes: 'Cliente frecuente' } });
-    }
-    return route.fulfill({ json: { cliente: CLIENTES[0], pedidos: [ORDER] } });
-  });
-  await page.goto('/taller#clientes');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await page.getByText('Ana Prueba').click();
-  await expect(page.getByRole('button', { name: '← Clientes' })).toBeVisible();
-  await expect(page.locator('a[href="mailto:ana@example.com"]')).toBeVisible();
-  await expect(page.locator('a[href="tel:+525511112222"]')).toBeVisible();
-  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
-
-  await page
-    .getByPlaceholder('Preferencias, acuerdos, lo que haga falta recordar')
-    .fill('Cliente frecuente');
-  await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.getByText('Notas guardadas.')).toBeVisible();
-  expect(patched).toBe(true);
-});
+// Los specs de Clientes (lista/detalle/notas/chat) viven ahora en
+// taller-clientes.spec.ts: la vista fusionó CRM + inbox en tres columnas.
 
 const ENVIO = {
   id: 'shp_1',
@@ -757,68 +710,8 @@ const MENSAJE = {
   customer_name: 'Ana Prueba',
 };
 
-test('el módulo inbox registra un mensaje recibido', async ({ page }) => {
-  let posted = false;
-  let body: { channel?: string; body?: string; direction?: string } = {};
-  await mockApi(page);
-  // El select opcional de cliente pide el CRM.
-  await page.route('**/api/admin/clientes', (route) =>
-    route.fulfill({ json: { clientes: CLIENTES } }),
-  );
-  await page.route('**/api/admin/inbox', (route) => {
-    if (route.request().method() === 'POST') {
-      posted = true;
-      body = route.request().postDataJSON() as typeof body;
-      return route.fulfill({ json: MENSAJE });
-    }
-    return route.fulfill({ json: { mensajes: [] } });
-  });
-  await page.goto('/taller#inbox');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await expect(page.getByText('Sin mensajes por atender.', { exact: false })).toBeVisible();
-  await page.getByRole('button', { name: 'Registrar mensaje' }).click();
-  await page.getByLabel('Canal').selectOption('whatsapp');
-  await page.getByLabel('Cliente').selectOption('cus_1');
-  await page.getByPlaceholder('Asunto (opcional)').fill('Duda sobre mi lámpara');
-  await page.getByPlaceholder('Mensaje').fill('Hola, ¿cuándo llega mi pedido?');
-  await page.getByRole('button', { name: 'Registrar', exact: true }).click();
-
-  await expect(page.getByText('Duda sobre mi lámpara')).toBeVisible();
-  await expect(page.getByText('Ana Prueba')).toBeVisible();
-  expect(posted).toBe(true);
-  expect(body.channel).toBe('whatsapp');
-  expect(body.body).toBe('Hola, ¿cuándo llega mi pedido?');
-});
-
-test('archivar un mensaje lo saca de los activos', async ({ page }) => {
-  let patched = false;
-  await mockApi(page);
-  await page.route('**/api/admin/inbox', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { mensajes: [MENSAJE] } });
-    }
-    return route.fallback();
-  });
-  await page.route('**/api/admin/inbox/*', (route) => {
-    if (route.request().method() === 'PATCH') {
-      patched = true;
-      return route.fulfill({ json: { ...MENSAJE, status: 'archivado' } });
-    }
-    return route.fallback();
-  });
-  await page.goto('/taller#inbox');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await expect(page.getByText('Duda sobre mi lámpara')).toBeVisible();
-  await expect(page.getByText('WhatsApp')).toBeVisible();
-  await expect(page.getByText('Recibido')).toBeVisible();
-  await page.getByRole('button', { name: 'Archivar', exact: true }).click();
-  await expect(page.getByText('Duda sobre mi lámpara')).toHaveCount(0);
-  expect(patched).toBe(true);
-});
+// Los specs de mensajería (registrar/archivar/responder) viven ahora en
+// taller-clientes.spec.ts (inbox fusionado en Clientes).
 
 // ── Shell nuevo (F3): router por hash + sidebar ──────────────────────────
 

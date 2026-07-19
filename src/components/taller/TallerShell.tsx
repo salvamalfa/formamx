@@ -4,7 +4,6 @@ import { ClientesPanel } from './clientes/ClientesPanel';
 import { TallerCoreProvider, useTallerCore } from './coreData';
 import { useSession } from './hooks/useSession';
 import { BedAlert } from './impresora/ImpresoraPanel';
-import { InboxPanel } from './inbox/InboxPanel';
 import { MensajesProvider } from './mensajesData';
 import { PedidoDetalle } from './pedidos/PedidoDetalle';
 import { ProyectosPanel } from './proyectos/ProyectosPanel';
@@ -109,8 +108,6 @@ function RouteView({ route, manifest }: { route: TallerRoute; manifest: LampImag
     case 'pedido':
       return <PedidoDetalle id={route.id} manifest={manifest} />;
     case 'clientes':
-      return <ClientesPanel />;
-    case 'inbox':
-      return <InboxPanel />;
+      return <ClientesPanel persona={route.persona} />;
   }
 }

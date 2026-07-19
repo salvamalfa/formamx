@@ -48,15 +48,21 @@ Tablas: `products` (con `production`), `orders` (con `customer_id`), `customers`
 
 ```
 src/components/taller/
-  TallerShell.tsx      gate de token, header, tabs por hash, módulo activo
-  registry.ts          MODULES: [{id, label, Panel}] — módulo nuevo = 1 entrada
+  TallerShell.tsx      gate de token, layout sidebar + contenido por hash
+  Sidebar.tsx          nav Resumen/Proyectos/Clientes (badge sin responder)
+  router.ts            rutas por hash (parseHash/formatHash/useTallerRoute)
   coreData.tsx         TallerCoreData: pedidos + impresora (compartido)
-  ui/                  primitivas de marca (format.ts, colores.ts, …)
-  hooks/               useSession (token/401→gate); usePolling cuando haga falta
-  pedidos/             PedidosPanel, OrderCard, JobsStrip, LampPreview,
+  mensajesData.tsx     MensajesProvider/useMensajes: lectura + mutaciones de chat
+  ui/                  primitivas de marca (format.ts, avatar.ts, …)
+  hooks/               useSession (token/401→gate); useMediaQuery
+  resumen/             ResumenPanel, BarChart (KPIs + ventas por mes)
+  proyectos/           ProyectosPanel (sub-tabs) que hospeda los 4 paneles
+  pedidos/             PedidosTable, PedidoDetalle, JobsStrip, LampPreview,
                        FilamentNeeds, labels.ts
   impresora/           ImpresoraPanel (AMS solo lectura), BedAlert (candado)
-  clientes/  envios/  inventario/  inbox/   (activados 2026-07)
+  clientes/            ClientesPanel (orquestador 3 columnas) + PersonaList,
+                       ChatThread, PersonaFicha (fusión CRM + inbox)
+  envios/  inventario/   (activados 2026-07)
   # futuros: agente/
 ```
 
@@ -152,6 +158,13 @@ messages(id 'msg_' PK, channel: email|whatsapp|web|manual, direction: in|out,
          subject, body, status: nuevo|leido|respondido|archivado, created_at)
 ```
 Sin tabla de hilos: `customer_id` + orden cronológico ES el hilo.
+
+**UI fusionada en Clientes (F7, 2026-07):** el panel Inbox se retiró; su
+mensajería vive ahora en la vista Clientes (lista de personas · chat · ficha),
+con `MensajesProvider`/`useMensajes` como store compartido. La **tabla y las
+rutas del inbox quedan intactas** (`src/lib/taller/inbox.ts` sigue siendo el
+cliente HTTP). Contactos sin ficha: se agrupan por `subject` = nombre del
+contacto.
 
 ### Control de calidad — dado de baja en 2026-07 (migración 0013 → DROP en 0015)
 Boceto conservado como registro del diseño; el módulo se dio de baja por

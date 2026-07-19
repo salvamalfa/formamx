@@ -1,5 +1,8 @@
 import { call } from './http';
 
+// Cliente HTTP del inbox (URL y tabla congeladas). La UI vive en Clientes
+// (F7, 2026-07): el módulo inbox se fusionó ahí; esto solo es el transporte.
+
 export interface Mensaje {
   id: string;
   // email|whatsapp|web|manual

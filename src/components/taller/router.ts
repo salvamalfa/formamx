@@ -4,11 +4,11 @@ import { useEffect, useState } from 'preact/hooks';
 // la URL se mantiene con `location.hash`. Formatos canónicos:
 //   #resumen | #proyectos/pedidos | #proyectos/impresora |
 //   #proyectos/inventario | #proyectos/envios | #pedido/<id> | #clientes |
-//   #clientes/<persona> | #inbox
+//   #clientes/<persona>
 // `persona` es `cus_…` (cliente con ficha) o `ext:<nombre>` (contacto suelto,
-// el nombre va urlencoded en el hash). La vista `inbox` es TEMPORAL: se
-// elimina en F7 cuando Clientes absorba la mensajería. El default (hash
-// vacío o desconocido) es `resumen`, el aterrizaje del taller (F6).
+// el nombre va urlencoded en el hash). El inbox se fusionó en Clientes (F7):
+// `#inbox` redirige a `#clientes`. El default (hash vacío o desconocido) es
+// `resumen`, el aterrizaje del taller (F6).
 
 export type ProyectosSub = 'pedidos' | 'impresora' | 'inventario' | 'envios';
 
@@ -16,8 +16,7 @@ export type TallerRoute =
   | { vista: 'resumen' }
   | { vista: 'proyectos'; sub: ProyectosSub }
   | { vista: 'pedido'; id: string }
-  | { vista: 'clientes'; persona?: string }
-  | { vista: 'inbox' };
+  | { vista: 'clientes'; persona?: string };
 
 const DEFAULT: TallerRoute = { vista: 'resumen' };
 const SUBS: ProyectosSub[] = ['pedidos', 'impresora', 'inventario', 'envios'];
@@ -58,8 +57,9 @@ export function parseHash(hash: string): TallerRoute {
       const seg = rest[0];
       return seg ? { vista: 'clientes', persona: decodePersona(seg) } : { vista: 'clientes' };
     }
+    // Inbox fusionado en Clientes (F7): el hash viejo redirige.
     case 'inbox':
-      return { vista: 'inbox' };
+      return { vista: 'clientes' };
 
     // Compatibilidad con hashes viejos (previos al shell de F3).
     case 'pedidos':
@@ -89,8 +89,6 @@ export function formatHash(r: TallerRoute): string {
       return `#pedido/${r.id}`;
     case 'clientes':
       return r.persona ? `#clientes/${encodePersona(r.persona)}` : '#clientes';
-    case 'inbox':
-      return '#inbox';
   }
 }
 

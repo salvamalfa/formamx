@@ -11,7 +11,6 @@ interface NavEntry {
   activo: boolean;
   onClick: () => void;
   badge?: number;
-  menor?: boolean;
 }
 
 function fechaHoy(): string {
@@ -23,15 +22,14 @@ function fechaHoy(): string {
   });
 }
 
-function NavButton({ label, activo, onClick, badge, menor }: NavEntry) {
+function NavButton({ label, activo, onClick, badge }: NavEntry) {
   const base =
-    'flex items-center justify-between gap-2 whitespace-nowrap rounded-full px-[14px] py-[9px] text-left transition-colors lg:w-full';
+    'flex items-center justify-between gap-2 whitespace-nowrap rounded-full px-[14px] py-[9px] text-left text-sm transition-colors lg:w-full';
   const tono = activo
     ? 'bg-[var(--naranja)] font-bold text-[var(--blanco)]'
     : 'font-normal text-[rgba(246,238,221,0.72)] hover:bg-[rgba(246,238,221,0.1)]';
-  const tamano = menor ? 'text-[13px]' : 'text-sm';
   return (
-    <button type="button" class={`${base} ${tono} ${tamano}`} onClick={onClick}>
+    <button type="button" class={`${base} ${tono}`} onClick={onClick}>
       <span>{label}</span>
       {badge ? (
         <span
@@ -51,7 +49,6 @@ export function Sidebar({ route, onLogout }: { route: TallerRoute; onLogout: () 
   const enResumen = route.vista === 'resumen';
   const enProyectos = route.vista === 'proyectos' || route.vista === 'pedido';
   const enClientes = route.vista === 'clientes';
-  const enInbox = route.vista === 'inbox';
 
   const entradas: NavEntry[] = [
     {
@@ -64,18 +61,12 @@ export function Sidebar({ route, onLogout }: { route: TallerRoute; onLogout: () 
       activo: enProyectos,
       onClick: () => navigate({ vista: 'proyectos', sub: 'pedidos' }),
     },
+    // Clientes absorbió el inbox (F7): el badge de sin responder vive aquí.
     {
       label: 'Clientes',
       activo: enClientes,
       onClick: () => navigate({ vista: 'clientes' }),
       badge: sinResponder || undefined,
-    },
-    // Entrada temporal: Inbox desaparece en F7 (lo absorbe Clientes).
-    {
-      label: 'Inbox',
-      activo: enInbox,
-      onClick: () => navigate({ vista: 'inbox' }),
-      menor: true,
     },
   ];
 

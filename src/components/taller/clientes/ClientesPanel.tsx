@@ -1,280 +1,220 @@
 import { useEffect, useState } from 'preact/hooks';
-import { MODELS } from '../../../config/lamps';
-import {
-  getCliente,
-  getClientes,
-  patchClienteNotes,
-  type Cliente,
-  type ClientePedido,
-} from '../../../lib/taller';
+import { getClientes, type Cliente, type Mensaje } from '../../../lib/taller';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useSession } from '../hooks/useSession';
-import { STATUS_LABEL } from '../pedidos/labels';
-import { formatSync, money } from '../ui/format';
+import { personasDe, useMensajes, type Persona } from '../mensajesData';
+import { navigate } from '../router';
+import { ChatThread } from './ChatThread';
+import { nombrePersona, PersonaList } from './PersonaList';
+import { PersonaFicha } from './PersonaFicha';
 
 const CARD =
-  'rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]';
+  'flex h-full min-h-0 items-center justify-center rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 text-center text-[13px] text-[var(--text-faint)] shadow-[var(--shadow-card)]';
 
-// Módulo "Clientes": quién ha comprado, su historial y notas del taller.
-// Hace su propio fetch (no entra a TallerCoreData); si el worker aún no
-// tiene las rutas del CRM, muestra el error genérico y no rompe nada.
-// Un 401 aquí no re-abre el gate: el polling del core lo hace en segundos.
-export function ClientesPanel() {
+// Vista "Clientes": fusiona el CRM con la mensajería en una vista de tres
+// columnas (lista de personas · chat · ficha). Es el orquestador: trae los
+// clientes (fetch + polling propios), cruza con los mensajes del
+// MensajesProvider para armar las personas y reparte el estado a las columnas.
+// La persona seleccionada vive en el hash (#clientes/<persona>); en móvil el
+// flujo lista → chat → ficha es estado local.
+export function ClientesPanel({ persona }: { persona?: string }) {
   const { token } = useSession();
+  const { mensajes, sinResponder, enviar, registrarEntrante, archivar } = useMensajes();
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [fCiudad, setFCiudad] = useState('todas');
+  const [fActivos, setFActivos] = useState(false);
+  const [nuevo, setNuevo] = useState(false);
+  const [movil, setMovil] = useState<'lista' | 'chat' | 'ficha'>(persona ? 'chat' : 'lista');
+
+  const esDesktop = useMediaQuery('(min-width: 1024px)');
 
   async function load(t: string) {
-    setLoading(true);
     try {
       setClientes(await getClientes(t));
       setError(null);
     } catch {
       setError('No se pudo cargar. Reintenta.');
-    } finally {
-      setLoading(false);
     }
   }
 
-  // Polling solo en la vista de lista; el detalle se carga al entrar.
   useEffect(() => {
-    if (!token || selectedId) return;
+    if (!token) return;
     void load(token);
     const timer = setInterval(() => void load(token), 30_000);
     return () => clearInterval(timer);
-  }, [token, selectedId]);
+  }, [token]);
 
-  if (selectedId && token) {
-    return (
-      <ClienteDetalle token={token} id={selectedId} onBack={() => setSelectedId(null)} />
-    );
+  const todas = personasDe(clientes, mensajes);
+
+  // Ciudades más frecuentes (hasta 4) para los chips de filtro.
+  const freq = new Map<string, number>();
+  for (const c of clientes) {
+    if (c.city) freq.set(c.city, (freq.get(c.city) ?? 0) + 1);
+  }
+  const ciudades = [...freq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([c]) => c);
+
+  const busq = busqueda.trim().toLowerCase();
+  // Los filtros de ciudad/activo solo aplican a clientes; los contactos sueltos
+  // aparecen únicamente con filtros neutros (como en el mockup).
+  function visible(p: Persona): boolean {
+    if (busq && !nombrePersona(p).toLowerCase().includes(busq)) return false;
+    if (p.kind === 'contacto') return fCiudad === 'todas' && !fActivos;
+    if (fCiudad !== 'todas' && p.cliente.city !== fCiudad) return false;
+    if (fActivos && p.cliente.active_order_count <= 0) return false;
+    return true;
+  }
+  const visibles = todas.filter(visible);
+
+  // Selección: la del hash; en desktop, si no hay, la primera visible.
+  const selKey = persona ?? (esDesktop ? visibles[0]?.key : undefined);
+  const selPersona = selKey ? todas.find((p) => p.key === selKey) : undefined;
+
+  function abrir(key: string) {
+    setNuevo(false);
+    navigate({ vista: 'clientes', persona: key });
+    if (!esDesktop) setMovil('chat');
   }
 
-  const q = busqueda.trim().toLowerCase();
-  const visibles = q
-    ? clientes.filter((c) =>
-        [c.name, c.email, c.phone].some((v) => v?.toLowerCase().includes(q)),
-      )
-    : clientes;
+  function iniciarNuevo() {
+    setNuevo(true);
+    if (!esDesktop) setMovil('chat');
+  }
 
-  return (
-    <section class="mt-12">
-      <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="m-0 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-          Clientes
-        </h2>
-        <button type="button" class="btn btn-ghost btn-sm" onClick={() => token && void load(token)}>
-          Actualizar
-        </button>
-      </div>
-      <p class="meta-caps m-0 mt-1 text-[var(--text-faint)]">
-        {loading && clientes.length === 0 ? 'cargando…' : `${clientes.length} en total`}
-      </p>
+  async function crearContacto(opts: { nombre?: string; canal: string; body: string }) {
+    const nombre = opts.nombre?.trim();
+    if (!nombre) return;
+    await registrarEntrante({ nombre, canal: opts.canal, body: opts.body });
+    setNuevo(false);
+    navigate({ vista: 'clientes', persona: `ext:${nombre}` });
+    if (!esDesktop) setMovil('chat');
+  }
 
-      {error && (
-        <p class="mt-3 text-sm text-[var(--support)]" role="alert">
-          {error}
-        </p>
-      )}
+  const lista = (
+    <PersonaList
+      personas={visibles}
+      selKey={selKey}
+      onSelect={abrir}
+      onNuevoContacto={iniciarNuevo}
+    />
+  );
 
-      <input
-        type="search"
-        class="input-brand mt-4"
-        placeholder="Buscar por nombre, email o teléfono"
-        value={busqueda}
-        onInput={(e) => setBusqueda((e.target as HTMLInputElement).value)}
+  const chat = nuevo ? (
+    <ChatThread
+      nuevoContacto
+      onEnviar={() => undefined}
+      onRegistrarEntrante={(opts) => void crearContacto(opts)}
+      onArchivar={() => undefined}
+      onVolver={esDesktop ? undefined : () => setMovil('lista')}
+    />
+  ) : selPersona ? (
+    <ChatThread
+      persona={selPersona}
+      onEnviar={(body) => void enviar(selPersona, body)}
+      onRegistrarEntrante={(opts) =>
+        void registrarEntrante({ persona: selPersona, canal: opts.canal, body: opts.body })
+      }
+      onArchivar={(m: Mensaje) => void archivar(m)}
+      onVolver={esDesktop ? undefined : () => setMovil('lista')}
+      onVerFicha={esDesktop ? undefined : () => setMovil('ficha')}
+    />
+  ) : (
+    <div class={CARD}>Elige a alguien de la lista para ver su conversación.</div>
+  );
+
+  const ficha =
+    !nuevo && selPersona && token ? (
+      <PersonaFicha
+        persona={selPersona}
+        token={token}
+        onVolver={esDesktop ? undefined : () => setMovil('chat')}
       />
-
-      {!loading && !error && clientes.length === 0 && (
-        <p class="mt-4 text-sm text-[var(--text-muted)]">
-          Aún no hay clientes. Aparecen solos con el primer pedido.
-        </p>
-      )}
-      {clientes.length > 0 && visibles.length === 0 && (
-        <p class="mt-4 text-sm text-[var(--text-muted)]">Nadie coincide con la búsqueda.</p>
-      )}
-
-      <div class="mt-4 grid gap-4 md:grid-cols-2">
-        {visibles.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            class={`${CARD} cursor-pointer text-left`}
-            onClick={() => setSelectedId(c.id)}
-          >
-            <p class="m-0 text-sm font-semibold">{c.name ?? c.email ?? 'Sin datos'}</p>
-            {c.name && c.email && (
-              <p class="m-0 mt-0.5 truncate text-xs text-[var(--text-muted)]">{c.email}</p>
-            )}
-            <p class="meta-caps m-0 mt-2 text-[var(--text-faint)]">
-              {c.order_count === 1 ? '1 pedido' : `${c.order_count} pedidos`}
-              {c.last_order_at ? ` · último: ${formatSync(c.last_order_at)}` : ''}
-            </p>
-          </button>
-        ))}
+    ) : (
+      <div class={CARD}>
+        {nuevo ? 'Registra el mensaje para crear el contacto.' : 'Aquí va la ficha de la persona.'}
       </div>
-    </section>
-  );
-}
-
-function ClienteDetalle({
-  token,
-  id,
-  onBack,
-}: {
-  token: string;
-  id: string;
-  onBack: () => void;
-}) {
-  const [detalle, setDetalle] = useState<{ cliente: Cliente; pedidos: ClientePedido[] } | null>(
-    null,
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [intento, setIntento] = useState(0);
-  const [notas, setNotas] = useState('');
-  const [aviso, setAviso] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
-
-  useEffect(() => {
-    let vivo = true;
-    setError(null);
-    getCliente(token, id)
-      .then((d) => {
-        if (!vivo) return;
-        setDetalle(d);
-        setNotas(d.cliente.notes ?? '');
-      })
-      .catch(() => {
-        if (vivo) setError('No se pudo cargar. Reintenta.');
-      });
-    return () => {
-      vivo = false;
-    };
-  }, [token, id, intento]);
-
-  // Guardado optimista: las notas se dan por guardadas y, si el worker
-  // falla, se restauran las anteriores (también en el textarea).
-  async function guardar() {
-    if (!detalle) return;
-    const previas = detalle.cliente.notes;
-    setDetalle({ ...detalle, cliente: { ...detalle.cliente, notes: notas } });
-    setGuardando(true);
-    setAviso(null);
-    try {
-      await patchClienteNotes(token, id, notas);
-      setAviso('Notas guardadas.');
-    } catch {
-      setDetalle((d) => (d ? { ...d, cliente: { ...d.cliente, notes: previas } } : d));
-      setNotas(previas ?? '');
-      setAviso('No se pudieron guardar las notas.');
-    } finally {
-      setGuardando(false);
-    }
-  }
+    );
 
   return (
-    <section class="mt-12">
-      <button type="button" class="btn btn-ghost btn-sm" onClick={onBack}>
-        ← Clientes
-      </button>
+    <div>
+      <header class="mb-4">
+        <div class="flex items-baseline justify-between gap-4">
+          <h1
+            class="m-0 text-[32px] font-bold"
+            style={{ fontFamily: 'var(--font-display)', letterSpacing: 'var(--tracking-display)' }}
+          >
+            Clientes
+          </h1>
+          <span class="meta-caps text-[var(--text-faint)]">
+            {sinResponder ? `${sinResponder} sin responder · ` : ''}
+            {todas.length} {todas.length === 1 ? 'persona' : 'personas'}
+          </span>
+        </div>
 
-      {error && (
-        <div class="mt-4">
-          <p class="m-0 text-sm text-[var(--support)]" role="alert">
+        {error && (
+          <p class="mt-2 text-sm text-[var(--support)]" role="alert">
             {error}
           </p>
+        )}
+
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            class="w-52 rounded-full border border-[var(--border-soft)] bg-[var(--blanco)] px-4 py-1.5 text-[13px] outline-none focus:border-[var(--support)]"
+            placeholder="Buscar por nombre…"
+            value={busqueda}
+            onInput={(e) => setBusqueda((e.target as HTMLInputElement).value)}
+          />
+          <span class="mx-1 hidden h-5 w-px bg-[var(--border-strong)] sm:block" />
           <button
             type="button"
-            class="btn btn-ghost btn-sm mt-2"
-            onClick={() => setIntento((n) => n + 1)}
+            class={`chip-claro ${fCiudad === 'todas' ? 'activo' : ''}`}
+            onClick={() => setFCiudad('todas')}
           >
-            Reintentar
+            todas
+          </button>
+          {ciudades.map((c) => (
+            <button
+              key={c}
+              type="button"
+              class={`chip-claro ${fCiudad === c ? 'activo' : ''}`}
+              onClick={() => setFCiudad(c)}
+            >
+              {c}
+            </button>
+          ))}
+          <button
+            type="button"
+            class={`chip-claro ${fActivos ? 'activo' : ''}`}
+            onClick={() => setFActivos((v) => !v)}
+          >
+            con pedido activo
           </button>
         </div>
+      </header>
+
+      {esDesktop ? (
+        <div
+          class="grid h-[calc(100dvh-240px)] min-h-[460px] gap-4"
+          style={{
+            gridTemplateColumns: 'minmax(150px,230px) minmax(240px,1fr) minmax(170px,250px)',
+          }}
+        >
+          {lista}
+          {chat}
+          {ficha}
+        </div>
+      ) : (
+        <div class="h-[calc(100dvh-230px)] min-h-[420px]">
+          {movil === 'lista' && lista}
+          {movil === 'chat' && chat}
+          {movil === 'ficha' && ficha}
+        </div>
       )}
-
-      {!detalle && !error && (
-        <p class="meta-caps mt-4 text-[var(--text-faint)]">cargando…</p>
-      )}
-
-      {detalle && (
-        <>
-          <h2 class="mt-4 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-            {detalle.cliente.name ?? detalle.cliente.email ?? 'Sin datos'}
-          </h2>
-          <div
-            class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm"
-            style={{ fontFamily: 'var(--font-mono)' }}
-          >
-            {detalle.cliente.email && (
-              <a class="text-[var(--support)]" href={`mailto:${detalle.cliente.email}`}>
-                {detalle.cliente.email}
-              </a>
-            )}
-            {detalle.cliente.phone && (
-              <a class="text-[var(--support)]" href={`tel:${detalle.cliente.phone}`}>
-                {detalle.cliente.phone}
-              </a>
-            )}
-          </div>
-
-          <div class={`${CARD} mt-6`}>
-            <h3 class="meta-caps m-0 text-[var(--text-muted)]">Notas del taller</h3>
-            <textarea
-              class="input-brand mt-3 min-h-28"
-              placeholder="Preferencias, acuerdos, lo que haga falta recordar"
-              value={notas}
-              onInput={(e) => setNotas((e.target as HTMLTextAreaElement).value)}
-            />
-            <div class="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                class="btn btn-primary disabled:cursor-default disabled:opacity-60"
-                disabled={guardando}
-                onClick={() => void guardar()}
-              >
-                Guardar
-              </button>
-              {aviso && <p class="m-0 text-sm text-[var(--text-muted)]">{aviso}</p>}
-            </div>
-          </div>
-
-          <h3 class="meta-caps mt-8 text-[var(--text-muted)]">
-            {detalle.pedidos.length === 1 ? '1 pedido' : `${detalle.pedidos.length} pedidos`}
-          </h3>
-          {detalle.pedidos.length === 0 && (
-            <p class="mt-2 text-sm text-[var(--text-muted)]">Todavía sin pedidos.</p>
-          )}
-          <ul class="m-0 mt-3 flex list-none flex-col gap-3 p-0">
-            {detalle.pedidos.map((p) => (
-              <li key={p.id} class={`${CARD} flex flex-wrap items-baseline justify-between gap-2`}>
-                <div class="min-w-0">
-                  <p class="m-0 text-sm font-semibold">{describePedido(p)}</p>
-                  <p class="meta-caps m-0 mt-1 text-[var(--text-faint)]">
-                    {formatSync(p.created_at)}
-                  </p>
-                </div>
-                <div class="text-right">
-                  <span class="meta-caps text-[var(--support)]">
-                    {STATUS_LABEL[p.status] ?? p.status}
-                  </span>
-                  <p class="m-0 mt-1 text-sm font-bold">{money(p.amount_mxn)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </section>
+    </div>
   );
-}
-
-function describePedido(p: ClientePedido): string {
-  if (!p.config) {
-    return p.product_id === 'banca-001' ? 'La banca de los abuelos' : p.product_id;
-  }
-  const model = MODELS.find((m) => m.id === p.config!.model)?.label ?? p.config.model;
-  return `Lámpara ${model}`;
 }
