@@ -87,8 +87,6 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 
 - Stripe en modo prueba → pasar a live (llaves live + webhook live + 2
   secretos). Secuencia SAS/RFC/banco → live en `docs/NEGOCIO.md` §1.
-- Rotar el token de Cloudflare que circuló por chat; revocar llaves R2 sin
-  uso. Pasos en `docs/NEGOCIO.md` §5 (hacerlo la semana 1).
 - Avisos custom muertos desde Workers (ntfy); el reemplazo (outbox en D1 +
   bot de Telegram en la futura Mac mini) está planeado en
   `docs/AGENTE_IA.md`, fases B1-B2.

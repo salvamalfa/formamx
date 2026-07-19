@@ -25,25 +25,21 @@ todo lo fiscal (CFDI, régimen de la SAS). Donde quedó ambigüedad, el doc dice
    el costo de envío.
 4. **Post-venta y envíos** — importa en cuanto haya ventas reales; sin
    proceso de envío el punto 1 solo genera pedidos que no llegan.
-5. **Seguridad** — un token de Cloudflare filtrado da acceso a D1 (datos de
-   clientes) y al Worker que cobra; rotarlo cuesta 15 minutos. Riesgo activo,
-   bajo esfuerzo: se hace la primera semana, no al final.
-6. **Respaldos** — protege contra pérdida (riesgo pasivo, menos urgente que
-   un token ya filtrado).
-7. **Monitoreo y CI** — evita regresiones y caídas silenciosas cuando ya hay
+5. **Respaldos** — protege contra pérdida de datos (riesgo pasivo, pero con
+   dinero de por medio conviene no dejarlo para el final).
+6. **Monitoreo y CI** — evita regresiones y caídas silenciosas cuando ya hay
    dinero de por medio.
-8. **Analytics** — útil, pero lo último: primero cobrar, cumplir y entregar.
+7. **Analytics** — útil, pero lo último: primero cobrar, cumplir y entregar.
 
 ### Mapa de dependencias
 
 ```
-§5 seguridad ──────────────── independiente, semana 1
 §2a legal (páginas) ──┐
 §3b precio nuevo ─────┼──► §1c Stripe live (smoke test con dinero real)
 §1a trámites SAS ─────┘          │
    (Salva, semanas)              ▼
 §2b CFDI (necesita RFC + CSD)  §4 post-venta
-§6, §7, §8: sin dependencias entre sí, después del live
+§5, §6, §7: sin dependencias entre sí, después del live
 ```
 
 ---
@@ -122,7 +118,7 @@ de Stripe. **Verificación:** cuenta "activada", métodos card y OXXO en live.
 
 **Claude:** pasos, verificación del webhook, PR del CLAUDE.md. **Salva:**
 pegar los secretos (o pasárselos a Claude por canal seguro, **nunca por
-chat** — lección del token filtrado, §5) y hacer la compra y el reembolso.
+chat**) y hacer la compra y el reembolso.
 **Verificación:** el ciclo completo compra → pedido → reembolso con dinero
 real. **Dependencias:** 1b, §2a, §3b.
 
@@ -359,30 +355,9 @@ más de 2-3 envíos por semana, o un reenvío perdido.
 
 ---
 
-## §5 — Seguridad pendiente (subida en el orden; hacer la semana 1)
+## §5 — Respaldos
 
-Pasos para Salva (15 min, Claude guiando):
-
-1. dash.cloudflare.com → My Profile → API Tokens → localizar el token que
-   circuló por chat → **Roll** (o Delete) → crear uno nuevo con permisos
-   mínimos (Workers Scripts: Edit; D1: Edit; sobre la cuenta `15ac…`) →
-   guardarlo SOLO en el gestor de contraseñas o en `.dev.vars` local; nunca
-   más por chat.
-2. R2 → Manage R2 API Tokens → revocar las llaves sin uso (ya anotado en
-   `CLAUDE.md`).
-3. Opcional barato: rotar también `ADMIN_TOKEN`
-   (`npx wrangler secret put ADMIN_TOKEN` + actualizar el token guardado en el
-   teléfono de Salva, en /taller).
-4. Actualizar `CLAUDE.md`: quitar el pendiente.
-
-**Verificación:** el token viejo devuelve 401 en un `wrangler whoami` o deploy
-de prueba; el nuevo despliega. **Dependencias:** ninguna.
-
----
-
-## §6 — Respaldos
-
-### Fase 6a — export de D1
+### Fase 5a — export de D1
 
 **Recomendación: GitHub Actions con cron semanal.** La PC de Salva no está
 siempre encendida y la futura Mac mini tampoco; Actions corre solo y el repo
@@ -390,14 +365,15 @@ ya es privado. Workflow `.github/workflows/backup-d1.yml`: cron semanal →
 `npx wrangler d1 export formamx --remote --output=backup.sql` → subir como
 **artifact** con retención de 90 días. **NO commitear el dump:** contiene PII
 de clientes y el historial de git es para siempre. Secreto
-`CLOUDFLARE_API_TOKEN` en GitHub (el token nuevo de §5, o uno aparte solo-D1).
+`CLOUDFLARE_API_TOKEN` en GitHub (un token de Cloudflare con permiso D1,
+idealmente uno aparte solo-D1).
 Rutina de Salva: descargar un artifact al mes a su disco.
 
 **Verificación:** correr el workflow a mano (`workflow_dispatch`), descargar
 el artifact e importarlo en un D1 local (`migrate:local` + import),
 comprobando que hay filas en `orders`.
 
-### Fase 6b — 3MF + perfiles de Bambu Studio (PC de Salva)
+### Fase 5b — 3MF + perfiles de Bambu Studio (PC de Salva)
 
 Viven SOLO en `C:\formamx\3mf\` y en los presets de Bambu Studio. Pasos
 PowerShell (Salva los pega una vez):
@@ -424,9 +400,9 @@ reaparece tras la tarea; revisar el `.log`. **Claude:** comandos y doc.
 
 ---
 
-## §7 — Monitoreo y CI
+## §6 — Monitoreo y CI
 
-### Fase 7a — uptime
+### Fase 6a — uptime
 
 **Recomendación: UptimeRobot gratis ya, y NO moverlo a la Mac después.** La Mac
 (`docs/AGENTE_IA.md` fase B2) avisará de eventos de negocio, pero un monitor
@@ -436,7 +412,7 @@ Worker que toque D1 (empezar con `/api/products/lampara`; un `/health` trivial
 después si molesta). Alertas al correo de Salva; cuando el bot exista,
 UptimeRobot puede además llamar un webhook — fase futura.
 
-### Fase 7b — CI en GitHub Actions (hoy el repo NO tiene workflows)
+### Fase 6b — CI en GitHub Actions (hoy el repo NO tiene workflows)
 
 `.github/workflows/ci.yml` en push y PR a master, 4 jobs:
 
@@ -457,7 +433,7 @@ toca).
 
 ---
 
-## §8 — Analytics
+## §7 — Analytics
 
 **Cloudflare Web Analytics** (gratis, sin cookies — al no usar cookies ni
 identificadores no complica el aviso de privacidad de §2a; aun así el aviso lo
@@ -500,12 +476,11 @@ después de §2a para que el aviso ya lo mencione).
 | §3d unit economics | bajo | Salva | — |
 | §4a envío manual | bajo | Salva (Claude plantilla) | 3b (cotización) |
 | §4b pausar ventas | medio | Claude | — |
-| §5 seguridad | bajo (15 min) | Salva guiado | — |
-| §6a backup D1 | bajo | Claude | — |
-| §6b backup 3MF | bajo | Salva guiado | — |
-| §7a uptime | bajo | Salva (2 min) | — |
-| §7b CI | medio | Claude | — |
-| §8 analytics | bajo | Claude + Salva | — |
+| §5a backup D1 | bajo | Claude | — |
+| §5b backup 3MF | bajo | Salva guiado | — |
+| §6a uptime | bajo | Salva (2 min) | — |
+| §6b CI | medio | Claude | — |
+| §7 analytics | bajo | Claude + Salva | — |
 
 **Verificación global por fase con código:** `npx astro check`, typecheck del
 worker, `wrangler dev` + `migrate:local`, Playwright
