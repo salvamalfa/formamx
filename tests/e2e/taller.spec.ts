@@ -55,6 +55,19 @@ async function mockApi(
     }
     return route.fallback();
   });
+  // El detalle de pedido pide las guías del pedido (`?order_id=`). Por defecto
+  // vacío; los specs de envíos registran rutas más nuevas que ganan.
+  await page.route('**/api/admin/envios**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { envios: [] } });
+    }
+    return route.fallback();
+  });
+}
+
+async function entrar(page: Page) {
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
 }
 
 test('el gate pide token y al entrar carga los pedidos', async ({ page }) => {
@@ -76,56 +89,110 @@ test('un 401 limpia el token y vuelve al gate', async ({ page }) => {
   await expect(page.getByText('Pega tu token de taller')).toBeVisible();
 });
 
-test('las instrucciones de filamento avisan si falta un color en el AMS', async ({ page }) => {
-  // Solo blanco cargado: pantalla azul y tapa rojo deben pedir "carga".
+const JOBS_OK = [
+  { id: 'job_1', order_id: 'ord_1', part: 'pantalla', file_key: 'pantalla/tessera', colors: ['azul'], status: 'queued', progress_pct: null, message: null },
+  { id: 'job_2', order_id: 'ord_1', part: 'cuerpo', file_key: 'cuerpo/cuerpo', colors: ['blanco'], status: 'queued', progress_pct: null, message: null },
+  { id: 'job_3', order_id: 'ord_1', part: 'tapa', file_key: 'tapa/tapa', colors: ['rojo'], status: 'queued', progress_pct: null, message: null },
+];
+
+test('la tabla lista los pedidos con badge de estado y monto formateado', async ({ page }) => {
+  const lampara = { ...ORDER, id: 'ord_l', production: 'impresion_3d' };
+  const banca = {
+    ...ORDER,
+    id: 'ord_b',
+    product_id: 'banca-001',
+    config: null,
+    production: 'manual',
+    amount_mxn: 240000,
+    status: 'pagada',
+  };
+  await mockApi(page);
+  await page.route('**/api/admin/orders', (route) =>
+    route.fulfill({ json: { orders: [lampara, banca] } }),
+  );
+  await page.goto('/taller');
+  await entrar(page);
+
+  // Una sola tabla; el tipo de pieza va en el subtítulo mono de cada fila.
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page.getByText('La banca de los abuelos')).toBeVisible();
+  await expect(page.getByText('impresión 3d')).toBeVisible();
+  await expect(page.getByText('hecha a mano')).toBeVisible();
+  await expect(page.getByText('$499')).toBeVisible();
+  await expect(page.getByText('$2,400')).toBeVisible();
+  await expect(page.getByText('Pagada', { exact: true }).first()).toBeVisible();
+  // El panel AMS no vive en Pedidos: se movió a la sub-pestaña Impresora.
+  await expect(page.getByText('AMS — qué hay cargado')).toHaveCount(0);
+});
+
+test('al hacer clic en una fila se abre el detalle con la config y las guías', async ({ page }) => {
   await mockApi(page, { spools: ['blanco', null, null, null] });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+
+  await expect(page.getByRole('button', { name: '← Proyectos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'La pieza' })).toBeVisible();
+  // La configuración y las necesidades de filamento viven ahora en el detalle.
   await expect(page.getByText('cuerpo: Blanco')).toBeVisible();
   await expect(page.getByText('pantalla: Azul · carga')).toBeVisible();
   await expect(page.getByText('tapa: Rojo · carga')).toBeVisible();
+  // La ficha del cliente en el detalle.
+  await expect(page.getByText('ana@example.com')).toBeVisible();
 });
 
-test('un pedido en cola con filamentos cargados se puede mandar a imprimir', async ({ page }) => {
+test('avanzar el estado desde el detalle actualiza el badge (optimista)', async ({ page }) => {
+  let patched = false;
+  await mockApi(page);
+  await page.route('**/api/admin/orders/ord_1', (route) => {
+    if (route.request().method() === 'PATCH') patched = true;
+    return route.fulfill({ json: { ...ORDER, status: 'en_cola' } });
+  });
+  await page.goto('/taller');
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+  await page.getByRole('button', { name: 'A la cola' }).click();
+  await expect(page.getByText('En cola')).toBeVisible();
+  expect(patched).toBe(true);
+});
+
+test('el pedido en cola con filamentos cargados se despacha desde el detalle', async ({ page }) => {
   const enCola = { ...ORDER, status: 'en_cola' };
   let dispatched = false;
   await mockApi(page, { spools: ['blanco', 'azul', 'rojo', null] });
-  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [enCola] } }));
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [enCola] } });
+    return route.fallback();
+  });
   await page.route('**/api/admin/orders/ord_1/dispatch', (route) => {
     dispatched = true;
-    return route.fulfill({
-      json: {
-        jobs: [
-          { id: 'job_1', order_id: 'ord_1', part: 'pantalla', file_key: 'pantalla/tessera', colors: ['azul'], status: 'queued', progress_pct: null, message: null },
-          { id: 'job_2', order_id: 'ord_1', part: 'cuerpo', file_key: 'cuerpo/cuerpo', colors: ['blanco'], status: 'queued', progress_pct: null, message: null },
-          { id: 'job_3', order_id: 'ord_1', part: 'tapa', file_key: 'tapa/tapa', colors: ['rojo'], status: 'queued', progress_pct: null, message: null },
-        ],
-      },
-    });
+    return route.fulfill({ json: { jobs: JOBS_OK } });
   });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  // Las lámparas en cola ya no tienen botón de avance manual: solo Imprimir
-  // (el agente mueve el estado al imprimir de verdad).
-  await expect(page.getByRole('button', { name: 'Imprimiendo' })).toHaveCount(0);
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+  // Las lámparas en cola no ofrecen avance manual: solo Imprimir (el agente
+  // mueve el estado al imprimir de verdad).
+  await expect(page.getByRole('button', { name: 'Empezar' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Imprimir' }).click();
   await expect(page.getByText('Tapa', { exact: true })).toBeVisible();
   expect(dispatched).toBe(true);
 });
 
-test('sin los filamentos cargados el botón Imprimir queda deshabilitado', async ({ page }) => {
+test('sin los filamentos cargados el botón Imprimir del detalle queda deshabilitado', async ({ page }) => {
   const enCola = { ...ORDER, status: 'en_cola' };
   await mockApi(page, { spools: [null, null, null, null] });
-  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [enCola] } }));
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [enCola] } });
+    return route.fallback();
+  });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
   await expect(page.getByRole('button', { name: 'Imprimir' })).toBeDisabled();
 });
 
-test('un trabajo fallido muestra el motivo y permite reintentar', async ({ page }) => {
+test('un trabajo fallido muestra el motivo y permite reintentar en el detalle', async ({ page }) => {
   const conFallo = {
     ...ORDER,
     status: 'en_cola',
@@ -135,72 +202,72 @@ test('un trabajo fallido muestra el motivo y permite reintentar', async ({ page 
   };
   let requeued = false;
   await mockApi(page);
-  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [conFallo] } }));
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [conFallo] } });
+    return route.fallback();
+  });
   await page.route('**/api/admin/jobs/job_1/requeue', (route) => {
     requeued = true;
     return route.fulfill({ json: { ...conFallo.jobs[0], status: 'queued', message: null } });
   });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
   await expect(page.getByText('falta azul en el AMS')).toBeVisible();
   await page.getByRole('button', { name: 'Reintentar' }).click();
   await expect(page.getByText('falta azul en el AMS')).toHaveCount(0);
   expect(requeued).toBe(true);
 });
 
-test('los pedidos se separan en Impresión 3D y Taller manual', async ({ page }) => {
-  const lampara = { ...ORDER, id: 'ord_l', production: 'impresion_3d' };
-  const banca = {
-    ...ORDER,
-    id: 'ord_b',
-    product_id: 'banca-001',
-    config: null,
-    production: 'manual',
-    status: 'pagada',
-  };
-  await mockApi(page);
-  await page.route('**/api/admin/orders', (route) =>
-    route.fulfill({ json: { orders: [lampara, banca] } }),
-  );
-  await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  const seccion3d = page.locator('section', { has: page.getByRole('heading', { name: 'Impresión 3D' }) });
-  const seccionManual = page.locator('section', { has: page.getByRole('heading', { name: 'Taller manual' }) });
-  await expect(seccion3d.getByText('Lámpara Tessera')).toBeVisible();
-  await expect(seccionManual.getByText('La banca de los abuelos')).toBeVisible();
-  // El panel AMS ya no vive en Pedidos: se movió a la sub-pestaña Impresora.
-  await expect(page.getByText('AMS — qué hay cargado')).toHaveCount(0);
-});
-
-test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page }) => {
+test('un pedido manual muestra En progreso y el texto de pieza manual', async ({ page }) => {
   const banca = {
     ...ORDER,
     id: 'ord_banca',
     product_id: 'banca-001',
     config: null,
+    production: 'manual',
     amount_mxn: 240000,
-    status: 'en_cola',
+    status: 'imprimiendo',
   };
   await mockApi(page);
   await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [banca] } }));
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Empezar' })).toBeVisible();
+  await entrar(page);
+  await page.getByRole('button', { name: /La banca de los abuelos/ }).click();
 
-  // Ya en marcha, el estado se lee "En progreso", no "Imprimiendo". El shell
-  // ya no tiene un botón Actualizar global; se recarga la página (el token
-  // vive en localStorage) para que el core vuelva a leer los pedidos.
-  await page.route('**/api/admin/orders', (route) =>
-    route.fulfill({ json: { orders: [{ ...banca, status: 'imprimiendo' }] } }),
-  );
-  await page.reload();
   await expect(page.getByText('En progreso')).toBeVisible();
   await expect(page.getByText('Imprimiendo')).toHaveCount(0);
+  await expect(page.getByText('no pasa por la impresora', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
+});
+
+test('un deep-link a un pedido fuera de la lista carga el detalle', async ({ page }) => {
+  const enviado = { ...ORDER, id: 'ord_hist', status: 'enviada' };
+  await mockApi(page);
+  // La lista por defecto no lo trae (pedido enviado/histórico).
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [] } });
+    return route.fallback();
+  });
+  // Ruta específica del pedido: se registra DESPUÉS del glob `orders/*` de
+  // mockApi, así que Playwright la evalúa primero y no la captura la lista.
+  await page.route('**/api/admin/orders/ord_hist', (route) => route.fulfill({ json: enviado }));
+  await page.goto('/taller#pedido/ord_hist');
+  await entrar(page);
+
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page.getByText('Enviada', { exact: true })).toBeVisible();
+});
+
+test('el botón volver regresa a la lista de pedidos', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/taller');
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+  await expect(page.getByRole('button', { name: '← Proyectos' })).toBeVisible();
+  await page.getByRole('button', { name: '← Proyectos' }).click();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+  await expect(page.getByRole('button', { name: /Lámpara Tessera/ })).toBeVisible();
 });
 
 test('el panel AMS es de solo lectura y muestra el hex de la impresora', async ({ page }) => {
@@ -573,21 +640,6 @@ test('archivar un mensaje lo saca de los activos', async ({ page }) => {
   await expect(page.getByText('Recibido')).toBeVisible();
   await page.getByRole('button', { name: 'Archivar', exact: true }).click();
   await expect(page.getByText('Duda sobre mi lámpara')).toHaveCount(0);
-  expect(patched).toBe(true);
-});
-
-test('el botón avanza el estado del pedido', async ({ page }) => {
-  let patched = false;
-  await mockApi(page);
-  await page.route('**/api/admin/orders/ord_1', (route) => {
-    patched = true;
-    return route.fulfill({ json: { ...ORDER, status: 'en_cola' } });
-  });
-  await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.getByRole('button', { name: 'A la cola' }).click();
-  await expect(page.getByText('En cola')).toBeVisible();
   expect(patched).toBe(true);
 });
 

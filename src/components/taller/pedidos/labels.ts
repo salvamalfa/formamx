@@ -1,3 +1,4 @@
+import { MODELS } from '../../../config/lamps';
 import type { Order, PrintJob } from '../../../lib/taller';
 
 // El paso en_cola→imprimiendo solo lo usan a mano los pedidos que no pasan
@@ -25,6 +26,40 @@ export const STATUS_LABEL: Record<string, string> = {
 export function statusLabel(order: Order): string {
   if (order.production === 'manual' && order.status === 'imprimiendo') return 'En progreso';
   return STATUS_LABEL[order.status] ?? order.status;
+}
+
+// Nombre visible del producto de un pedido. La tabla y el detalle lo comparten.
+export function productLabel(order: Order): string {
+  if (order.config) {
+    const model = MODELS.find((m) => m.id === order.config!.model)?.label ?? order.config.model;
+    return `Lámpara ${model}`;
+  }
+  return order.product_id === 'banca-001' ? 'La banca de los abuelos' : order.product_id;
+}
+
+// Colores del badge de estado (pill mono). Tonos de marca análogos al mockup:
+// mostaza para lo que aún no arranca, naranja para lo que está en la impresora,
+// bosque para lo terminado, crema apagada para lo cerrado. Centralizado aquí
+// para que la tabla de pedidos y el detalle usen exactamente los mismos pares.
+export interface Badge {
+  bg: string;
+  color: string;
+}
+
+const BADGE_CERRADO: Badge = { bg: 'var(--crema-oscuro)', color: 'var(--text-faint)' };
+
+export const STATUS_BADGE: Record<string, Badge> = {
+  pendiente: { bg: 'var(--mostaza-claro)', color: '#8A6510' },
+  pagada: { bg: 'var(--mostaza-claro)', color: '#8A6510' },
+  en_cola: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
+  imprimiendo: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
+  lista: { bg: 'var(--bosque-claro)', color: 'var(--bosque)' },
+  enviada: { bg: 'var(--crema-oscuro)', color: 'var(--tinta-suave)' },
+  cancelada: BADGE_CERRADO,
+};
+
+export function statusBadge(status: string): Badge {
+  return STATUS_BADGE[status] ?? BADGE_CERRADO;
 }
 
 export const JOB_STATUS_LABEL: Record<PrintJob['status'], string> = {

@@ -31,8 +31,14 @@ const normalizeEnvio = (e: Envio): Envio => ({
   pedido: e.pedido ?? null,
 });
 
-export const getEnvios = (token: string) =>
-  call<{ envios: Envio[] }>(token, '/envios').then((r) => (r.envios ?? []).map(normalizeEnvio));
+// El worker soporta `?order_id=` para traer solo las guías de un pedido (lo
+// usa el detalle); sin filtro devuelve las guías activas (lista de Envíos).
+export const getEnvios = (token: string, opts: { order_id?: string } = {}) => {
+  const qs = opts.order_id ? `?order_id=${encodeURIComponent(opts.order_id)}` : '';
+  return call<{ envios: Envio[] }>(token, `/envios${qs}`).then((r) =>
+    (r.envios ?? []).map(normalizeEnvio),
+  );
+};
 
 export const createEnvio = (
   token: string,

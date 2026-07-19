@@ -39,7 +39,7 @@ export function JobsStrip({ jobs, onRetry }: { jobs: PrintJob[]; onRetry: (job: 
               </p>
               <button
                 type="button"
-                class="btn btn-sm btn-ghost shrink-0"
+                class="btn btn-sm btn-ghost-claro shrink-0"
                 onClick={() => onRetry(job)}
               >
                 Reintentar

@@ -6,8 +6,9 @@ import { useSession } from './hooks/useSession';
 import { BedAlert } from './impresora/ImpresoraPanel';
 import { InboxPanel } from './inbox/InboxPanel';
 import { MensajesProvider } from './mensajesData';
+import { PedidoDetalle } from './pedidos/PedidoDetalle';
 import { ProyectosPanel } from './proyectos/ProyectosPanel';
-import { navigate, useTallerRoute, type TallerRoute } from './router';
+import { useTallerRoute, type TallerRoute } from './router';
 import { Sidebar } from './Sidebar';
 
 // Shell del taller: gate de token + layout con sidebar y contenido enrutado
@@ -96,37 +97,12 @@ function ShellChrome({
 function RouteView({ route, manifest }: { route: TallerRoute; manifest: LampImageManifest }) {
   switch (route.vista) {
     case 'proyectos':
-      return <ProyectosPanel sub={route.sub} manifest={manifest} />;
+      return <ProyectosPanel sub={route.sub} />;
     case 'pedido':
-      return <PedidoDetalleStub id={route.id} />;
+      return <PedidoDetalle id={route.id} manifest={manifest} />;
     case 'clientes':
       return <ClientesPanel />;
     case 'inbox':
       return <InboxPanel />;
   }
-}
-
-// Detalle de pedido: F4 trae la vista completa. Por ahora un stub claro que
-// deja volver a la lista.
-function PedidoDetalleStub({ id }: { id: string }) {
-  return (
-    <section>
-      <button
-        type="button"
-        class="btn btn-sm btn-ghost-claro"
-        onClick={() => navigate({ vista: 'proyectos', sub: 'pedidos' })}
-      >
-        ← Proyectos
-      </button>
-      <h1
-        class="mt-4 text-[32px] font-bold"
-        style={{ fontFamily: 'var(--font-display)', letterSpacing: 'var(--tracking-display)' }}
-      >
-        Pedido {id}
-      </h1>
-      <p class="mt-2 text-sm text-[var(--text-muted)]">
-        El detalle del pedido llega en la próxima fase.
-      </p>
-    </section>
-  );
 }

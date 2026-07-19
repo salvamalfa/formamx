@@ -1,4 +1,3 @@
-import type { LampImageManifest } from '../../../config/lamps';
 import { EnviosPanel } from '../envios/EnviosPanel';
 import { ImpresoraPanel } from '../impresora/ImpresoraPanel';
 import { InventarioPanel } from '../inventario/InventarioPanel';
@@ -15,13 +14,7 @@ const SUBS: { id: ProyectosSub; label: string }[] = [
   { id: 'envios', label: 'Envíos' },
 ];
 
-export function ProyectosPanel({
-  sub,
-  manifest,
-}: {
-  sub: ProyectosSub;
-  manifest: LampImageManifest;
-}) {
+export function ProyectosPanel({ sub }: { sub: ProyectosSub }) {
   return (
     <div>
       <h1
@@ -45,7 +38,7 @@ export function ProyectosPanel({
       </div>
 
       <div class="mt-2">
-        {sub === 'pedidos' && <PedidosPanel manifest={manifest} />}
+        {sub === 'pedidos' && <PedidosPanel />}
         {sub === 'impresora' && <ImpresoraPanel />}
         {sub === 'inventario' && <InventarioPanel />}
         {sub === 'envios' && <EnviosPanel />}
