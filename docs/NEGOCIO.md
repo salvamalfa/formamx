@@ -2,8 +2,9 @@
 
 Plan de referencia para cerrar los puntos ciegos del negocio: cobrar de
 verdad, cumplir lo legal mínimo, afinar producto y precio, y operar sin
-sustos. **Estado: ninguna fase implementada.** Las fases se ejecutan una por
-una cuando Salva lo pida y cada una se mergea sola.
+sustos. **Estado: la fase 6b (CI) está implementada; las demás siguen
+pendientes.** Las fases pendientes se ejecutan una por una cuando Salva lo
+pida y cada una se mergea sola.
 
 **Aviso importante:** los textos legales de este plan son borradores
 redactados sin ser abogados, a partir de fuentes públicas (citadas al final).
@@ -412,13 +413,12 @@ Worker que toque D1 (empezar con `/api/products/lampara`; un `/health` trivial
 después si molesta). Alertas al correo de Salva; cuando el bot exista,
 UptimeRobot puede además llamar un webhook — fase futura.
 
-### Fase 6b — CI en GitHub Actions (hoy el repo NO tiene workflows)
+### Fase 6b — CI en GitHub Actions (implementada)
 
-`.github/workflows/ci.yml` en push y PR a master, 4 jobs:
+`.github/workflows/ci.yml` corre en cada PR y push a `master`. El ruleset
+`Protect master` exige sus 4 jobs:
 
-1. **sitio**: `npm ci` + `npx astro check` + `npm run build`. Añadir script
-   `"check": "astro check"` a `package.json` raíz (la devDependency
-   `@astrojs/check` ya está).
+1. **sitio**: `npm ci` + `npm run check` + `npm run build`.
 2. **worker**: `cd workers/api && npm ci && npm run typecheck`.
 3. **agente**: instalar `agent/requirements.txt` + `python -m pytest
    agent/tests`.
@@ -426,8 +426,10 @@ UptimeRobot puede además llamar un webhook — fase futura.
    `npx playwright test` — `playwright.config.ts` ya contempla `CI` y el
    `webServer`; en CI no se usa `PW_CHROMIUM_PATH` (eso es del sandbox local).
 
-**Verificación:** un PR de prueba con un error de tipos deliberado → CI en
-rojo; en verde al corregir. **Claude:** todo. **Salva:** nada.
+Cada PR lleva auto-merge con método squash: GitHub espera estos cuatro checks
+y que todas las conversaciones estén resueltas antes de mergear a `master`.
+**Verificación:** CI bloquea el merge cuando un check falla y auto-merge lo
+completa al volver a verde. **Claude:** todo. **Salva:** nada.
 **Dependencias:** ninguna (independiente del deploy a Hostinger, que no se
 toca).
 

@@ -34,10 +34,12 @@ migraciones remotas como parte de una revisión.
   la misma rama hasta que confirme el resultado. Si depende de un servicio
   externo, prueba en modo local o de prueba todo lo posible y explica qué
   activación externa quedaría para después. Su confirmación autoriza abrir el
-  pull request y continuar con checks y squash-merge sin pedir otra aprobación.
+  pull request, activar auto-merge con método squash y continuar con los checks
+  sin pedir otra aprobación.
   No añadas esta pausa a mantenimiento interno sin cambios perceptibles, como
   dependencias, CI, tests, documentación o refactors puramente técnicos.
 - Cada cambio va en una rama corta y un pull request hacia `master`.
-- Todos los checks requeridos y las conversaciones deben quedar resueltos.
-- Claude puede hacer squash-merge cuando todos los checks requeridos estén
-  verdes y las conversaciones estén resueltas.
+- Al abrir el pull request, activa auto-merge con método squash. GitHub hace el
+  merge solo cuando todos los checks requeridos están verdes y todas las
+  conversaciones están resueltas; corrige cualquier hallazgo y deja
+  auto-merge activo hasta que se cumplan esas condiciones.
