@@ -16,11 +16,41 @@ const ORDER = {
   jobs: [] as unknown[],
 };
 
+// Fixture por defecto de /resumen: en cero, para no ensuciar los specs que no
+// les importa la vista Resumen (aun así el shell la pide siempre al aterrizar
+// ahí, que es el default desde F6).
+const RESUMEN_VACIO = {
+  ventas: {
+    mes_mxn: 0,
+    mes_anterior_mxn: 0,
+    delta_pct: null as number | null,
+    serie: [
+      { mes: '2026-02', total_mxn: 0 },
+      { mes: '2026-03', total_mxn: 0 },
+      { mes: '2026-04', total_mxn: 0 },
+      { mes: '2026-05', total_mxn: 0 },
+      { mes: '2026-06', total_mxn: 0 },
+      { mes: '2026-07', total_mxn: 0 },
+    ],
+  },
+  pedidos: { activos: 0, sin_empezar: 0 },
+  mensajes_sin_responder: 0,
+  material_bajo: 0,
+};
+
 async function mockApi(
   page: Page,
-  opts: { spools?: (string | null)[]; bedClear?: boolean; syncedAt?: string | null } = {},
+  opts: {
+    spools?: (string | null)[];
+    bedClear?: boolean;
+    syncedAt?: string | null;
+    resumen?: typeof RESUMEN_VACIO;
+  } = {},
 ) {
   const spools = opts.spools ?? [null, null, null, null];
+  await page.route('**/api/admin/resumen', (route) =>
+    route.fulfill({ json: opts.resumen ?? RESUMEN_VACIO }),
+  );
   await page.route('**/api/admin/orders', (route) => {
     if (route.request().method() === 'GET') {
       return route.fulfill({ json: { orders: [ORDER] } });
@@ -47,6 +77,36 @@ async function mockApi(
       json: { bed_clear: opts.bedClear ?? true, ams_synced_at: opts.syncedAt ?? null },
     }),
   );
+  // El MensajesProvider del shell siempre pide el inbox (badge de sin
+  // responder). Por defecto va vacío; los tests que lo necesiten lo pisan.
+  await page.route('**/api/admin/inbox**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { mensajes: [] } });
+    }
+    return route.fallback();
+  });
+  // El detalle de pedido pide las guías del pedido (`?order_id=`). Por defecto
+  // vacío; los specs de envíos registran rutas más nuevas que ganan.
+  await page.route('**/api/admin/envios**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { envios: [] } });
+    }
+    return route.fallback();
+  });
+  // La sub-pestaña Impresora pide las bobinas para el % del AMS (fetch
+  // propio del panel). Por defecto vacío; los specs que lo necesiten
+  // registran una ruta más nueva que gana.
+  await page.route('**/api/admin/inventario/bobinas**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { bobinas: [] } });
+    }
+    return route.fallback();
+  });
+}
+
+async function entrar(page: Page) {
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
 }
 
 test('el gate pide token y al entrar carga los pedidos', async ({ page }) => {
@@ -68,56 +128,144 @@ test('un 401 limpia el token y vuelve al gate', async ({ page }) => {
   await expect(page.getByText('Pega tu token de taller')).toBeVisible();
 });
 
-test('las instrucciones de filamento avisan si falta un color en el AMS', async ({ page }) => {
-  // Solo blanco cargado: pantalla azul y tapa rojo deben pedir "carga".
+const JOBS_OK = [
+  { id: 'job_1', order_id: 'ord_1', part: 'pantalla', file_key: 'pantalla/tessera', colors: ['azul'], status: 'queued', progress_pct: null, message: null },
+  { id: 'job_2', order_id: 'ord_1', part: 'cuerpo', file_key: 'cuerpo/cuerpo', colors: ['blanco'], status: 'queued', progress_pct: null, message: null },
+  { id: 'job_3', order_id: 'ord_1', part: 'tapa', file_key: 'tapa/tapa', colors: ['rojo'], status: 'queued', progress_pct: null, message: null },
+];
+
+test('la tabla lista los pedidos con badge de estado y monto formateado', async ({ page }) => {
+  const lampara = { ...ORDER, id: 'ord_l', production: 'impresion_3d' };
+  const banca = {
+    ...ORDER,
+    id: 'ord_b',
+    product_id: 'banca-001',
+    config: null,
+    production: 'manual',
+    amount_mxn: 240000,
+    status: 'pagada',
+  };
+  await mockApi(page);
+  await page.route('**/api/admin/orders', (route) =>
+    route.fulfill({ json: { orders: [lampara, banca] } }),
+  );
+  await page.goto('/taller');
+  await entrar(page);
+
+  // Una sola tabla; el tipo de pieza va en el subtítulo mono de cada fila.
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page.getByText('La banca de los abuelos')).toBeVisible();
+  await expect(page.getByText('impresión 3d')).toBeVisible();
+  await expect(page.getByText('hecha a mano')).toBeVisible();
+  await expect(page.getByText('$499')).toBeVisible();
+  await expect(page.getByText('$2,400')).toBeVisible();
+  await expect(page.getByText('Pagada', { exact: true }).first()).toBeVisible();
+  // El panel AMS no vive en Pedidos: se movió a la sub-pestaña Impresora.
+  await expect(page.getByText('AMS — qué hay cargado')).toHaveCount(0);
+});
+
+test('al hacer clic en una fila se abre el detalle con la config y las guías', async ({ page }) => {
   await mockApi(page, { spools: ['blanco', null, null, null] });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+
+  await expect(page.getByRole('button', { name: '← Proyectos' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'La pieza' })).toBeVisible();
+  // La configuración y las necesidades de filamento viven ahora en el detalle.
   await expect(page.getByText('cuerpo: Blanco')).toBeVisible();
   await expect(page.getByText('pantalla: Azul · carga')).toBeVisible();
   await expect(page.getByText('tapa: Rojo · carga')).toBeVisible();
+  // La ficha del cliente en el detalle.
+  await expect(page.getByText('ana@example.com')).toBeVisible();
 });
 
-test('un pedido en cola con filamentos cargados se puede mandar a imprimir', async ({ page }) => {
+test('el detalle muestra una guía ya entregada (fusiona activas + entregadas)', async ({ page }) => {
+  const entregada = {
+    id: 'shp_ent',
+    order_id: 'ord_1',
+    carrier: 'DHL',
+    service: null,
+    tracking_number: 'DHL999',
+    label_url: null,
+    cost_mxn: null,
+    status: 'entregada',
+    created_at: '2026-07-10 10:00:00',
+    shipped_at: '2026-07-11 09:00:00',
+    delivered_at: '2026-07-12 15:00:00',
+    pedido: null,
+  };
+  await mockApi(page);
+  // El worker excluye 'entregada' cuando no se pasa `status`: la lista activa
+  // va vacía y la guía entregada solo llega en la llamada con `status=entregada`.
+  // El detalle hace ambas y las fusiona.
+  await page.route('**/api/admin/envios**', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    if (route.request().url().includes('status=entregada')) {
+      return route.fulfill({ json: { envios: [entregada] } });
+    }
+    return route.fulfill({ json: { envios: [] } });
+  });
+  await page.goto('/taller');
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+
+  await expect(page.getByText('DHL999')).toBeVisible();
+  await expect(page.getByText('entregada')).toBeVisible();
+});
+
+test('avanzar el estado desde el detalle actualiza el badge (optimista)', async ({ page }) => {
+  let patched = false;
+  await mockApi(page);
+  await page.route('**/api/admin/orders/ord_1', (route) => {
+    if (route.request().method() === 'PATCH') patched = true;
+    return route.fulfill({ json: { ...ORDER, status: 'en_cola' } });
+  });
+  await page.goto('/taller');
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+  await page.getByRole('button', { name: 'A la cola' }).click();
+  await expect(page.getByText('En cola')).toBeVisible();
+  expect(patched).toBe(true);
+});
+
+test('el pedido en cola con filamentos cargados se despacha desde el detalle', async ({ page }) => {
   const enCola = { ...ORDER, status: 'en_cola' };
   let dispatched = false;
   await mockApi(page, { spools: ['blanco', 'azul', 'rojo', null] });
-  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [enCola] } }));
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [enCola] } });
+    return route.fallback();
+  });
   await page.route('**/api/admin/orders/ord_1/dispatch', (route) => {
     dispatched = true;
-    return route.fulfill({
-      json: {
-        jobs: [
-          { id: 'job_1', order_id: 'ord_1', part: 'pantalla', file_key: 'pantalla/tessera', colors: ['azul'], status: 'queued', progress_pct: null, message: null },
-          { id: 'job_2', order_id: 'ord_1', part: 'cuerpo', file_key: 'cuerpo/cuerpo', colors: ['blanco'], status: 'queued', progress_pct: null, message: null },
-          { id: 'job_3', order_id: 'ord_1', part: 'tapa', file_key: 'tapa/tapa', colors: ['rojo'], status: 'queued', progress_pct: null, message: null },
-        ],
-      },
-    });
+    return route.fulfill({ json: { jobs: JOBS_OK } });
   });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  // Las lámparas en cola ya no tienen botón de avance manual: solo Imprimir
-  // (el agente mueve el estado al imprimir de verdad).
-  await expect(page.getByRole('button', { name: 'Imprimiendo' })).toHaveCount(0);
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+  // Las lámparas en cola no ofrecen avance manual: solo Imprimir (el agente
+  // mueve el estado al imprimir de verdad).
+  await expect(page.getByRole('button', { name: 'Empezar' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Imprimir' }).click();
   await expect(page.getByText('Tapa', { exact: true })).toBeVisible();
   expect(dispatched).toBe(true);
 });
 
-test('sin los filamentos cargados el botón Imprimir queda deshabilitado', async ({ page }) => {
+test('sin los filamentos cargados el botón Imprimir del detalle queda deshabilitado', async ({ page }) => {
   const enCola = { ...ORDER, status: 'en_cola' };
   await mockApi(page, { spools: [null, null, null, null] });
-  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [enCola] } }));
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [enCola] } });
+    return route.fallback();
+  });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
   await expect(page.getByRole('button', { name: 'Imprimir' })).toBeDisabled();
 });
 
-test('un trabajo fallido muestra el motivo y permite reintentar', async ({ page }) => {
+test('un trabajo fallido muestra el motivo y permite reintentar en el detalle', async ({ page }) => {
   const conFallo = {
     ...ORDER,
     status: 'en_cola',
@@ -127,74 +275,75 @@ test('un trabajo fallido muestra el motivo y permite reintentar', async ({ page 
   };
   let requeued = false;
   await mockApi(page);
-  await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [conFallo] } }));
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [conFallo] } });
+    return route.fallback();
+  });
   await page.route('**/api/admin/jobs/job_1/requeue', (route) => {
     requeued = true;
     return route.fulfill({ json: { ...conFallo.jobs[0], status: 'queued', message: null } });
   });
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
   await expect(page.getByText('falta azul en el AMS')).toBeVisible();
   await page.getByRole('button', { name: 'Reintentar' }).click();
   await expect(page.getByText('falta azul en el AMS')).toHaveCount(0);
   expect(requeued).toBe(true);
 });
 
-test('los pedidos se separan en Impresión 3D y Taller manual', async ({ page }) => {
-  const lampara = { ...ORDER, id: 'ord_l', production: 'impresion_3d' };
-  const banca = {
-    ...ORDER,
-    id: 'ord_b',
-    product_id: 'banca-001',
-    config: null,
-    production: 'manual',
-    status: 'pagada',
-  };
-  await mockApi(page);
-  await page.route('**/api/admin/orders', (route) =>
-    route.fulfill({ json: { orders: [lampara, banca] } }),
-  );
-  await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  const seccion3d = page.locator('section', { has: page.getByRole('heading', { name: 'Impresión 3D' }) });
-  const seccionManual = page.locator('section', { has: page.getByRole('heading', { name: 'Taller manual' }) });
-  await expect(seccion3d.getByText('Lámpara Tessera')).toBeVisible();
-  await expect(seccionManual.getByText('La banca de los abuelos')).toBeVisible();
-  // El panel AMS vive dentro de la sección de impresión.
-  await expect(seccion3d.getByText('AMS — qué hay cargado')).toBeVisible();
-  await expect(seccionManual.getByText('AMS — qué hay cargado')).toHaveCount(0);
-});
-
-test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page }) => {
+test('un pedido manual muestra En progreso y el texto de pieza manual', async ({ page }) => {
   const banca = {
     ...ORDER,
     id: 'ord_banca',
     product_id: 'banca-001',
     config: null,
+    production: 'manual',
     amount_mxn: 240000,
-    status: 'en_cola',
+    status: 'imprimiendo',
   };
   await mockApi(page);
   await page.route('**/api/admin/orders', (route) => route.fulfill({ json: { orders: [banca] } }));
   await page.goto('/taller');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page.getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Empezar' })).toBeVisible();
+  await entrar(page);
+  await page.getByRole('button', { name: /La banca de los abuelos/ }).click();
 
-  // Ya en marcha, el estado se lee "En progreso", no "Imprimiendo".
-  await page.route('**/api/admin/orders', (route) =>
-    route.fulfill({ json: { orders: [{ ...banca, status: 'imprimiendo' }] } }),
-  );
-  await page.getByRole('button', { name: 'Actualizar' }).click();
   await expect(page.getByText('En progreso')).toBeVisible();
   await expect(page.getByText('Imprimiendo')).toHaveCount(0);
+  await expect(page.getByText('no pasa por la impresora', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
 });
 
-test('el panel AMS es de solo lectura y muestra el hex de la impresora', async ({ page }) => {
+test('un deep-link a un pedido fuera de la lista carga el detalle', async ({ page }) => {
+  const enviado = { ...ORDER, id: 'ord_hist', status: 'enviada' };
+  await mockApi(page);
+  // La lista por defecto no lo trae (pedido enviado/histórico).
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: [] } });
+    return route.fallback();
+  });
+  // Ruta específica del pedido: se registra DESPUÉS del glob `orders/*` de
+  // mockApi, así que Playwright la evalúa primero y no la captura la lista.
+  await page.route('**/api/admin/orders/ord_hist', (route) => route.fulfill({ json: enviado }));
+  await page.goto('/taller#pedido/ord_hist');
+  await entrar(page);
+
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page.getByText('Enviada', { exact: true })).toBeVisible();
+});
+
+test('el botón volver regresa a la lista de pedidos', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/taller');
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+  await expect(page.getByRole('button', { name: '← Proyectos' })).toBeVisible();
+  await page.getByRole('button', { name: '← Proyectos' }).click();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+  await expect(page.getByRole('button', { name: /Lámpara Tessera/ })).toBeVisible();
+});
+
+test('la card de bobinas AMS es de solo lectura y muestra el hex de la impresora', async ({ page }) => {
   await mockApi(page, { syncedAt: '2026-07-11 15:30:00' });
   await page.route('**/api/admin/spools', (route) =>
     route.fulfill({
@@ -209,22 +358,23 @@ test('el panel AMS es de solo lectura y muestra el hex de la impresora', async (
       },
     }),
   );
-  await page.goto('/taller');
+  // El AMS vive en la sub-pestaña Impresora de Proyectos (compat de hash).
+  await page.goto('/taller#impresora');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
 
-  const panel = page.locator('section', { hasText: 'AMS — qué hay cargado' });
-  await expect(panel.locator('select')).toHaveCount(0); // solo lectura
-  await expect(panel.getByText('#2F5FD6')).toBeVisible(); // hex junto al nombre
-  await expect(panel.getByText('#808080')).toBeVisible(); // gris fuera de catálogo
-  await expect(panel.getByText('PETG')).toBeVisible();
-  await expect(panel.getByText('leído de la impresora:')).toBeVisible();
-  await expect(panel.getByText('vacía')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bobinas AMS' })).toBeVisible();
+  // Escapa el <select> que inyecta la barra de dev de Astro fuera de <main>.
+  await expect(page.locator('main select')).toHaveCount(0); // solo lectura, sin formularios
+  await expect(page.getByText('#2F5FD6')).toBeVisible(); // hex junto al nombre de catálogo
+  await expect(page.getByText('#808080')).toBeVisible(); // gris fuera de catálogo: el hex es el nombre
+  await expect(page.getByText('leído de la impresora:')).toBeVisible();
+  await expect(page.getByText('vacía')).toBeVisible();
 });
 
 test('sin sincronización del AMS aparece el aviso de arrancar el agente', async ({ page }) => {
   await mockApi(page, { syncedAt: null });
-  await page.goto('/taller');
+  await page.goto('/taller#impresora');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByText('sin lectura de la impresora — arranca el agente')).toBeVisible();
@@ -244,6 +394,111 @@ test('con la cama ocupada aparece el candado y se libera al confirmar', async ({
   await page.getByRole('button', { name: 'Cama despejada' }).click();
   await expect(page.getByText('Hay una pieza en la cama.')).toHaveCount(0);
   expect(confirmed).toBe(true);
+});
+
+test('en la sub-pestaña Impresora el banner de la cama es el del panel, no el global', async ({
+  page,
+}) => {
+  let confirmed = false;
+  await mockApi(page, { bedClear: false });
+  await page.route('**/api/admin/printer/bed-clear', (route) => {
+    confirmed = true;
+    return route.fulfill({ json: { bed_clear: true } });
+  });
+  await page.goto('/taller#impresora');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  // El banner rico del panel está, con su copy propio...
+  await expect(page.getByText('La cama no está despejada.')).toBeVisible();
+  // ...y el banner global del shell NO se duplica en esta vista.
+  await expect(page.getByText('Hay una pieza en la cama.')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Ya la despejé' }).click();
+  await expect(page.getByText('La cama no está despejada.')).toHaveCount(0);
+  expect(confirmed).toBe(true);
+});
+
+test('la sub-pestaña Impresora muestra el trabajo en curso, la cola y el % de bobinas del AMS', async ({
+  page,
+}) => {
+  const printing = { ...ORDER, id: 'ord_printing' };
+  const queued = { ...ORDER, id: 'ord_queued' };
+  await mockApi(page, { spools: ['azul'] });
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        json: {
+          orders: [
+            {
+              ...printing,
+              jobs: [
+                {
+                  id: 'job_p',
+                  order_id: 'ord_printing',
+                  part: 'pantalla',
+                  file_key: 'x',
+                  colors: ['azul'],
+                  status: 'printing',
+                  progress_pct: 42,
+                  message: null,
+                },
+              ],
+            },
+            {
+              ...queued,
+              jobs: [
+                {
+                  id: 'job_q',
+                  order_id: 'ord_queued',
+                  part: 'tapa',
+                  file_key: 'x',
+                  colors: ['rojo'],
+                  status: 'queued',
+                  progress_pct: null,
+                  message: null,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/admin/inventario/bobinas', (route) =>
+    route.fulfill({
+      json: {
+        bobinas: [
+          {
+            id: 'bob_ams',
+            color_id: 'azul',
+            material: 'PLA',
+            brand: null,
+            weight_g: 1000,
+            weight_left_g: 120,
+            cost_mxn: null,
+            status: 'en_uso',
+            created_at: '2026-07-01 00:00:00',
+            updated_at: '2026-07-01 00:00:00',
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto('/taller#impresora');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  // Todo escopado a <main>: la barra de dev de Astro (fuera de <main>)
+  // inyecta su propio inspector de props de islas, que en dev puede
+  // repetir texto como "Tapa" (parte de la key del manifest de la lámpara).
+  const main = page.locator('main');
+  await expect(main.getByText('Pantalla · printing')).toBeVisible();
+  await expect(main.getByText('42%')).toBeVisible();
+  await expect(main.getByText('Tapa')).toBeVisible();
+  // Bobina en uso con el mismo color+material del slot 0: 120/1000 = 12%, bajo 20%.
+  await expect(main.getByText('12%')).toBeVisible();
 });
 
 const CLIENTES = [
@@ -269,55 +524,8 @@ const CLIENTES = [
   },
 ];
 
-test('el módulo clientes lista y el filtro oculta a quien no coincide', async ({ page }) => {
-  await mockApi(page);
-  await page.route('**/api/admin/clientes', (route) =>
-    route.fulfill({ json: { clientes: CLIENTES } }),
-  );
-  await page.goto('/taller#clientes');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await expect(page.getByText('Ana Prueba')).toBeVisible();
-  await expect(page.getByText('Bruno Madera')).toBeVisible();
-  await expect(page.getByText('2 pedidos')).toBeVisible();
-
-  await page.getByPlaceholder('Buscar por nombre, email o teléfono').fill('bruno');
-  await expect(page.getByText('Ana Prueba')).toHaveCount(0);
-  await expect(page.getByText('Bruno Madera')).toBeVisible();
-});
-
-test('el detalle del cliente muestra su historial y guarda notas', async ({ page }) => {
-  let patched = false;
-  await mockApi(page);
-  await page.route('**/api/admin/clientes', (route) =>
-    route.fulfill({ json: { clientes: CLIENTES } }),
-  );
-  // Detalle y notas comparten glob: se discrimina por método (como mockApi).
-  await page.route('**/api/admin/clientes/*', (route) => {
-    if (route.request().method() === 'PATCH') {
-      patched = true;
-      return route.fulfill({ json: { ...CLIENTES[0], notes: 'Cliente frecuente' } });
-    }
-    return route.fulfill({ json: { cliente: CLIENTES[0], pedidos: [ORDER] } });
-  });
-  await page.goto('/taller#clientes');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await page.getByText('Ana Prueba').click();
-  await expect(page.getByRole('button', { name: '← Clientes' })).toBeVisible();
-  await expect(page.locator('a[href="mailto:ana@example.com"]')).toBeVisible();
-  await expect(page.locator('a[href="tel:+525511112222"]')).toBeVisible();
-  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
-
-  await page
-    .getByPlaceholder('Preferencias, acuerdos, lo que haga falta recordar')
-    .fill('Cliente frecuente');
-  await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.getByText('Notas guardadas.')).toBeVisible();
-  expect(patched).toBe(true);
-});
+// Los specs de Clientes (lista/detalle/notas/chat) viven ahora en
+// taller-clientes.spec.ts: la vista fusionó CRM + inbox en tres columnas.
 
 const ENVIO = {
   id: 'shp_1',
@@ -396,6 +604,24 @@ test('la guía avanza por el grafo y al entregarla sale de la lista', async ({ p
   await expect(page.getByText('EST123456')).toHaveCount(0);
 });
 
+test('en envíos, el botón del pedido navega a #pedido/<id> y abre el detalle', async ({ page }) => {
+  await mockApi(page);
+  await page.route('**/api/admin/envios', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { envios: [ENVIO] } });
+    }
+    return route.fallback();
+  });
+  await page.goto('/taller#envios');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('EST123456')).toBeVisible();
+  await page.getByRole('button', { name: 'Ver pedido' }).click();
+  await expect(page).toHaveURL(/#pedido\/ord_1$/);
+  await expect(page.getByRole('heading', { name: 'Lámpara Tessera' })).toBeVisible();
+});
+
 const BOBINA = {
   id: 'bob_1',
   color_id: 'azul',
@@ -451,15 +677,30 @@ test('el módulo inventario da de alta una bobina y edita su peso', async ({ pag
   await page.getByPlaceholder('Marca').fill('Creality');
   await page.getByRole('button', { name: 'Agregar bobina' }).click();
 
-  const bobina = page.getByRole('listitem').filter({ hasText: '1000 g / 1000 g' });
-  await expect(bobina.getByText('Azul', { exact: true })).toBeVisible();
-  await expect(bobina.getByText('1000 g / 1000 g')).toBeVisible();
+  // La tabla: color + peso restante editable ("1000" en el input, "/ 1000 g" al lado).
+  await expect(page.getByText('Azul', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Peso restante en gramos')).toHaveValue('1000');
+  await expect(page.getByText('/ 1000 g')).toBeVisible();
   expect(posted).toBe(true);
 
   await page.getByLabel('Peso restante en gramos').fill('650');
   await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.getByText('650 g / 1000 g')).toBeVisible();
+  await expect(page.getByLabel('Peso restante en gramos')).toHaveValue('650');
   expect(patchedPeso).toBe(true);
+});
+
+test('una bobina con menos de 200 g muestra el badge "bajo"', async ({ page }) => {
+  await mockApi(page);
+  await page.route('**/api/admin/inventario/bobinas', (route) =>
+    route.fulfill({
+      json: { bobinas: [{ ...BOBINA, id: 'bob_bajo', status: 'en_uso', weight_left_g: 150 }] },
+    }),
+  );
+  await page.goto('/taller#inventario');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('bajo', { exact: true })).toBeVisible();
 });
 
 test('la sección piezas del inventario reserva una pieza en stock', async ({ page }) => {
@@ -490,123 +731,6 @@ test('la sección piezas del inventario reserva una pieza en stock', async ({ pa
   expect(patched).toBe(true);
 });
 
-const CHECKLISTS_QC = {
-  impresion_3d: [
-    { id: 'capas', label: 'Capas uniformes, sin saltos ni hilos' },
-    { id: 'warping', label: 'Sin warping ni esquinas levantadas' },
-    { id: 'encaje', label: 'Pantalla, cuerpo y tapa encajan sin forzar' },
-    { id: 'colores', label: 'Colores según el pedido' },
-    { id: 'electrico', label: 'Socket y cable probados, enciende' },
-  ],
-  manual: [
-    { id: 'acabado', label: 'Lijado y acabado uniformes' },
-    { id: 'estructura', label: 'Estable, sin juego en las uniones' },
-    { id: 'medidas', label: 'Medidas según la ficha' },
-  ],
-};
-
-const QC_REGISTRO = {
-  id: 'qc_1',
-  order_id: 'ord_ok',
-  print_job_id: null,
-  part: null,
-  checklist: { capas: true, warping: true, encaje: true, colores: true, electrico: true },
-  passed: true,
-  notes: null,
-  created_at: '2026-07-17 10:00:00',
-  pedido: { id: 'ord_ok', product_id: 'lampara', customer_name: 'Bruno Aprobado' },
-};
-
-// El glob exacto '**/api/admin/calidad' no captura '/calidad/checklists'
-// (mismo criterio que clientes vs clientes/*), pero checklists se registra
-// aparte y el handler de '/calidad' discrimina por método con fallback.
-async function mockCalidad(page: Page, registros: (typeof QC_REGISTRO)[]) {
-  await page.route('**/api/admin/calidad/checklists', (route) =>
-    route.fulfill({ json: { checklists: CHECKLISTS_QC } }),
-  );
-  await page.route('**/api/admin/calidad', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { registros } });
-    }
-    return route.fallback();
-  });
-}
-
-test('calidad calcula lo pendiente: sin registro aprobado sí, aprobado no', async ({ page }) => {
-  const porRevisar = { ...ORDER, id: 'ord_rev', status: 'imprimiendo' };
-  const aprobado = {
-    ...ORDER,
-    id: 'ord_ok',
-    status: 'lista',
-    customer: { ...ORDER.customer, name: 'Bruno Aprobado' },
-  };
-  await mockApi(page);
-  await page.route('**/api/admin/orders', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { orders: [porRevisar, aprobado] } });
-    }
-    return route.fallback();
-  });
-  await mockCalidad(page, [QC_REGISTRO]);
-  await page.goto('/taller#calidad');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  // Solo el pedido sin registro aprobado pide revisión.
-  const pendientes = page.getByRole('list', { name: 'Por revisar' });
-  await expect(pendientes.getByText('Ana Prueba')).toBeVisible();
-  await expect(pendientes.getByText('Bruno Aprobado')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Revisar' })).toHaveCount(1);
-
-  // El registro aprobado vive en el historial con su veredicto.
-  const historial = page.getByRole('list', { name: 'Historial' });
-  await expect(historial.getByText('Bruno Aprobado')).toBeVisible();
-  await expect(historial.getByText('Aprobada')).toBeVisible();
-});
-
-test('la revisión exige responder todo el checklist y lo manda completo', async ({ page }) => {
-  let posted = false;
-  let body: { checklist?: Record<string, boolean> } = {};
-  await mockApi(page);
-  await page.route('**/api/admin/orders', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { orders: [{ ...ORDER, status: 'imprimiendo' }] } });
-    }
-    return route.fallback();
-  });
-  await page.route('**/api/admin/calidad/checklists', (route) =>
-    route.fulfill({ json: { checklists: CHECKLISTS_QC } }),
-  );
-  await page.route('**/api/admin/calidad', (route) => {
-    if (route.request().method() === 'POST') {
-      posted = true;
-      body = route.request().postDataJSON() as typeof body;
-      return route.fulfill({ json: { ...QC_REGISTRO, id: 'qc_2', order_id: 'ord_1' } });
-    }
-    return route.fulfill({ json: { registros: [] } });
-  });
-  await page.goto('/taller#calidad');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await page.getByRole('button', { name: 'Revisar' }).click();
-  await expect(page.getByText('Capas uniformes, sin saltos ni hilos')).toBeVisible();
-  const registrar = page.getByRole('button', { name: 'Registrar' });
-  await expect(registrar).toBeDisabled();
-
-  // Responder todos los items habilita el botón; el veredicto lo da el worker.
-  const bien = page.getByRole('button', { name: 'Bien' });
-  await expect(bien).toHaveCount(5);
-  for (let i = 0; i < 5; i++) await bien.nth(i).click();
-  await registrar.click();
-
-  await expect(page.getByText('Revisión registrada: Aprobada.')).toBeVisible();
-  expect(posted).toBe(true);
-  for (const id of ['capas', 'warping', 'encaje', 'colores', 'electrico']) {
-    expect(body.checklist?.[id]).toBe(true);
-  }
-});
-
 const MENSAJE = {
   id: 'msg_1',
   channel: 'whatsapp',
@@ -620,80 +744,191 @@ const MENSAJE = {
   customer_name: 'Ana Prueba',
 };
 
-test('el módulo inbox registra un mensaje recibido', async ({ page }) => {
-  let posted = false;
-  let body: { channel?: string; body?: string; direction?: string } = {};
+// Los specs de mensajería (registrar/archivar/responder) viven ahora en
+// taller-clientes.spec.ts (inbox fusionado en Clientes).
+
+// ── Shell nuevo (F3): router por hash + sidebar ──────────────────────────
+
+test('el hash viejo #pedidos redirige a #proyectos/pedidos y muestra la vista', async ({ page }) => {
   await mockApi(page);
-  // El select opcional de cliente pide el CRM.
+  await page.goto('/taller#pedidos');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+});
+
+test('el hash #calidad (módulo dado de baja) cae a proyectos/pedidos', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/taller#calidad');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+});
+
+test('el sidebar navega a Clientes', async ({ page }) => {
+  await mockApi(page);
   await page.route('**/api/admin/clientes', (route) =>
     route.fulfill({ json: { clientes: CLIENTES } }),
   );
-  await page.route('**/api/admin/inbox', (route) => {
-    if (route.request().method() === 'POST') {
-      posted = true;
-      body = route.request().postDataJSON() as typeof body;
-      return route.fulfill({ json: MENSAJE });
-    }
-    return route.fulfill({ json: { mensajes: [] } });
-  });
-  await page.goto('/taller#inbox');
+  await page.goto('/taller');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
 
-  await expect(page.getByText('Sin mensajes por atender.', { exact: false })).toBeVisible();
-  await page.getByRole('button', { name: 'Registrar mensaje' }).click();
-  await page.getByLabel('Canal').selectOption('whatsapp');
-  await page.getByLabel('Cliente').selectOption('cus_1');
-  await page.getByPlaceholder('Asunto (opcional)').fill('Duda sobre mi lámpara');
-  await page.getByPlaceholder('Mensaje').fill('Hola, ¿cuándo llega mi pedido?');
-  await page.getByRole('button', { name: 'Registrar', exact: true }).click();
-
-  await expect(page.getByText('Duda sobre mi lámpara')).toBeVisible();
-  await expect(page.getByText('Ana Prueba')).toBeVisible();
-  expect(posted).toBe(true);
-  expect(body.channel).toBe('whatsapp');
-  expect(body.body).toBe('Hola, ¿cuándo llega mi pedido?');
+  // exact: true — el sidebar y el panel Resumen ("Ir a clientes →") tienen
+  // ambos un botón cuyo nombre accesible contiene "Clientes".
+  await page.getByRole('button', { name: 'Clientes', exact: true }).click();
+  await expect(page.getByText('Bruno Madera')).toBeVisible();
+  await expect(page).toHaveURL(/#clientes$/);
 });
 
-test('archivar un mensaje lo saca de los activos', async ({ page }) => {
-  let patched = false;
+test('el badge de sin responder aparece con mensajes entrantes nuevos', async ({ page }) => {
   await mockApi(page);
-  await page.route('**/api/admin/inbox', (route) => {
+  // Dos entrantes pendientes (nuevo + leído) → el badge muestra 2.
+  await page.route('**/api/admin/inbox**', (route) => {
     if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { mensajes: [MENSAJE] } });
+      return route.fulfill({
+        json: {
+          mensajes: [
+            { ...MENSAJE, id: 'm1', status: 'nuevo' },
+            { ...MENSAJE, id: 'm2', status: 'leido' },
+          ],
+        },
+      });
     }
     return route.fallback();
-  });
-  await page.route('**/api/admin/inbox/*', (route) => {
-    if (route.request().method() === 'PATCH') {
-      patched = true;
-      return route.fulfill({ json: { ...MENSAJE, status: 'archivado' } });
-    }
-    return route.fallback();
-  });
-  await page.goto('/taller#inbox');
-  await page.getByPlaceholder('token').fill('t');
-  await page.getByRole('button', { name: 'Entrar' }).click();
-
-  await expect(page.getByText('Duda sobre mi lámpara')).toBeVisible();
-  await expect(page.getByText('WhatsApp')).toBeVisible();
-  await expect(page.getByText('Recibido')).toBeVisible();
-  await page.getByRole('button', { name: 'Archivar', exact: true }).click();
-  await expect(page.getByText('Duda sobre mi lámpara')).toHaveCount(0);
-  expect(patched).toBe(true);
-});
-
-test('el botón avanza el estado del pedido', async ({ page }) => {
-  let patched = false;
-  await mockApi(page);
-  await page.route('**/api/admin/orders/ord_1', (route) => {
-    patched = true;
-    return route.fulfill({ json: { ...ORDER, status: 'en_cola' } });
   });
   await page.goto('/taller');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.getByRole('button', { name: 'A la cola' }).click();
-  await expect(page.getByText('En cola')).toBeVisible();
-  expect(patched).toBe(true);
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Clientes\s*2/ })).toBeVisible();
+});
+
+test.describe('en móvil', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('la barra superior existe y permite navegar entre vistas', async ({ page }) => {
+    await mockApi(page);
+    await page.route('**/api/admin/clientes', (route) =>
+      route.fulfill({ json: { clientes: CLIENTES } }),
+    );
+    await page.goto('/taller');
+    await page.getByPlaceholder('token').fill('t');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+
+    // Los botones de la barra superior navegan igual que en desktop.
+    // exact: true — el sidebar y el panel Resumen ("Ir a clientes →") tienen
+  // ambos un botón cuyo nombre accesible contiene "Clientes".
+  await page.getByRole('button', { name: 'Clientes', exact: true }).click();
+    await expect(page.getByText('Bruno Madera')).toBeVisible();
+    await expect(page).toHaveURL(/#clientes$/);
+
+    await page.getByRole('button', { name: 'Proyectos' }).click();
+    await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  });
+});
+
+// ── Vista Resumen (F6): KPIs + gráfica + pendientes + top de pedidos ────
+
+const RESUMEN = {
+  ventas: {
+    mes_mxn: 4_990_000,
+    mes_anterior_mxn: 3_990_000,
+    delta_pct: 25,
+    serie: [
+      { mes: '2026-02', total_mxn: 1_200_000 },
+      { mes: '2026-03', total_mxn: 2_100_000 },
+      { mes: '2026-04', total_mxn: 900_000 },
+      { mes: '2026-05', total_mxn: 3_300_000 },
+      { mes: '2026-06', total_mxn: 3_990_000 },
+      { mes: '2026-07', total_mxn: 4_990_000 },
+    ],
+  },
+  pedidos: { activos: 3, sin_empezar: 1 },
+  mensajes_sin_responder: 2,
+  material_bajo: 1,
+};
+
+test('el gate aterriza en #resumen y muestra los KPIs del mock', async ({ page }) => {
+  await mockApi(page, { resumen: RESUMEN });
+  await page.goto('/taller');
+  await entrar(page);
+
+  await expect(page).toHaveURL(/#resumen$/);
+  await expect(page.getByRole('button', { name: 'Resumen' })).toBeVisible();
+
+  await expect(page.getByText('Ventas de julio')).toBeVisible();
+  await expect(page.getByText('$49,900')).toBeVisible();
+  const delta = page.getByText('+25% vs junio');
+  await expect(delta).toBeVisible();
+  await expect(delta).toHaveCSS('color', 'rgb(62, 90, 64)'); // var(--support) = --bosque
+
+  await expect(page.getByText('1 sin empezar')).toBeVisible();
+  await expect(page.getByText('revisar inventario')).toBeVisible();
+});
+
+test('la gráfica de ventas marca el mes actual', async ({ page }) => {
+  await mockApi(page, { resumen: RESUMEN });
+  await page.goto('/taller');
+  await entrar(page);
+
+  const grafica = page.getByRole('img', { name: /mes actual/ });
+  await expect(grafica).toBeVisible();
+  await expect(grafica).toHaveAttribute('aria-label', /jul: \$49\.9k \(mes actual\)/);
+});
+
+test('un hilo pendiente en Resumen navega a Clientes', async ({ page }) => {
+  await mockApi(page, { resumen: RESUMEN });
+  await page.route('**/api/admin/inbox**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        json: { mensajes: [{ ...MENSAJE, id: 'msg_r1', customer_id: 'cus_2', customer_name: 'Bruno Madera', subject: null, body: '¿Ya casi está mi pedido?' }] },
+      });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/admin/clientes', (route) =>
+    route.fulfill({ json: { clientes: CLIENTES } }),
+  );
+  await page.goto('/taller');
+  await entrar(page);
+
+  await expect(page.getByText('Un mensaje espera respuesta.')).toBeVisible();
+  await page.getByRole('button', { name: /Bruno Madera/ }).click();
+  await expect(page).toHaveURL(/#clientes\/cus_2$/);
+  await expect(page.getByText('Ana Prueba')).toBeVisible();
+});
+
+test('Ver todos navega a Proyectos/Pedidos y el top-4 de Resumen respeta el límite', async ({
+  page,
+}) => {
+  const activos = ['A', 'B', 'C', 'D', 'E'].map((letra, i) => ({
+    ...ORDER,
+    id: `ord_${letra}`,
+    customer: { name: `Cliente ${letra}`, email: null, phone: null },
+    created_at: `2026-07-${18 - i} 10:00:00`,
+    status: 'pagada',
+  }));
+  await mockApi(page, { resumen: RESUMEN });
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: activos } });
+    return route.fallback();
+  });
+  await page.goto('/taller');
+  await entrar(page);
+
+  // Top 4 por fecha de creación: A, B, C, D. E (la más vieja) queda fuera.
+  await expect(page.getByText('Cliente A')).toBeVisible();
+  await expect(page.getByText('Cliente B')).toBeVisible();
+  await expect(page.getByText('Cliente C')).toBeVisible();
+  await expect(page.getByText('Cliente D')).toBeVisible();
+  await expect(page.getByText('Cliente E')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Ver todos →' }).click();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+  await expect(page.getByText('Cliente E')).toBeVisible();
 });

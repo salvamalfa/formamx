@@ -8,8 +8,16 @@ import { shapeOrder, type OrderFullRow } from './_shape';
 // datos son un snapshot de lo que declaró el comprador.
 export const clientes = new Hono<AppContext>();
 
-// Agregados de pedidos por cliente, en una sola consulta.
-const LIST_SQL = `SELECT c.*, COUNT(o.id) AS order_count, MAX(o.created_at) AS last_order_at
+// Agregados de pedidos por cliente, en una sola consulta. `city` se deriva
+// del envío del último pedido (shipping_json es el shipping_details de Stripe:
+// { name, address: { city, ... } }), puede ser NULL si falta.
+const LIST_SQL = `SELECT c.*,
+    COUNT(o.id) AS order_count,
+    MAX(o.created_at) AS last_order_at,
+    COALESCE(SUM(CASE WHEN o.status IN ('pagada','en_cola','imprimiendo','lista') THEN 1 ELSE 0 END), 0) AS active_order_count,
+    (SELECT json_extract(o2.shipping_json, '$.address.city')
+       FROM orders o2 WHERE o2.customer_id = c.id
+       ORDER BY o2.created_at DESC LIMIT 1) AS city
   FROM customers c LEFT JOIN orders o ON o.customer_id = c.id`;
 
 // Lista para el tablero: quién ha comprado y cuándo fue la última vez.

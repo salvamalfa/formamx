@@ -12,6 +12,9 @@ export interface CustomerRow {
   // Agregados del LEFT JOIN a orders (no son columnas de la tabla).
   order_count?: number | null;
   last_order_at?: string | null;
+  active_order_count?: number | null;
+  // Ciudad derivada del envío del último pedido (no hay columna city).
+  city?: string | null;
 }
 
 export function shapeCustomer(row: CustomerRow) {
@@ -24,5 +27,7 @@ export function shapeCustomer(row: CustomerRow) {
     notes: row.notes,
     order_count: row.order_count ?? 0,
     last_order_at: row.last_order_at ?? null,
+    active_order_count: row.active_order_count ?? 0,
+    city: row.city ?? null,
   };
 }

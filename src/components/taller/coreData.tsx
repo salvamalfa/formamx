@@ -25,7 +25,6 @@ export interface TallerCore {
   amsSyncedAt: string | null;
   loading: boolean;
   error: string | null;
-  reload(): void;
   advance(order: Order): Promise<void>;
   dispatch(order: Order): Promise<void>;
   retry(job: PrintJob): Promise<void>;
@@ -142,7 +141,6 @@ export function TallerCoreProvider({
     amsSyncedAt,
     loading,
     error,
-    reload: () => void load(),
     advance,
     dispatch,
     retry,

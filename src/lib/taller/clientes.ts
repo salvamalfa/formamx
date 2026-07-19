@@ -10,6 +10,9 @@ export interface Cliente {
   notes: string | null;
   order_count: number;
   last_order_at: string | null;
+  active_order_count: number;
+  // Ciudad del último pedido (derivada de shipping_json); null si falta.
+  city: string | null;
 }
 
 // Pedido del historial de un cliente: como Order pero sin trabajos de
@@ -25,6 +28,8 @@ const normalizeCliente = (c: Cliente): Cliente => ({
   notes: c.notes ?? null,
   order_count: c.order_count ?? 0,
   last_order_at: c.last_order_at ?? null,
+  active_order_count: c.active_order_count ?? 0,
+  city: c.city ?? null,
 });
 
 const normalizePedido = (p: ClientePedido): ClientePedido => ({

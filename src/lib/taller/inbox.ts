@@ -1,5 +1,8 @@
 import { call } from './http';
 
+// Cliente HTTP del inbox (URL y tabla congeladas). La UI vive en Clientes
+// (F7, 2026-07): el módulo inbox se fusionó ahí; esto solo es el transporte.
+
 export interface Mensaje {
   id: string;
   // email|whatsapp|web|manual
@@ -28,10 +31,14 @@ const normalizeMensaje = (m: Mensaje): Mensaje => ({
   customer_name: m.customer_name ?? null,
 });
 
-export const getMensajes = (token: string, opts?: { status?: string; customer_id?: string }) => {
+export const getMensajes = (
+  token: string,
+  opts?: { status?: string; customer_id?: string; limit?: number },
+) => {
   const params = new URLSearchParams();
   if (opts?.status) params.set('status', opts.status);
   if (opts?.customer_id) params.set('customer_id', opts.customer_id);
+  if (opts?.limit) params.set('limit', String(opts.limit));
   const qs = params.toString();
   return call<{ mensajes: Mensaje[] }>(token, `/inbox${qs ? `?${qs}` : ''}`).then((r) =>
     (r.mensajes ?? []).map(normalizeMensaje),

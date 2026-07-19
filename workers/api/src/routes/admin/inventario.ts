@@ -177,8 +177,7 @@ inventario.post('/piezas', async (c) => {
 });
 
 // Avanza el estado por el grafo y/o edita ubicación y veredicto de calidad
-// (qc_status es manual y denormalizado; el registro formal llega con el
-// módulo calidad).
+// (qc_status es manual y denormalizado, editado a mano desde /taller).
 inventario.patch('/piezas/:id', async (c) => {
   const id = c.req.param('id');
   type Body = { status?: string; location?: string; qc_status?: string };

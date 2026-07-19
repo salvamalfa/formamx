@@ -12,3 +12,15 @@ export function formatSync(sqlUtc: string): string {
     month: 'short',
   });
 }
+
+// Solo la fecha (sin hora): para la columna "Creado" de la tabla de pedidos.
+export function formatDate(sqlUtc: string): string {
+  const date = new Date(sqlUtc.replace(' ', 'T') + 'Z');
+  return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+}
+
+// Nº corto y legible del id (`ord_abc123def` → `abc123de`). Solo presentación.
+export function shortId(id: string): string {
+  const tail = id.includes('_') ? id.slice(id.indexOf('_') + 1) : id;
+  return tail.length > 8 ? tail.slice(0, 8) : tail;
+}

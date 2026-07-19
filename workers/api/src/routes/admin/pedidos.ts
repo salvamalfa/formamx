@@ -7,6 +7,11 @@ import { parseJson, shapeOrder, type OrderFullRow } from './_shape';
 
 export const pedidos = new Hono<AppContext>();
 
+// SELECT base de un pedido con la producción de su producto (JOIN a products).
+// A cada consulta se le concatena su WHERE/ORDER/LIMIT.
+const ORDER_SELECT = `SELECT o.*, p.production FROM orders o
+  LEFT JOIN products p ON p.id = o.product_id`;
+
 // Pedidos para el tablero. Por defecto los no terminales (lo que aún requiere
 // trabajo), más nuevos primero. `?status=` filtra a uno solo; `?limit=`.
 pedidos.get('/orders', async (c) => {
@@ -15,14 +20,10 @@ pedidos.get('/orders', async (c) => {
 
   const query = status
     ? c.env.DB.prepare(
-        `SELECT o.*, p.production FROM orders o
-         LEFT JOIN products p ON p.id = o.product_id
-         WHERE o.status = ? ORDER BY o.created_at DESC LIMIT ?`,
+        `${ORDER_SELECT} WHERE o.status = ? ORDER BY o.created_at DESC LIMIT ?`,
       ).bind(status, limit)
     : c.env.DB.prepare(
-        `SELECT o.*, p.production FROM orders o
-         LEFT JOIN products p ON p.id = o.product_id
-         WHERE o.status NOT IN ('enviada', 'cancelada')
+        `${ORDER_SELECT} WHERE o.status NOT IN ('enviada', 'cancelada')
          ORDER BY o.created_at DESC LIMIT ?`,
       ).bind(limit);
 
@@ -50,6 +51,25 @@ pedidos.get('/orders', async (c) => {
   });
 });
 
+// Detalle de un pedido + sus trabajos de impresión (para el detalle del
+// tablero, incluidos pedidos ya enviados/cancelados que la lista no trae).
+// GET distingue de POST /orders/:id/dispatch por método y ruta.
+pedidos.get('/orders/:id', async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB.prepare(`${ORDER_SELECT} WHERE o.id = ?`)
+    .bind(id)
+    .first<OrderFullRow>();
+  if (!row) return c.json({ error: 'no_existe' }, 404);
+
+  const { results: jobs } = await c.env.DB.prepare(
+    'SELECT * FROM print_jobs WHERE order_id = ? ORDER BY created_at',
+  )
+    .bind(id)
+    .all<PrintJobRow>();
+
+  return c.json({ ...shapeOrder(row), jobs: jobs.map(shapeJob) });
+});
+
 // Avanza el estado del pedido siguiendo el grafo permitido.
 pedidos.patch('/orders/:id', async (c) => {
   const id = c.req.param('id');
@@ -57,9 +77,7 @@ pedidos.patch('/orders/:id', async (c) => {
   const next = body.status;
   if (!next) return c.json({ error: 'status_requerido' }, 400);
 
-  const order = await c.env.DB.prepare(
-    'SELECT o.*, p.production FROM orders o LEFT JOIN products p ON p.id = o.product_id WHERE o.id = ?',
-  )
+  const order = await c.env.DB.prepare(`${ORDER_SELECT} WHERE o.id = ?`)
     .bind(id)
     .first<OrderFullRow>();
   if (!order) return c.json({ error: 'no_existe' }, 404);

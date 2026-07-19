@@ -19,6 +19,7 @@
 
   --mostaza: #E3A63B;
   --mostaza-claro: #F3E3BE;
+  --mostaza-oscuro: #8A6510;
 
   --bosque: #3E5A40;
   --bosque-oscuro: #2F4632;
@@ -69,6 +70,19 @@
   --meta-tracking: 0.05em;
 
   /* ── Espaciado / radios / sombras ──────────────────── */
+  /* Escala de espaciado (copiada de ds-bundle/tokens/spacing.css). */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  --border-card: 1px solid var(--border-soft);
+
   --radius-s: 10px;
   --radius-m: 16px;
   --radius-l: 24px;
@@ -159,6 +173,45 @@
   border-color: var(--mostaza);
   background: var(--mostaza);
   color: var(--tinta);
+}
+
+/* Chips sobre fondo claro (sub-pestañas del taller). El .chip de arriba está
+   pensado para ambiente noche; este es su variante para el dashboard. */
+.brand-forma .chip-claro {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 7px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-muted);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.brand-forma .chip-claro:hover {
+  background: var(--crema-claro);
+}
+
+.brand-forma .chip-claro.activo {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--crema);
+  font-weight: 700;
+}
+
+/* Botón fantasma sobre fondo claro (el .btn-ghost del kit es para tinta). */
+.brand-forma .btn-ghost-claro {
+  background: transparent;
+  color: var(--tinta);
+}
+
+.brand-forma .btn-ghost-claro:hover {
+  background: var(--crema-oscuro);
 }
 
 /* Tarjeta de proyecto (componente ProjectCard del kit) */
