@@ -1,22 +1,21 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useState } from 'preact/hooks';
 import type { LampImageManifest } from '../../config/lamps';
+import { ClientesPanel } from './clientes/ClientesPanel';
 import { TallerCoreProvider, useTallerCore } from './coreData';
 import { useSession } from './hooks/useSession';
 import { BedAlert } from './impresora/ImpresoraPanel';
-import { MODULES } from './registry';
+import { InboxPanel } from './inbox/InboxPanel';
+import { MensajesProvider } from './mensajesData';
+import { ProyectosPanel } from './proyectos/ProyectosPanel';
+import { navigate, useTallerRoute, type TallerRoute } from './router';
+import { Sidebar } from './Sidebar';
 
-// Shell del taller: gate de token, encabezado con tabs por hash (#pedidos,
-// #clientes...) y el módulo activo. Los módulos se registran en registry.ts.
+// Shell del taller: gate de token + layout con sidebar y contenido enrutado
+// por hash (ver router.ts). Los paneles hacen su propio fetch; el estado
+// core (pedidos/impresora) y el de mensajes viven en providers arriba.
 export default function TallerShell({ manifest }: { manifest: LampImageManifest }) {
   const session = useSession();
   const [tokenInput, setTokenInput] = useState('');
-  const [moduleId, setModuleId] = useState(readHash());
-
-  useEffect(() => {
-    const onHash = () => setModuleId(readHash());
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, []);
 
   if (!session.token) {
     return (
@@ -49,79 +48,85 @@ export default function TallerShell({ manifest }: { manifest: LampImageManifest 
     );
   }
 
-  const activeModule = MODULES.find((m) => m.id === moduleId) ?? MODULES[0];
-
   return (
     <TallerCoreProvider
       token={session.token}
       onUnauthorized={() => session.invalidate('Token inválido.')}
     >
-      <ShellChrome
-        manifest={manifest}
-        activeId={activeModule.id}
-        onLogout={session.logout}
-      />
+      <MensajesProvider
+        token={session.token}
+        onUnauthorized={() => session.invalidate('Token inválido.')}
+      >
+        <ShellChrome manifest={manifest} onLogout={session.logout} />
+      </MensajesProvider>
     </TallerCoreProvider>
   );
 }
 
 function ShellChrome({
   manifest,
-  activeId,
   onLogout,
 }: {
   manifest: LampImageManifest;
-  activeId: string;
   onLogout: () => void;
 }) {
   const core = useTallerCore();
-  const activeModule = MODULES.find((m) => m.id === activeId) ?? MODULES[0];
+  const route = useTallerRoute();
 
   return (
-    <div class="mx-auto max-w-[1100px] px-6 py-10 sm:px-12">
-      <header class="flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-baseline gap-6">
-          <h1 class="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-            Taller
-          </h1>
-          {MODULES.length > 1 && (
-            <nav class="flex gap-2">
-              {MODULES.map((m) => (
-                <a
-                  key={m.id}
-                  href={`#${m.id}`}
-                  class={`chip no-underline ${m.id === activeModule.id ? 'activo' : ''}`}
-                >
-                  {m.label}
-                </a>
-              ))}
-            </nav>
+    <div class="lg:flex lg:min-h-dvh">
+      <Sidebar route={route} onLogout={onLogout} />
+      <main class="min-w-0 flex-1">
+        <div class="mx-auto max-w-[1100px] px-6 py-8 sm:px-10 lg:px-12 lg:py-10">
+          {core.error && (
+            <p class="mb-3 text-sm text-[var(--support)]" role="alert">
+              {core.error}
+            </p>
           )}
+
+          <BedAlert />
+
+          <RouteView route={route} manifest={manifest} />
         </div>
-        <div class="flex items-center gap-3">
-          <button type="button" class="btn btn-sm btn-ghost" onClick={core.reload}>
-            Actualizar
-          </button>
-          <button type="button" class="btn btn-sm btn-ghost" onClick={onLogout}>
-            Salir
-          </button>
-        </div>
-      </header>
-
-      {core.error && (
-        <p class="mt-3 text-sm text-[var(--support)]" role="alert">
-          {core.error}
-        </p>
-      )}
-
-      <BedAlert />
-
-      <activeModule.Panel manifest={manifest} />
+      </main>
     </div>
   );
 }
 
-function readHash(): string {
-  if (typeof location === 'undefined') return 'pedidos';
-  return location.hash.replace('#', '') || 'pedidos';
+function RouteView({ route, manifest }: { route: TallerRoute; manifest: LampImageManifest }) {
+  switch (route.vista) {
+    case 'proyectos':
+      return <ProyectosPanel sub={route.sub} manifest={manifest} />;
+    case 'pedido':
+      return <PedidoDetalleStub id={route.id} />;
+    case 'clientes':
+      return <ClientesPanel />;
+    case 'inbox':
+      return <InboxPanel />;
+  }
+}
+
+// Detalle de pedido: F4 trae la vista completa. Por ahora un stub claro que
+// deja volver a la lista.
+function PedidoDetalleStub({ id }: { id: string }) {
+  return (
+    <section>
+      <button
+        type="button"
+        class="btn btn-sm btn-ghost-claro"
+        onClick={() => navigate({ vista: 'proyectos', sub: 'pedidos' })}
+      >
+        ← Proyectos
+      </button>
+      <h1
+        class="mt-4 text-[32px] font-bold"
+        style={{ fontFamily: 'var(--font-display)', letterSpacing: 'var(--tracking-display)' }}
+      >
+        Pedido {id}
+      </h1>
+      <p class="mt-2 text-sm text-[var(--text-muted)]">
+        El detalle del pedido llega en la próxima fase.
+      </p>
+    </section>
+  );
 }

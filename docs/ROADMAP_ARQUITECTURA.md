@@ -215,4 +215,4 @@ para la fase de auto-dispatch.
 | Tabla `api_tokens` con scopes | exista un segundo usuario humano |
 | `inventory_moves` (auditoría) | los cambios de status de piezas no basten |
 | Purga automática de tablas | `webhook_events`/`messages` crezcan de verdad |
-| Estado global compartido (store) | dos módulos NO-core necesiten los mismos datos |
+| Estado global compartido (store) | dos módulos NO-core necesiten los mismos datos — **activado 2026-07** con `mensajesData` (`MensajesProvider`/`useMensajes`): Sidebar (badge de sin responder), Resumen y Clientes comparten la lectura de `/inbox` |

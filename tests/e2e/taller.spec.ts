@@ -47,6 +47,14 @@ async function mockApi(
       json: { bed_clear: opts.bedClear ?? true, ams_synced_at: opts.syncedAt ?? null },
     }),
   );
+  // El MensajesProvider del shell siempre pide el inbox (badge de sin
+  // responder). Por defecto va vacío; los tests que lo necesiten lo pisan.
+  await page.route('**/api/admin/inbox**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { mensajes: [] } });
+    }
+    return route.fallback();
+  });
 }
 
 test('el gate pide token y al entrar carga los pedidos', async ({ page }) => {
@@ -163,9 +171,8 @@ test('los pedidos se separan en Impresión 3D y Taller manual', async ({ page })
   const seccionManual = page.locator('section', { has: page.getByRole('heading', { name: 'Taller manual' }) });
   await expect(seccion3d.getByText('Lámpara Tessera')).toBeVisible();
   await expect(seccionManual.getByText('La banca de los abuelos')).toBeVisible();
-  // El panel AMS vive dentro de la sección de impresión.
-  await expect(seccion3d.getByText('AMS — qué hay cargado')).toBeVisible();
-  await expect(seccionManual.getByText('AMS — qué hay cargado')).toHaveCount(0);
+  // El panel AMS ya no vive en Pedidos: se movió a la sub-pestaña Impresora.
+  await expect(page.getByText('AMS — qué hay cargado')).toHaveCount(0);
 });
 
 test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page }) => {
@@ -185,11 +192,13 @@ test('la banca no imprime: muestra Empezar y estado En progreso', async ({ page 
   await expect(page.getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Empezar' })).toBeVisible();
 
-  // Ya en marcha, el estado se lee "En progreso", no "Imprimiendo".
+  // Ya en marcha, el estado se lee "En progreso", no "Imprimiendo". El shell
+  // ya no tiene un botón Actualizar global; se recarga la página (el token
+  // vive en localStorage) para que el core vuelva a leer los pedidos.
   await page.route('**/api/admin/orders', (route) =>
     route.fulfill({ json: { orders: [{ ...banca, status: 'imprimiendo' }] } }),
   );
-  await page.getByRole('button', { name: 'Actualizar' }).click();
+  await page.reload();
   await expect(page.getByText('En progreso')).toBeVisible();
   await expect(page.getByText('Imprimiendo')).toHaveCount(0);
 });
@@ -209,7 +218,8 @@ test('el panel AMS es de solo lectura y muestra el hex de la impresora', async (
       },
     }),
   );
-  await page.goto('/taller');
+  // El AMS vive ahora en la sub-pestaña Impresora de Proyectos.
+  await page.goto('/taller#impresora');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
 
@@ -224,7 +234,7 @@ test('el panel AMS es de solo lectura y muestra el hex de la impresora', async (
 
 test('sin sincronización del AMS aparece el aviso de arrancar el agente', async ({ page }) => {
   await mockApi(page, { syncedAt: null });
-  await page.goto('/taller');
+  await page.goto('/taller#impresora');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByText('sin lectura de la impresora — arranca el agente')).toBeVisible();
@@ -579,4 +589,85 @@ test('el botón avanza el estado del pedido', async ({ page }) => {
   await page.getByRole('button', { name: 'A la cola' }).click();
   await expect(page.getByText('En cola')).toBeVisible();
   expect(patched).toBe(true);
+});
+
+// ── Shell nuevo (F3): router por hash + sidebar ──────────────────────────
+
+test('el hash viejo #pedidos redirige a #proyectos/pedidos y muestra la vista', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/taller#pedidos');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+});
+
+test('el hash #calidad (módulo dado de baja) cae a proyectos/pedidos', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/taller#calidad');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+});
+
+test('el sidebar navega a Clientes', async ({ page }) => {
+  await mockApi(page);
+  await page.route('**/api/admin/clientes', (route) =>
+    route.fulfill({ json: { clientes: CLIENTES } }),
+  );
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Clientes' }).click();
+  await expect(page.getByText('Bruno Madera')).toBeVisible();
+  await expect(page).toHaveURL(/#clientes$/);
+});
+
+test('el badge de sin responder aparece con mensajes entrantes nuevos', async ({ page }) => {
+  await mockApi(page);
+  // Dos entrantes pendientes (nuevo + leído) → el badge muestra 2.
+  await page.route('**/api/admin/inbox**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        json: {
+          mensajes: [
+            { ...MENSAJE, id: 'm1', status: 'nuevo' },
+            { ...MENSAJE, id: 'm2', status: 'leido' },
+          ],
+        },
+      });
+    }
+    return route.fallback();
+  });
+  await page.goto('/taller');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Clientes\s*2/ })).toBeVisible();
+});
+
+test.describe('en móvil', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('la barra superior existe y permite navegar entre vistas', async ({ page }) => {
+    await mockApi(page);
+    await page.route('**/api/admin/clientes', (route) =>
+      route.fulfill({ json: { clientes: CLIENTES } }),
+    );
+    await page.goto('/taller');
+    await page.getByPlaceholder('token').fill('t');
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+
+    // Los botones de la barra superior navegan igual que en desktop.
+    await page.getByRole('button', { name: 'Clientes' }).click();
+    await expect(page.getByText('Bruno Madera')).toBeVisible();
+    await expect(page).toHaveURL(/#clientes$/);
+
+    await page.getByRole('button', { name: 'Proyectos' }).click();
+    await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  });
 });

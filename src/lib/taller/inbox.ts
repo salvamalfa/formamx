@@ -28,10 +28,14 @@ const normalizeMensaje = (m: Mensaje): Mensaje => ({
   customer_name: m.customer_name ?? null,
 });
 
-export const getMensajes = (token: string, opts?: { status?: string; customer_id?: string }) => {
+export const getMensajes = (
+  token: string,
+  opts?: { status?: string; customer_id?: string; limit?: number },
+) => {
   const params = new URLSearchParams();
   if (opts?.status) params.set('status', opts.status);
   if (opts?.customer_id) params.set('customer_id', opts.customer_id);
+  if (opts?.limit) params.set('limit', String(opts.limit));
   const qs = params.toString();
   return call<{ mensajes: Mensaje[] }>(token, `/inbox${qs ? `?${qs}` : ''}`).then((r) =>
     (r.mensajes ?? []).map(normalizeMensaje),

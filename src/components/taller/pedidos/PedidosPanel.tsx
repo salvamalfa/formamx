@@ -1,6 +1,5 @@
 import type { LampImageManifest } from '../../../config/lamps';
 import { useTallerCore } from '../coreData';
-import { ImpresoraPanel } from '../impresora/ImpresoraPanel';
 import { OrderCard } from './OrderCard';
 
 // Módulo "Pedidos": la línea de producción completa, separada en lo que pasa
@@ -21,8 +20,6 @@ export function PedidosPanel({ manifest }: { manifest: LampImageManifest }) {
             <p class="meta-caps m-0 mt-1 text-[var(--text-faint)]">
               {core.loading ? 'cargando…' : `${grupo.length} en curso`}
             </p>
-
-            {es3d && <ImpresoraPanel />}
 
             {grupo.length === 0 && !core.loading && (
               <p class="mt-4 text-sm text-[var(--text-muted)]">
