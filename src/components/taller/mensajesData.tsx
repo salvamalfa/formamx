@@ -266,7 +266,7 @@ export function MensajesProvider({
           ...(customerId ? { customer_id: customerId } : {}),
           ...(subject ? { subject } : {}),
         });
-      } catch {
+      } catch (err) {
         // El POST falló: nada se persistió. Rollback granular — quita solo la
         // burbuja optimista y devuelve los `in` a su status original.
         setMensajes((prev) =>
@@ -278,7 +278,7 @@ export function MensajesProvider({
             }),
         );
         setError('No se pudo enviar el mensaje.');
-        return;
+        throw err;
       }
 
       // El POST persistió: el saliente se conserva. Swap del tempId por el real.
@@ -348,11 +348,12 @@ export function MensajesProvider({
         ...(subject ? { subject } : {}),
       });
       setMensajes((prev) => prev.map((m) => (m.id === tempId ? creado : m)));
-    } catch {
+    } catch (err) {
       // Rollback granular: quita solo la burbuja optimista, sin pisar lo que
       // haya llegado por polling entretanto.
       setMensajes((prev) => prev.filter((m) => m.id !== tempId));
       setError('No se pudo registrar el mensaje.');
+      throw err;
     }
   }
 

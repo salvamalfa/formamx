@@ -339,6 +339,43 @@ test('enviar con Enter hace POST out + PATCH respondido de los in pendientes', a
   await expect.poll(() => patched.some((u) => u.includes('m_ana_in'))).toBe(true);
 });
 
+test('si enviar falla conserva el borrador y permite reintentar', async ({ page }) => {
+  await mockShell(page);
+  let intentos = 0;
+  await page.route('**/api/admin/inbox', (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    intentos += 1;
+    if (intentos === 1) return route.fulfill({ status: 500, json: { error: 'boom' } });
+    return route.fulfill({
+      json: {
+        id: 'm_retry_out',
+        channel: 'whatsapp',
+        direction: 'out',
+        customer_id: 'cus_1',
+        order_id: null,
+        subject: null,
+        body: 'No pierdas este texto.',
+        status: 'respondido',
+        created_at: '2026-07-18 12:00:00',
+        customer_name: 'Ana Prueba',
+      },
+    });
+  });
+  await entrar(page, '#clientes/cus_1');
+
+  const input = page.getByLabel('Escribe un mensaje');
+  await input.fill('No pierdas este texto.');
+  await input.press('Enter');
+
+  await expect(page.getByRole('alert')).toContainText('El mensaje sigue aquí para reintentar.');
+  await expect(input).toHaveValue('No pierdas este texto.');
+
+  await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+  await expect(input).toHaveValue('');
+  await expect(page.getByTestId('chat-mensajes').getByText('No pierdas este texto.')).toBeVisible();
+  expect(intentos).toBe(2);
+});
+
 test('registrar entrante desde el <details> crea un in y aparece en el chat', async ({ page }) => {
   await mockShell(page);
   let postBody: { direction?: string; customer_id?: string; body?: string } = {};
@@ -412,6 +449,48 @@ test('un contacto nuevo con "+" agrupa por subject y usa ext: en el hash', async
   expect(postBody.subject).toBe('Eva Nueva');
   await expect(page).toHaveURL(/#clientes\/ext:Eva%20Nueva$/);
   await expect(page.getByTestId('chat-mensajes').getByText('¿Tienes lámparas azules?')).toBeVisible();
+});
+
+test('si registrar un contacto falla conserva el formulario y no navega', async ({ page }) => {
+  await mockShell(page);
+  let intentos = 0;
+  await page.route('**/api/admin/inbox', (route) => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    intentos += 1;
+    if (intentos === 1) return route.fulfill({ status: 500, json: { error: 'boom' } });
+    return route.fulfill({
+      json: {
+        id: 'm_retry_in',
+        channel: 'web',
+        direction: 'in',
+        customer_id: null,
+        order_id: null,
+        subject: 'Eva Nueva',
+        body: '¿Tienes lámparas azules?',
+        status: 'nuevo',
+        created_at: '2026-07-18 14:00:00',
+        customer_name: null,
+      },
+    });
+  });
+  await entrar(page);
+
+  await page.getByRole('button', { name: 'Registrar contacto nuevo' }).click();
+  const nombre = page.getByLabel('Nombre del contacto');
+  const cuerpo = page.getByLabel('Cuerpo del mensaje recibido');
+  await nombre.fill('Eva Nueva');
+  await page.getByLabel('Canal').selectOption('web');
+  await cuerpo.fill('¿Tienes lámparas azules?');
+  await page.getByRole('button', { name: 'Registrar', exact: true }).click();
+
+  await expect(page.getByRole('alert')).toContainText('El mensaje sigue aquí para reintentar.');
+  await expect(nombre).toHaveValue('Eva Nueva');
+  await expect(cuerpo).toHaveValue('¿Tienes lámparas azules?');
+  await expect(page).not.toHaveURL(/#clientes\/ext:/);
+
+  await page.getByRole('button', { name: 'Registrar', exact: true }).click();
+  await expect(page).toHaveURL(/#clientes\/ext:Eva%20Nueva$/);
+  expect(intentos).toBe(2);
 });
 
 test('el historial de la ficha navega a #pedido/<id>', async ({ page }) => {
