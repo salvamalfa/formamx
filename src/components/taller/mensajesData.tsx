@@ -1,5 +1,5 @@
 import { createContext, type ComponentChildren } from 'preact';
-import { useContext, useEffect, useState } from 'preact/hooks';
+import { useContext, useEffect, useRef, useState } from 'preact/hooks';
 import {
   createMensaje,
   getMensajes,
@@ -35,6 +35,9 @@ export interface MensajesState {
   sinResponder: number;
   loading: boolean;
   error: string | null;
+  // Verdadero mientras un `enviar` está en vuelo: el composer deshabilita
+  // Enter/botón para no mandar dos veces el mismo mensaje.
+  enviando: boolean;
   reload(): void;
   // Responder cierra el hilo: POST out + PATCH 'respondido' de todos los `in`
   // pendientes. Optimista con rollback.
@@ -75,9 +78,17 @@ function tienePendiente(mensajes: Mensaje[]): boolean {
 
 // Nombre visible de un contacto suelto: su `subject`, o "Sin nombre (<canal>)"
 // cuando el mensaje llegó sin asunto.
-function nombreContacto(m: Mensaje): string {
+export function nombreContacto(m: Mensaje): string {
   const subject = m.subject?.trim();
   return subject ? subject : `Sin nombre (${m.channel})`;
+}
+
+// Llave de persona de un mensaje: el `customer_id` si lo tiene, o
+// `ext:<nombre-de-contacto>` si es un mensaje suelto. Es la MISMA convención
+// que usan personasDe (para armar las personas) y el router (hash de la
+// persona seleccionada); fuente única para no reinventarla en cada consumidor.
+export function personaKeyDeMensaje(m: Mensaje): string {
+  return m.customer_id ?? `ext:${nombreContacto(m)}`;
 }
 
 // Recencia de una persona para ordenar la lista: su último mensaje o, para un
@@ -172,10 +183,18 @@ export function MensajesProvider({
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Envío en vuelo: `enviando` es para la UI; `enviandoRef` corta la carrera de
+  // doble envío de forma síncrona (antes del re-render).
+  const [enviando, setEnviando] = useState(false);
+  const enviandoRef = useRef(false);
 
   async function load() {
     setLoading(true);
     try {
+      // Límite de 200 mensajes: sobra para la escala del taller (un solo
+      // operario). Si algún día lo rebasa, el hilo más viejo dejaría de verse
+      // hasta el siguiente poll; se paginaría entonces. El poll (30 s)
+      // reconcilia cualquier optimista pendiente.
       setMensajes(await getMensajes(token, { limit: 200 }));
       setError(null);
     } catch (err) {
@@ -196,50 +215,94 @@ export function MensajesProvider({
   }, [token]);
 
   // enviar: nace un `out` (nace 'respondido' en el worker) y se cierran todos
-  // los `in` pendientes del hilo. La burbuja aparece de inmediato; si algo
-  // falla, se restaura el estado previo.
+  // los `in` pendientes del hilo. La burbuja aparece de inmediato. El POST del
+  // saliente y los PATCH de cierre se tratan por separado: una vez que el POST
+  // persiste, el saliente se conserva pase lo que pase con los PATCH.
   async function enviar(persona: Persona, body: string): Promise<void> {
     const texto = body.trim();
     if (!texto) return;
-    const canal = canalDe(persona);
-    const customerId = persona.kind === 'cliente' ? persona.cliente.id : undefined;
-    const subject = persona.kind === 'contacto' ? persona.nombre : undefined;
-    const pendientes = persona.mensajes
-      .filter((m) => m.direction === 'in' && (m.status === 'nuevo' || m.status === 'leido'))
-      .map((m) => m.id);
-    const tempId = `tmp_${Date.now()}`;
-    const optimista: Mensaje = {
-      id: tempId,
-      channel: canal,
-      direction: 'out',
-      customer_id: customerId ?? null,
-      order_id: null,
-      subject: subject ?? null,
-      body: texto,
-      status: 'respondido',
-      created_at: nowSql(),
-      customer_name: null,
-    };
-
-    const previos = mensajes;
-    setMensajes((prev) => [
-      ...prev.map((m) => (pendientes.includes(m.id) ? { ...m, status: 'respondido' } : m)),
-      optimista,
-    ]);
-
+    // Guardia de doble envío: solo un `enviar` en vuelo a la vez.
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
+    setEnviando(true);
     try {
-      const creado = await createMensaje(token, {
-        direction: 'out',
+      const canal = canalDe(persona);
+      const customerId = persona.kind === 'cliente' ? persona.cliente.id : undefined;
+      const subject = persona.kind === 'contacto' ? persona.nombre : undefined;
+      // Status original de cada `in` pendiente: se necesita para revertir con
+      // precisión un cierre que no cuajó.
+      const original = new Map(
+        persona.mensajes
+          .filter((m) => m.direction === 'in' && (m.status === 'nuevo' || m.status === 'leido'))
+          .map((m) => [m.id, m.status] as const),
+      );
+      const tempId = `tmp_${Date.now()}`;
+      const optimista: Mensaje = {
+        id: tempId,
         channel: canal,
+        direction: 'out',
+        customer_id: customerId ?? null,
+        order_id: null,
+        subject: subject ?? null,
         body: texto,
-        ...(customerId ? { customer_id: customerId } : {}),
-        ...(subject ? { subject } : {}),
-      });
-      await Promise.all(pendientes.map((id) => patchMensaje(token, id, 'respondido')));
+        status: 'respondido',
+        created_at: nowSql(),
+        customer_name: null,
+      };
+
+      // Optimista: aparece la burbuja saliente y se marcan cerrados los `in`
+      // pendientes (updates funcionales, sin pisar lo que llegue por polling).
+      setMensajes((prev) => [
+        ...prev.map((m) => (original.has(m.id) ? { ...m, status: 'respondido' } : m)),
+        optimista,
+      ]);
+
+      let creado: Mensaje;
+      try {
+        creado = await createMensaje(token, {
+          direction: 'out',
+          channel: canal,
+          body: texto,
+          ...(customerId ? { customer_id: customerId } : {}),
+          ...(subject ? { subject } : {}),
+        });
+      } catch {
+        // El POST falló: nada se persistió. Rollback granular — quita solo la
+        // burbuja optimista y devuelve los `in` a su status original.
+        setMensajes((prev) =>
+          prev
+            .filter((m) => m.id !== tempId)
+            .map((m) => {
+              const orig = original.get(m.id);
+              return orig ? { ...m, status: orig } : m;
+            }),
+        );
+        setError('No se pudo enviar el mensaje.');
+        return;
+      }
+
+      // El POST persistió: el saliente se conserva. Swap del tempId por el real.
       setMensajes((prev) => prev.map((m) => (m.id === tempId ? creado : m)));
-    } catch {
-      setMensajes(previos);
-      setError('No se pudo enviar el mensaje.');
+
+      // Cierra los `in` pendientes. Un PATCH que choque con la transición (409:
+      // el mensaje ya se cerró por otra vía —archivado/respondido concurrente—)
+      // se ignora; la marca optimista ya es correcta. Cualquier otro fallo
+      // revierte solo ESE mensaje a su status original y el próximo poll
+      // reconcilia. No se marca error global: el envío sí salió.
+      await Promise.all(
+        [...original.keys()].map((id) =>
+          patchMensaje(token, id, 'respondido').catch((err) => {
+            if (err instanceof Error && err.message === 'error_409') return;
+            const orig = original.get(id);
+            setMensajes((prev) =>
+              prev.map((m) => (m.id === id && orig ? { ...m, status: orig } : m)),
+            );
+          }),
+        ),
+      );
+    } finally {
+      enviandoRef.current = false;
+      setEnviando(false);
     }
   }
 
@@ -274,7 +337,6 @@ export function MensajesProvider({
       customer_name: null,
     };
 
-    const previos = mensajes;
     setMensajes((prev) => [...prev, optimista]);
 
     try {
@@ -287,7 +349,9 @@ export function MensajesProvider({
       });
       setMensajes((prev) => prev.map((m) => (m.id === tempId ? creado : m)));
     } catch {
-      setMensajes(previos);
+      // Rollback granular: quita solo la burbuja optimista, sin pisar lo que
+      // haya llegado por polling entretanto.
+      setMensajes((prev) => prev.filter((m) => m.id !== tempId));
       setError('No se pudo registrar el mensaje.');
     }
   }
@@ -295,12 +359,15 @@ export function MensajesProvider({
   // archivar: saca el mensaje de la vista. El worker filtra los archivados por
   // defecto, así que no reaparece en el siguiente reload.
   async function archivar(mensaje: Mensaje): Promise<void> {
-    const previos = mensajes;
+    // Una burbuja optimista aún no existe en el worker: no hay nada que archivar.
+    if (mensaje.id.startsWith('tmp_')) return;
     setMensajes((prev) => prev.filter((m) => m.id !== mensaje.id));
     try {
       await patchMensaje(token, mensaje.id, 'archivado');
     } catch {
-      setMensajes(previos);
+      // Restaura solo el mensaje quitado (update funcional), evitando duplicar
+      // si el poll ya lo repuso.
+      setMensajes((prev) => (prev.some((m) => m.id === mensaje.id) ? prev : [...prev, mensaje]));
       setError('No se pudo archivar el mensaje.');
     }
   }
@@ -310,6 +377,7 @@ export function MensajesProvider({
     sinResponder: contarSinResponder(mensajes),
     loading,
     error,
+    enviando,
     reload: () => void load(),
     enviar,
     registrarEntrante,

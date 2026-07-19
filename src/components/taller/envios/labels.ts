@@ -16,7 +16,7 @@ export interface EnvioBadge {
 const ENVIO_BADGE_DEFAULT: EnvioBadge = { bg: 'var(--crema-oscuro)', color: 'var(--text-faint)' };
 
 export const ENVIO_STATUS_BADGE: Record<string, EnvioBadge> = {
-  creada: { bg: 'var(--mostaza-claro)', color: '#8A6510' },
+  creada: { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
   en_transito: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
   entregada: { bg: 'var(--bosque-claro)', color: 'var(--bosque)' },
   incidencia: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { getResumen, type Mensaje, type Resumen } from '../../../lib/taller';
 import { useTallerCore } from '../coreData';
 import { useSession } from '../hooks/useSession';
-import { useMensajes } from '../mensajesData';
+import { nombreContacto, personaKeyDeMensaje, useMensajes } from '../mensajesData';
 import { PedidosTable } from '../pedidos/PedidosTable';
 import { navigate } from '../router';
 import { money } from '../ui/format';
@@ -34,8 +34,8 @@ function mesLargo(mes: string): string {
 function saludo(): string {
   const hora = new Date().getHours();
   if (hora < 12) return 'Buenos días';
-  if (hora < 19) return 'Buenos tardes';
-  return 'Buenos noches';
+  if (hora < 19) return 'Buenas tardes';
+  return 'Buenas noches';
 }
 
 // Semana ISO 8601 (lunes-domingo, la semana 1 es la que contiene el primer
@@ -66,17 +66,17 @@ interface Hilo {
   created_at: string;
 }
 
-// Agrupa los mensajes entrantes sin responder por cliente (o por asunto si
-// no tienen ficha), toma el más reciente de cada grupo y devuelve hasta 2,
-// ordenados por recencia. La llave de persona replica la convención del
-// router (`cus_…` o `ext:<subject>`).
+// Agrupa los mensajes entrantes sin responder por persona, toma el más
+// reciente de cada grupo y devuelve hasta 2, ordenados por recencia. La llave
+// de persona (`cus_…` o `ext:<nombre>`) sale de personaKeyDeMensaje, la misma
+// convención que usa personasDe y el router, para no duplicarla aquí.
 function hilosPendientes(mensajes: Mensaje[]): Hilo[] {
   const pendientes = mensajes.filter(
     (m) => m.direction === 'in' && (m.status === 'nuevo' || m.status === 'leido'),
   );
   const grupos = new Map<string, Mensaje[]>();
   for (const m of pendientes) {
-    const key = m.customer_id ? `cus:${m.customer_id}` : `subj:${m.subject ?? m.channel}`;
+    const key = personaKeyDeMensaje(m);
     const lista = grupos.get(key) ?? [];
     lista.push(m);
     grupos.set(key, lista);
@@ -84,12 +84,13 @@ function hilosPendientes(mensajes: Mensaje[]): Hilo[] {
   return [...grupos.values()]
     .map((lista) => {
       const ultimo = [...lista].sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+      const persona = personaKeyDeMensaje(ultimo);
       return {
-        key: ultimo.customer_id ?? `subj:${ultimo.subject ?? ultimo.channel}`,
-        nombre: ultimo.customer_name ?? ultimo.subject ?? ultimo.channel,
+        key: persona,
+        nombre: ultimo.customer_name ?? nombreContacto(ultimo),
         canal: ultimo.channel,
         preview: ultimo.body,
-        persona: ultimo.customer_id ?? `ext:${ultimo.subject ?? ultimo.channel}`,
+        persona,
         created_at: ultimo.created_at,
       };
     })

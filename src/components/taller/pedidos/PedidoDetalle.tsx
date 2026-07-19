@@ -61,13 +61,24 @@ export function PedidoDetalle({ id, manifest }: { id: string; manifest: LampImag
     };
   }, [id, hasCore, token, fetched]);
 
-  // Guías del pedido (paquetería/tracking/estado).
+  // Guías del pedido (paquetería/tracking/estado). El worker excluye las
+  // 'entregada' cuando no se pasa `status`, así que se piden aparte y se
+  // fusionan (dedup por id, más recientes primero) para no perder las guías
+  // ya entregadas del historial.
   useEffect(() => {
     if (!token) return;
     let cancelled = false;
-    getEnvios(token, { order_id: id })
-      .then((es) => {
-        if (!cancelled) setGuias(es);
+    Promise.all([
+      getEnvios(token, { order_id: id }),
+      getEnvios(token, { order_id: id, status: 'entregada' }),
+    ])
+      .then(([activas, entregadas]) => {
+        if (cancelled) return;
+        const porId = new Map<string, Envio>();
+        for (const e of [...activas, ...entregadas]) porId.set(e.id, e);
+        setGuias(
+          [...porId.values()].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+        );
       })
       .catch(() => {
         /* el bloque de envío simplemente no muestra guías */

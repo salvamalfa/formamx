@@ -13,6 +13,9 @@ const CANALES = ['email', 'whatsapp', 'web', 'manual'];
 
 function Burbuja({ mensaje, onArchivar }: { mensaje: Mensaje; onArchivar: () => void }) {
   const out = mensaje.direction === 'out';
+  // Una burbuja optimista (id `tmp_…`) aún no existe en el worker: no se puede
+  // archivar hasta que el POST la reemplace por el mensaje real.
+  const optimista = mensaje.id.startsWith('tmp_');
   return (
     <div class={`flex max-w-full flex-col ${out ? 'items-end' : 'items-start'}`}>
       <div
@@ -33,14 +36,16 @@ function Burbuja({ mensaje, onArchivar }: { mensaje: Mensaje; onArchivar: () => 
         <span class="text-[10px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
           {formatSync(mensaje.created_at)}
         </span>
-        <button
-          type="button"
-          class="text-[10px] text-[var(--text-faint)] uppercase transition-colors hover:text-[var(--text-muted)]"
-          style={{ fontFamily: 'var(--font-mono)' }}
-          onClick={onArchivar}
-        >
-          archivar
-        </button>
+        {!optimista && (
+          <button
+            type="button"
+            class="text-[10px] text-[var(--text-faint)] uppercase transition-colors hover:text-[var(--text-muted)]"
+            style={{ fontFamily: 'var(--font-mono)' }}
+            onClick={onArchivar}
+          >
+            archivar
+          </button>
+        )}
       </div>
     </div>
   );
@@ -112,6 +117,7 @@ function RegistrarEntrante({
 export function ChatThread({
   persona,
   nuevoContacto = false,
+  enviando = false,
   onEnviar,
   onRegistrarEntrante,
   onArchivar,
@@ -120,6 +126,8 @@ export function ChatThread({
 }: {
   persona?: Persona;
   nuevoContacto?: boolean;
+  // Verdadero mientras un envío está en vuelo: deshabilita Enter/botón.
+  enviando?: boolean;
   onEnviar: (body: string) => void;
   onRegistrarEntrante: (opts: { nombre?: string; canal: string; body: string }) => void;
   onArchivar: (mensaje: Mensaje) => void;
@@ -145,6 +153,7 @@ export function ChatThread({
   }, [ultimoId, persona?.key]);
 
   function enviar() {
+    if (enviando) return;
     const texto = borrador.trim();
     if (!texto) return;
     onEnviar(texto);
@@ -217,7 +226,7 @@ export function ChatThread({
           <button
             type="button"
             class="btn btn-primary disabled:cursor-default disabled:opacity-60"
-            disabled={!borrador.trim()}
+            disabled={!borrador.trim() || enviando}
             onClick={enviar}
           >
             Enviar

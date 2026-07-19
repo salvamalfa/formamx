@@ -5,7 +5,7 @@ import { useSession } from '../hooks/useSession';
 import { personasDe, useMensajes, type Persona } from '../mensajesData';
 import { navigate } from '../router';
 import { ChatThread } from './ChatThread';
-import { nombrePersona, PersonaList } from './PersonaList';
+import { PersonaList } from './PersonaList';
 import { PersonaFicha } from './PersonaFicha';
 
 const CARD =
@@ -19,7 +19,7 @@ const CARD =
 // flujo lista → chat → ficha es estado local.
 export function ClientesPanel({ persona }: { persona?: string }) {
   const { token } = useSession();
-  const { mensajes, sinResponder, enviar, registrarEntrante, archivar } = useMensajes();
+  const { mensajes, sinResponder, enviando, enviar, registrarEntrante, archivar } = useMensajes();
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState('');
@@ -46,6 +46,14 @@ export function ClientesPanel({ persona }: { persona?: string }) {
     return () => clearInterval(timer);
   }, [token]);
 
+  // Sincroniza el flujo móvil con la persona del hash: al abrir/cerrar una
+  // persona (deep-link, hilo desde Resumen, botón atrás) salta a 'chat' o
+  // 'lista'. Solo reacciona a cambios de `persona`, así que ver la ficha
+  // (setMovil('ficha')) dentro de la misma persona no se pisa.
+  useEffect(() => {
+    setMovil(persona ? 'chat' : 'lista');
+  }, [persona]);
+
   const todas = personasDe(clientes, mensajes);
 
   // Ciudades más frecuentes (hasta 4) para los chips de filtro.
@@ -62,7 +70,14 @@ export function ClientesPanel({ persona }: { persona?: string }) {
   // Los filtros de ciudad/activo solo aplican a clientes; los contactos sueltos
   // aparecen únicamente con filtros neutros (como en el mockup).
   function visible(p: Persona): boolean {
-    if (busq && !nombrePersona(p).toLowerCase().includes(busq)) return false;
+    if (busq) {
+      // Cliente: busca por nombre, correo o teléfono; contacto suelto: por nombre.
+      const campos =
+        p.kind === 'cliente'
+          ? [p.cliente.name, p.cliente.email, p.cliente.phone]
+          : [p.nombre];
+      if (!campos.some((v) => v?.toLowerCase().includes(busq))) return false;
+    }
     if (p.kind === 'contacto') return fCiudad === 'todas' && !fActivos;
     if (fCiudad !== 'todas' && p.cliente.city !== fCiudad) return false;
     if (fActivos && p.cliente.active_order_count <= 0) return false;
@@ -114,6 +129,7 @@ export function ClientesPanel({ persona }: { persona?: string }) {
   ) : selPersona ? (
     <ChatThread
       persona={selPersona}
+      enviando={enviando}
       onEnviar={(body) => void enviar(selPersona, body)}
       onRegistrarEntrante={(opts) =>
         void registrarEntrante({ persona: selPersona, canal: opts.canal, body: opts.body })
@@ -165,7 +181,7 @@ export function ClientesPanel({ persona }: { persona?: string }) {
           <input
             type="search"
             class="w-52 rounded-full border border-[var(--border-soft)] bg-[var(--blanco)] px-4 py-1.5 text-[13px] outline-none focus:border-[var(--support)]"
-            placeholder="Buscar por nombre…"
+            placeholder="Buscar…"
             value={busqueda}
             onInput={(e) => setBusqueda((e.target as HTMLInputElement).value)}
           />

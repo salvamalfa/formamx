@@ -3,9 +3,9 @@
 // misma persona siempre cae en el mismo par, así el color es memoria visual y
 // no ruido.
 const PALETAS: { bg: string; color: string }[] = [
-  { bg: '#F2D9BC', color: '#B5541E' },
-  { bg: '#E4EAE0', color: '#2F4632' },
-  { bg: '#F3E3BE', color: '#8A6510' },
+  { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
+  { bg: 'var(--bosque-claro)', color: 'var(--bosque-oscuro)' },
+  { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
 ];
 
 function hash(s: string): number {

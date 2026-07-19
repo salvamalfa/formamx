@@ -23,13 +23,15 @@ export const STATUS_LABEL: Record<string, string> = {
 
 // Estado visible según el tipo de pieza: lo que en una lámpara es
 // "Imprimiendo", en una pieza manual (madera) es simplemente "En progreso".
-export function statusLabel(order: Order): string {
+export function statusLabel(order: Pick<Order, 'production' | 'status'>): string {
   if (order.production === 'manual' && order.status === 'imprimiendo') return 'En progreso';
   return STATUS_LABEL[order.status] ?? order.status;
 }
 
 // Nombre visible del producto de un pedido. La tabla y el detalle lo comparten.
-export function productLabel(order: Order): string {
+// Solo lee `config` y `product_id`, así que acepta también los pedidos del
+// historial del CRM (sin `jobs`).
+export function productLabel(order: Pick<Order, 'config' | 'product_id'>): string {
   if (order.config) {
     const model = MODELS.find((m) => m.id === order.config!.model)?.label ?? order.config.model;
     return `Lámpara ${model}`;
@@ -49,8 +51,8 @@ export interface Badge {
 const BADGE_CERRADO: Badge = { bg: 'var(--crema-oscuro)', color: 'var(--text-faint)' };
 
 export const STATUS_BADGE: Record<string, Badge> = {
-  pendiente: { bg: 'var(--mostaza-claro)', color: '#8A6510' },
-  pagada: { bg: 'var(--mostaza-claro)', color: '#8A6510' },
+  pendiente: { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
+  pagada: { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
   en_cola: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
   imprimiendo: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
   lista: { bg: 'var(--bosque-claro)', color: 'var(--bosque)' },

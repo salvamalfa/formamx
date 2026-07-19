@@ -91,26 +91,30 @@ function FichaCliente({
 }) {
   const cliente = persona.cliente;
   const [pedidos, setPedidos] = useState<ClientePedido[] | null>(null);
+  const [errorPedidos, setErrorPedidos] = useState(false);
+  const [intento, setIntento] = useState(0);
   const [notas, setNotas] = useState(cliente.notes ?? '');
   const [notasGuardadas, setNotasGuardadas] = useState(cliente.notes ?? '');
   const [aviso, setAviso] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  // Historial: fetch propio al seleccionar el cliente.
+  // Historial: fetch propio al seleccionar el cliente. `intento` en las deps
+  // permite reintentar el fetch tras un fallo (botón Reintentar).
   useEffect(() => {
     let vivo = true;
     setPedidos(null);
+    setErrorPedidos(false);
     getCliente(token, cliente.id)
       .then((d) => {
         if (vivo) setPedidos(d.pedidos);
       })
       .catch(() => {
-        if (vivo) setPedidos([]);
+        if (vivo) setErrorPedidos(true);
       });
     return () => {
       vivo = false;
     };
-  }, [token, cliente.id]);
+  }, [token, cliente.id, intento]);
 
   // Reseteo de notas al cambiar de cliente (la lista puede refrescarse por
   // polling; el borrador local manda mientras se edita).
@@ -143,23 +147,42 @@ function FichaCliente({
       {cliente.email && (
         <div>
           <div class="meta-caps text-[var(--text-faint)]">Correo</div>
-          <div class="mt-0.5 text-[13px]" style={{ overflowWrap: 'anywhere' }}>
+          <a
+            href={`mailto:${cliente.email}`}
+            class="mt-0.5 block text-[13px] text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
+            style={{ overflowWrap: 'anywhere' }}
+          >
             {cliente.email}
-          </div>
+          </a>
         </div>
       )}
       {cliente.phone && (
         <div>
           <div class="meta-caps text-[var(--text-faint)]">Teléfono</div>
-          <div class="mt-0.5 text-[12px]" style={{ fontFamily: 'var(--font-mono)' }}>
+          <a
+            href={`tel:${cliente.phone}`}
+            class="mt-0.5 block text-[12px] text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
+            style={{ fontFamily: 'var(--font-mono)' }}
+          >
             {cliente.phone}
-          </div>
+          </a>
         </div>
       )}
 
       <div>
         <div class="meta-caps mb-1 text-[var(--text-faint)]">Sus pedidos</div>
-        {pedidos === null ? (
+        {errorPedidos ? (
+          <div role="alert" class="mt-1 flex flex-col items-start gap-1">
+            <p class="m-0 text-[12px] text-[var(--support)]">No se pudo cargar. Reintenta.</p>
+            <button
+              type="button"
+              class="text-[12px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
+              onClick={() => setIntento((n) => n + 1)}
+            >
+              Reintentar
+            </button>
+          </div>
+        ) : pedidos === null ? (
           <p class="meta-caps m-0 text-[var(--text-faint)]">cargando…</p>
         ) : pedidos.length === 0 ? (
           <p class="m-0 mt-1 text-[12px] text-[var(--text-faint)]">Todavía no tiene pedidos.</p>
@@ -172,9 +195,7 @@ function FichaCliente({
               onClick={() => navigate({ vista: 'pedido', id: p.id })}
             >
               <span class="min-w-0">
-                <span class="block truncate text-[13px] font-medium">
-                  {productLabel({ ...p, jobs: [] })}
-                </span>
+                <span class="block truncate text-[13px] font-medium">{productLabel(p)}</span>
                 <span
                   class="mt-px block text-[10px] text-[var(--text-faint)]"
                   style={{ fontFamily: 'var(--font-mono)' }}
@@ -182,7 +203,7 @@ function FichaCliente({
                   {p.id} · {money(p.amount_mxn)}
                 </span>
               </span>
-              <StatusBadge order={{ ...p, jobs: [] }} />
+              <StatusBadge order={p} />
             </button>
           ))
         )}

@@ -14,7 +14,13 @@ function typeLabel(order: Order): string {
   return order.production === 'manual' ? 'hecha a mano' : 'impresión 3d';
 }
 
-function StatusBadge({ order, size = 'sm' }: { order: Order; size?: 'sm' | 'lg' }) {
+function StatusBadge({
+  order,
+  size = 'sm',
+}: {
+  order: Pick<Order, 'status' | 'production'>;
+  size?: 'sm' | 'lg';
+}) {
   const badge = statusBadge(order.status);
   return (
     <span

@@ -174,16 +174,109 @@ test('la búsqueda y el chip de ciudad filtran', async ({ page }) => {
   await entrar(page);
   const lista = page.getByTestId('persona-lista');
 
-  await page.getByPlaceholder('Buscar por nombre…').fill('bruno');
+  await page.getByPlaceholder('Buscar…').fill('bruno');
   await expect(lista.getByText('Ana Prueba')).toHaveCount(0);
   await expect(lista.getByText('Bruno Madera')).toBeVisible();
 
-  await page.getByPlaceholder('Buscar por nombre…').fill('');
+  await page.getByPlaceholder('Buscar…').fill('');
   // Chip de ciudad: solo Monterrey (Bruno); CDMX y el contacto quedan fuera.
   await page.getByRole('button', { name: 'Monterrey', exact: true }).click();
   await expect(lista.getByText('Bruno Madera')).toBeVisible();
   await expect(lista.getByText('Ana Prueba')).toHaveCount(0);
   await expect(lista.getByText('Diana Web')).toHaveCount(0);
+});
+
+test('la búsqueda encuentra por correo y por teléfono, no solo por nombre', async ({ page }) => {
+  await mockShell(page);
+  await entrar(page);
+  const lista = page.getByTestId('persona-lista');
+
+  // Por correo (que no aparece en el nombre visible del renglón).
+  await page.getByPlaceholder('Buscar…').fill('bruno@example.com');
+  await expect(lista.getByText('Bruno Madera')).toBeVisible();
+  await expect(lista.getByText('Ana Prueba')).toHaveCount(0);
+
+  // Por teléfono (solo el de Carla termina en 9998888).
+  await page.getByPlaceholder('Buscar…').fill('9998888');
+  await expect(lista.getByText('Carla Sol')).toBeVisible();
+  await expect(lista.getByText('Bruno Madera')).toHaveCount(0);
+});
+
+test('la ficha muestra correo y teléfono como enlaces mailto/tel', async ({ page }) => {
+  await mockShell(page);
+  await page.route('**/api/admin/clientes/*', (route) =>
+    route.fulfill({ json: { cliente: CLIENTES[0], pedidos: [] } }),
+  );
+  await entrar(page, '#clientes/cus_1');
+
+  await expect(page.locator('a[href="mailto:ana@example.com"]')).toBeVisible();
+  await expect(page.locator('a[href="tel:+525511112222"]')).toBeVisible();
+});
+
+test('si el historial de la ficha falla, muestra alerta y Reintentar rehace el fetch', async ({
+  page,
+}) => {
+  await mockShell(page);
+  let intentos = 0;
+  await page.route('**/api/admin/clientes/*', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    intentos += 1;
+    if (intentos === 1) return route.fulfill({ status: 500, json: { error: 'boom' } });
+    return route.fulfill({ json: { cliente: CLIENTES[0], pedidos: [ORDER] } });
+  });
+  await entrar(page, '#clientes/cus_1');
+
+  await expect(page.getByRole('alert').getByText('No se pudo cargar. Reintenta.')).toBeVisible();
+  await page.getByRole('button', { name: 'Reintentar' }).click();
+  // El segundo intento trae el pedido de Ana.
+  await expect(page.getByText('Lámpara Tessera')).toBeVisible();
+  expect(intentos).toBe(2);
+});
+
+test('el composer no manda dos veces el mismo envío (guardia de doble envío)', async ({ page }) => {
+  await mockShell(page);
+  let posts = 0;
+  await page.route('**/api/admin/inbox', async (route) => {
+    if (route.request().method() === 'POST') {
+      posts += 1;
+      // Retraso para mantener el envío "en vuelo" mientras se intenta reenviar.
+      await new Promise((r) => setTimeout(r, 400));
+      return route.fulfill({
+        json: {
+          id: 'm_new_out',
+          channel: 'whatsapp',
+          direction: 'out',
+          customer_id: 'cus_1',
+          order_id: null,
+          subject: null,
+          body: 'uno',
+          status: 'respondido',
+          created_at: '2026-07-18 12:00:00',
+          customer_name: 'Ana Prueba',
+        },
+      });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/admin/inbox/*', (route) => {
+    if (route.request().method() === 'PATCH') {
+      return route.fulfill({ json: { ...MENSAJES[1], status: 'respondido' } });
+    }
+    return route.fallback();
+  });
+  await entrar(page, '#clientes/cus_1');
+
+  const input = page.getByLabel('Escribe un mensaje');
+  await input.fill('uno');
+  await input.press('Enter');
+  // Reintento inmediato mientras el primer POST sigue en vuelo: debe ignorarse.
+  await input.fill('dos');
+  await input.press('Enter');
+
+  await expect.poll(() => posts).toBe(1);
+  // Y no llega un segundo POST tras resolverse el primero.
+  await page.waitForTimeout(300);
+  expect(posts).toBe(1);
 });
 
 test('deep-link #clientes/cus_1 abre el chat y la ficha', async ({ page }) => {

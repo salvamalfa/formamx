@@ -180,6 +180,40 @@ test('al hacer clic en una fila se abre el detalle con la config y las guías', 
   await expect(page.getByText('ana@example.com')).toBeVisible();
 });
 
+test('el detalle muestra una guía ya entregada (fusiona activas + entregadas)', async ({ page }) => {
+  const entregada = {
+    id: 'shp_ent',
+    order_id: 'ord_1',
+    carrier: 'DHL',
+    service: null,
+    tracking_number: 'DHL999',
+    label_url: null,
+    cost_mxn: null,
+    status: 'entregada',
+    created_at: '2026-07-10 10:00:00',
+    shipped_at: '2026-07-11 09:00:00',
+    delivered_at: '2026-07-12 15:00:00',
+    pedido: null,
+  };
+  await mockApi(page);
+  // El worker excluye 'entregada' cuando no se pasa `status`: la lista activa
+  // va vacía y la guía entregada solo llega en la llamada con `status=entregada`.
+  // El detalle hace ambas y las fusiona.
+  await page.route('**/api/admin/envios**', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    if (route.request().url().includes('status=entregada')) {
+      return route.fulfill({ json: { envios: [entregada] } });
+    }
+    return route.fulfill({ json: { envios: [] } });
+  });
+  await page.goto('/taller');
+  await entrar(page);
+  await page.getByRole('button', { name: /Lámpara Tessera/ }).click();
+
+  await expect(page.getByText('DHL999')).toBeVisible();
+  await expect(page.getByText('entregada')).toBeVisible();
+});
+
 test('avanzar el estado desde el detalle actualiza el badge (optimista)', async ({ page }) => {
   let patched = false;
   await mockApi(page);
