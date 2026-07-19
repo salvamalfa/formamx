@@ -16,11 +16,41 @@ const ORDER = {
   jobs: [] as unknown[],
 };
 
+// Fixture por defecto de /resumen: en cero, para no ensuciar los specs que no
+// les importa la vista Resumen (aun así el shell la pide siempre al aterrizar
+// ahí, que es el default desde F6).
+const RESUMEN_VACIO = {
+  ventas: {
+    mes_mxn: 0,
+    mes_anterior_mxn: 0,
+    delta_pct: null as number | null,
+    serie: [
+      { mes: '2026-02', total_mxn: 0 },
+      { mes: '2026-03', total_mxn: 0 },
+      { mes: '2026-04', total_mxn: 0 },
+      { mes: '2026-05', total_mxn: 0 },
+      { mes: '2026-06', total_mxn: 0 },
+      { mes: '2026-07', total_mxn: 0 },
+    ],
+  },
+  pedidos: { activos: 0, sin_empezar: 0 },
+  mensajes_sin_responder: 0,
+  material_bajo: 0,
+};
+
 async function mockApi(
   page: Page,
-  opts: { spools?: (string | null)[]; bedClear?: boolean; syncedAt?: string | null } = {},
+  opts: {
+    spools?: (string | null)[];
+    bedClear?: boolean;
+    syncedAt?: string | null;
+    resumen?: typeof RESUMEN_VACIO;
+  } = {},
 ) {
   const spools = opts.spools ?? [null, null, null, null];
+  await page.route('**/api/admin/resumen', (route) =>
+    route.fulfill({ json: opts.resumen ?? RESUMEN_VACIO }),
+  );
   await page.route('**/api/admin/orders', (route) => {
     if (route.request().method() === 'GET') {
       return route.fulfill({ json: { orders: [ORDER] } });
@@ -820,7 +850,9 @@ test('el sidebar navega a Clientes', async ({ page }) => {
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByText('Lámpara Tessera')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Clientes' }).click();
+  // exact: true — el sidebar y el panel Resumen ("Ir a clientes →") tienen
+  // ambos un botón cuyo nombre accesible contiene "Clientes".
+  await page.getByRole('button', { name: 'Clientes', exact: true }).click();
   await expect(page.getByText('Bruno Madera')).toBeVisible();
   await expect(page).toHaveURL(/#clientes$/);
 });
@@ -862,11 +894,114 @@ test.describe('en móvil', () => {
     await expect(page.getByText('Lámpara Tessera')).toBeVisible();
 
     // Los botones de la barra superior navegan igual que en desktop.
-    await page.getByRole('button', { name: 'Clientes' }).click();
+    // exact: true — el sidebar y el panel Resumen ("Ir a clientes →") tienen
+  // ambos un botón cuyo nombre accesible contiene "Clientes".
+  await page.getByRole('button', { name: 'Clientes', exact: true }).click();
     await expect(page.getByText('Bruno Madera')).toBeVisible();
     await expect(page).toHaveURL(/#clientes$/);
 
     await page.getByRole('button', { name: 'Proyectos' }).click();
     await expect(page.getByText('Lámpara Tessera')).toBeVisible();
   });
+});
+
+// ── Vista Resumen (F6): KPIs + gráfica + pendientes + top de pedidos ────
+
+const RESUMEN = {
+  ventas: {
+    mes_mxn: 4_990_000,
+    mes_anterior_mxn: 3_990_000,
+    delta_pct: 25,
+    serie: [
+      { mes: '2026-02', total_mxn: 1_200_000 },
+      { mes: '2026-03', total_mxn: 2_100_000 },
+      { mes: '2026-04', total_mxn: 900_000 },
+      { mes: '2026-05', total_mxn: 3_300_000 },
+      { mes: '2026-06', total_mxn: 3_990_000 },
+      { mes: '2026-07', total_mxn: 4_990_000 },
+    ],
+  },
+  pedidos: { activos: 3, sin_empezar: 1 },
+  mensajes_sin_responder: 2,
+  material_bajo: 1,
+};
+
+test('el gate aterriza en #resumen y muestra los KPIs del mock', async ({ page }) => {
+  await mockApi(page, { resumen: RESUMEN });
+  await page.goto('/taller');
+  await entrar(page);
+
+  await expect(page).toHaveURL(/#resumen$/);
+  await expect(page.getByRole('button', { name: 'Resumen' })).toBeVisible();
+
+  await expect(page.getByText('Ventas de julio')).toBeVisible();
+  await expect(page.getByText('$49,900')).toBeVisible();
+  const delta = page.getByText('+25% vs junio');
+  await expect(delta).toBeVisible();
+  await expect(delta).toHaveCSS('color', 'rgb(62, 90, 64)'); // var(--support) = --bosque
+
+  await expect(page.getByText('1 sin empezar')).toBeVisible();
+  await expect(page.getByText('revisar inventario')).toBeVisible();
+});
+
+test('la gráfica de ventas marca el mes actual', async ({ page }) => {
+  await mockApi(page, { resumen: RESUMEN });
+  await page.goto('/taller');
+  await entrar(page);
+
+  const grafica = page.getByRole('img', { name: /mes actual/ });
+  await expect(grafica).toBeVisible();
+  await expect(grafica).toHaveAttribute('aria-label', /jul: \$49\.9k \(mes actual\)/);
+});
+
+test('un hilo pendiente en Resumen navega a Clientes', async ({ page }) => {
+  await mockApi(page, { resumen: RESUMEN });
+  await page.route('**/api/admin/inbox**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        json: { mensajes: [{ ...MENSAJE, id: 'msg_r1', customer_id: 'cus_2', customer_name: 'Bruno Madera', subject: null, body: '¿Ya casi está mi pedido?' }] },
+      });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/admin/clientes', (route) =>
+    route.fulfill({ json: { clientes: CLIENTES } }),
+  );
+  await page.goto('/taller');
+  await entrar(page);
+
+  await expect(page.getByText('Un mensaje espera respuesta.')).toBeVisible();
+  await page.getByRole('button', { name: /Bruno Madera/ }).click();
+  await expect(page).toHaveURL(/#clientes\/cus_2$/);
+  await expect(page.getByText('Ana Prueba')).toBeVisible();
+});
+
+test('Ver todos navega a Proyectos/Pedidos y el top-4 de Resumen respeta el límite', async ({
+  page,
+}) => {
+  const activos = ['A', 'B', 'C', 'D', 'E'].map((letra, i) => ({
+    ...ORDER,
+    id: `ord_${letra}`,
+    customer: { name: `Cliente ${letra}`, email: null, phone: null },
+    created_at: `2026-07-${18 - i} 10:00:00`,
+    status: 'pagada',
+  }));
+  await mockApi(page, { resumen: RESUMEN });
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { orders: activos } });
+    return route.fallback();
+  });
+  await page.goto('/taller');
+  await entrar(page);
+
+  // Top 4 por fecha de creación: A, B, C, D. E (la más vieja) queda fuera.
+  await expect(page.getByText('Cliente A')).toBeVisible();
+  await expect(page.getByText('Cliente B')).toBeVisible();
+  await expect(page.getByText('Cliente C')).toBeVisible();
+  await expect(page.getByText('Cliente D')).toBeVisible();
+  await expect(page.getByText('Cliente E')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Ver todos →' }).click();
+  await expect(page).toHaveURL(/#proyectos\/pedidos$/);
+  await expect(page.getByText('Cliente E')).toBeVisible();
 });

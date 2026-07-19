@@ -8,6 +8,7 @@ import { InboxPanel } from './inbox/InboxPanel';
 import { MensajesProvider } from './mensajesData';
 import { PedidoDetalle } from './pedidos/PedidoDetalle';
 import { ProyectosPanel } from './proyectos/ProyectosPanel';
+import { ResumenPanel } from './resumen/ResumenPanel';
 import { useTallerRoute, type TallerRoute } from './router';
 import { Sidebar } from './Sidebar';
 
@@ -101,6 +102,8 @@ function ShellChrome({
 
 function RouteView({ route, manifest }: { route: TallerRoute; manifest: LampImageManifest }) {
   switch (route.vista) {
+    case 'resumen':
+      return <ResumenPanel />;
     case 'proyectos':
       return <ProyectosPanel sub={route.sub} />;
     case 'pedido':

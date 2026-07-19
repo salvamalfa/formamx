@@ -2,22 +2,24 @@ import { useEffect, useState } from 'preact/hooks';
 
 // Router por hash del taller. Sin librería: el dashboard es una isla Preact y
 // la URL se mantiene con `location.hash`. Formatos canónicos:
-//   #proyectos/pedidos | #proyectos/impresora | #proyectos/inventario |
-//   #proyectos/envios | #pedido/<id> | #clientes | #clientes/<persona> | #inbox
+//   #resumen | #proyectos/pedidos | #proyectos/impresora |
+//   #proyectos/inventario | #proyectos/envios | #pedido/<id> | #clientes |
+//   #clientes/<persona> | #inbox
 // `persona` es `cus_…` (cliente con ficha) o `ext:<nombre>` (contacto suelto,
 // el nombre va urlencoded en el hash). La vista `inbox` es TEMPORAL: se
-// elimina en F7 cuando Clientes absorba la mensajería. La vista `resumen`
-// llega en una fase posterior; por ahora el default es proyectos/pedidos.
+// elimina en F7 cuando Clientes absorba la mensajería. El default (hash
+// vacío o desconocido) es `resumen`, el aterrizaje del taller (F6).
 
 export type ProyectosSub = 'pedidos' | 'impresora' | 'inventario' | 'envios';
 
 export type TallerRoute =
+  | { vista: 'resumen' }
   | { vista: 'proyectos'; sub: ProyectosSub }
   | { vista: 'pedido'; id: string }
   | { vista: 'clientes'; persona?: string }
   | { vista: 'inbox' };
 
-const DEFAULT: TallerRoute = { vista: 'proyectos', sub: 'pedidos' };
+const DEFAULT: TallerRoute = { vista: 'resumen' };
 const SUBS: ProyectosSub[] = ['pedidos', 'impresora', 'inventario', 'envios'];
 
 function decodePersona(seg: string): string {
@@ -42,6 +44,8 @@ export function parseHash(hash: string): TallerRoute {
   const rest = parts.slice(1);
 
   switch (head) {
+    case 'resumen':
+      return { vista: 'resumen' };
     case 'proyectos': {
       const sub = rest[0] as ProyectosSub | undefined;
       return { vista: 'proyectos', sub: sub && SUBS.includes(sub) ? sub : 'pedidos' };
@@ -77,6 +81,8 @@ export function parseHash(hash: string): TallerRoute {
 
 export function formatHash(r: TallerRoute): string {
   switch (r.vista) {
+    case 'resumen':
+      return '#resumen';
     case 'proyectos':
       return `#proyectos/${r.sub}`;
     case 'pedido':

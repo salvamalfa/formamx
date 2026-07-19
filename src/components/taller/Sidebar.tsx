@@ -48,11 +48,17 @@ function NavButton({ label, activo, onClick, badge, menor }: NavEntry) {
 export function Sidebar({ route, onLogout }: { route: TallerRoute; onLogout: () => void }) {
   const { sinResponder } = useMensajes();
 
+  const enResumen = route.vista === 'resumen';
   const enProyectos = route.vista === 'proyectos' || route.vista === 'pedido';
   const enClientes = route.vista === 'clientes';
   const enInbox = route.vista === 'inbox';
 
   const entradas: NavEntry[] = [
+    {
+      label: 'Resumen',
+      activo: enResumen,
+      onClick: () => navigate({ vista: 'resumen' }),
+    },
     {
       label: 'Proyectos',
       activo: enProyectos,
