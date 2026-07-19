@@ -277,6 +277,8 @@ test('el composer no manda dos veces el mismo envío (guardia de doble envío)',
   // Y no llega un segundo POST tras resolverse el primero.
   await page.waitForTimeout(300);
   expect(posts).toBe(1);
+  // El texto escrito mientras el primero estaba en vuelo sigue como borrador.
+  await expect(input).toHaveValue('dos');
 });
 
 test('deep-link #clientes/cus_1 abre el chat y la ficha', async ({ page }) => {

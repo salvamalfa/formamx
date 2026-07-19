@@ -177,7 +177,9 @@ export function ChatThread({
     setErrorEnvio(null);
     try {
       await onEnviar(texto);
-      setBorrador('');
+      // Si Salva empezó a escribir el siguiente mensaje mientras el POST
+      // estaba en vuelo, conserva ese borrador y limpia solo el texto enviado.
+      setBorrador((actual) => (actual === texto ? '' : actual));
     } catch {
       setErrorEnvio('No se pudo enviar. El mensaje sigue aquí para reintentar.');
     } finally {
