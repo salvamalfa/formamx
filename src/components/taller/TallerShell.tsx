@@ -73,6 +73,11 @@ function ShellChrome({
 }) {
   const core = useTallerCore();
   const route = useTallerRoute();
+  // El candado global se oculta solo en la sub-pestaña Impresora: ahí el
+  // panel ya trae su propio banner (más rico, con el copy del mockup) y dos
+  // avisos de la misma cama serían ruido. En cualquier otra vista sigue
+  // siendo la única señal de que la impresora está bloqueada.
+  const hideGlobalBedAlert = route.vista === 'proyectos' && route.sub === 'impresora';
 
   return (
     <div class="lg:flex lg:min-h-dvh">
@@ -85,7 +90,7 @@ function ShellChrome({
             </p>
           )}
 
-          <BedAlert />
+          {!hideGlobalBedAlert && <BedAlert />}
 
           <RouteView route={route} manifest={manifest} />
         </div>

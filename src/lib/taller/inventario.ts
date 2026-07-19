@@ -1,6 +1,12 @@
 import { call } from './http';
 import type { Order } from './pedidos';
 
+// Umbral de "material bajo": una bobina con menos de esto se marca para
+// reponer (badge "bajo" en la tabla de inventario). Espejo del comentario en
+// workers/api/src/lib/resumen.ts (mismo número, dos lugares porque el worker
+// calcula el conteo del Resumen y el front pinta el badge por fila).
+export const MATERIAL_BAJO_G = 200;
+
 export interface Bobina {
   id: string;
   color_id: string | null;

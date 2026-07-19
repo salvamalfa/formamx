@@ -63,6 +63,15 @@ async function mockApi(
     }
     return route.fallback();
   });
+  // La sub-pestaña Impresora pide las bobinas para el % del AMS (fetch
+  // propio del panel). Por defecto vacío; los specs que lo necesiten
+  // registran una ruta más nueva que gana.
+  await page.route('**/api/admin/inventario/bobinas**', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { bobinas: [] } });
+    }
+    return route.fallback();
+  });
 }
 
 async function entrar(page: Page) {
@@ -270,7 +279,7 @@ test('el botón volver regresa a la lista de pedidos', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Lámpara Tessera/ })).toBeVisible();
 });
 
-test('el panel AMS es de solo lectura y muestra el hex de la impresora', async ({ page }) => {
+test('la card de bobinas AMS es de solo lectura y muestra el hex de la impresora', async ({ page }) => {
   await mockApi(page, { syncedAt: '2026-07-11 15:30:00' });
   await page.route('**/api/admin/spools', (route) =>
     route.fulfill({
@@ -285,18 +294,18 @@ test('el panel AMS es de solo lectura y muestra el hex de la impresora', async (
       },
     }),
   );
-  // El AMS vive ahora en la sub-pestaña Impresora de Proyectos.
+  // El AMS vive en la sub-pestaña Impresora de Proyectos (compat de hash).
   await page.goto('/taller#impresora');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
 
-  const panel = page.locator('section', { hasText: 'AMS — qué hay cargado' });
-  await expect(panel.locator('select')).toHaveCount(0); // solo lectura
-  await expect(panel.getByText('#2F5FD6')).toBeVisible(); // hex junto al nombre
-  await expect(panel.getByText('#808080')).toBeVisible(); // gris fuera de catálogo
-  await expect(panel.getByText('PETG')).toBeVisible();
-  await expect(panel.getByText('leído de la impresora:')).toBeVisible();
-  await expect(panel.getByText('vacía')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Bobinas AMS' })).toBeVisible();
+  // Escapa el <select> que inyecta la barra de dev de Astro fuera de <main>.
+  await expect(page.locator('main select')).toHaveCount(0); // solo lectura, sin formularios
+  await expect(page.getByText('#2F5FD6')).toBeVisible(); // hex junto al nombre de catálogo
+  await expect(page.getByText('#808080')).toBeVisible(); // gris fuera de catálogo: el hex es el nombre
+  await expect(page.getByText('leído de la impresora:')).toBeVisible();
+  await expect(page.getByText('vacía')).toBeVisible();
 });
 
 test('sin sincronización del AMS aparece el aviso de arrancar el agente', async ({ page }) => {
@@ -321,6 +330,111 @@ test('con la cama ocupada aparece el candado y se libera al confirmar', async ({
   await page.getByRole('button', { name: 'Cama despejada' }).click();
   await expect(page.getByText('Hay una pieza en la cama.')).toHaveCount(0);
   expect(confirmed).toBe(true);
+});
+
+test('en la sub-pestaña Impresora el banner de la cama es el del panel, no el global', async ({
+  page,
+}) => {
+  let confirmed = false;
+  await mockApi(page, { bedClear: false });
+  await page.route('**/api/admin/printer/bed-clear', (route) => {
+    confirmed = true;
+    return route.fulfill({ json: { bed_clear: true } });
+  });
+  await page.goto('/taller#impresora');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  // El banner rico del panel está, con su copy propio...
+  await expect(page.getByText('La cama no está despejada.')).toBeVisible();
+  // ...y el banner global del shell NO se duplica en esta vista.
+  await expect(page.getByText('Hay una pieza en la cama.')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Ya la despejé' }).click();
+  await expect(page.getByText('La cama no está despejada.')).toHaveCount(0);
+  expect(confirmed).toBe(true);
+});
+
+test('la sub-pestaña Impresora muestra el trabajo en curso, la cola y el % de bobinas del AMS', async ({
+  page,
+}) => {
+  const printing = { ...ORDER, id: 'ord_printing' };
+  const queued = { ...ORDER, id: 'ord_queued' };
+  await mockApi(page, { spools: ['azul'] });
+  await page.route('**/api/admin/orders', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({
+        json: {
+          orders: [
+            {
+              ...printing,
+              jobs: [
+                {
+                  id: 'job_p',
+                  order_id: 'ord_printing',
+                  part: 'pantalla',
+                  file_key: 'x',
+                  colors: ['azul'],
+                  status: 'printing',
+                  progress_pct: 42,
+                  message: null,
+                },
+              ],
+            },
+            {
+              ...queued,
+              jobs: [
+                {
+                  id: 'job_q',
+                  order_id: 'ord_queued',
+                  part: 'tapa',
+                  file_key: 'x',
+                  colors: ['rojo'],
+                  status: 'queued',
+                  progress_pct: null,
+                  message: null,
+                },
+              ],
+            },
+          ],
+        },
+      });
+    }
+    return route.fallback();
+  });
+  await page.route('**/api/admin/inventario/bobinas', (route) =>
+    route.fulfill({
+      json: {
+        bobinas: [
+          {
+            id: 'bob_ams',
+            color_id: 'azul',
+            material: 'PLA',
+            brand: null,
+            weight_g: 1000,
+            weight_left_g: 120,
+            cost_mxn: null,
+            status: 'en_uso',
+            created_at: '2026-07-01 00:00:00',
+            updated_at: '2026-07-01 00:00:00',
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto('/taller#impresora');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  // Todo escopado a <main>: la barra de dev de Astro (fuera de <main>)
+  // inyecta su propio inspector de props de islas, que en dev puede
+  // repetir texto como "Tapa" (parte de la key del manifest de la lámpara).
+  const main = page.locator('main');
+  await expect(main.getByText('Pantalla · printing')).toBeVisible();
+  await expect(main.getByText('42%')).toBeVisible();
+  await expect(main.getByText('Tapa')).toBeVisible();
+  // Bobina en uso con el mismo color+material del slot 0: 120/1000 = 12%, bajo 20%.
+  await expect(main.getByText('12%')).toBeVisible();
 });
 
 const CLIENTES = [
@@ -473,6 +587,24 @@ test('la guía avanza por el grafo y al entregarla sale de la lista', async ({ p
   await expect(page.getByText('EST123456')).toHaveCount(0);
 });
 
+test('en envíos, el botón del pedido navega a #pedido/<id> y abre el detalle', async ({ page }) => {
+  await mockApi(page);
+  await page.route('**/api/admin/envios', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { envios: [ENVIO] } });
+    }
+    return route.fallback();
+  });
+  await page.goto('/taller#envios');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('EST123456')).toBeVisible();
+  await page.getByRole('button', { name: 'Ver pedido' }).click();
+  await expect(page).toHaveURL(/#pedido\/ord_1$/);
+  await expect(page.getByRole('heading', { name: 'Lámpara Tessera' })).toBeVisible();
+});
+
 const BOBINA = {
   id: 'bob_1',
   color_id: 'azul',
@@ -528,15 +660,30 @@ test('el módulo inventario da de alta una bobina y edita su peso', async ({ pag
   await page.getByPlaceholder('Marca').fill('Creality');
   await page.getByRole('button', { name: 'Agregar bobina' }).click();
 
-  const bobina = page.getByRole('listitem').filter({ hasText: '1000 g / 1000 g' });
-  await expect(bobina.getByText('Azul', { exact: true })).toBeVisible();
-  await expect(bobina.getByText('1000 g / 1000 g')).toBeVisible();
+  // La tabla: color + peso restante editable ("1000" en el input, "/ 1000 g" al lado).
+  await expect(page.getByText('Azul', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Peso restante en gramos')).toHaveValue('1000');
+  await expect(page.getByText('/ 1000 g')).toBeVisible();
   expect(posted).toBe(true);
 
   await page.getByLabel('Peso restante en gramos').fill('650');
   await page.getByRole('button', { name: 'Guardar' }).click();
-  await expect(page.getByText('650 g / 1000 g')).toBeVisible();
+  await expect(page.getByLabel('Peso restante en gramos')).toHaveValue('650');
   expect(patchedPeso).toBe(true);
+});
+
+test('una bobina con menos de 200 g muestra el badge "bajo"', async ({ page }) => {
+  await mockApi(page);
+  await page.route('**/api/admin/inventario/bobinas', (route) =>
+    route.fulfill({
+      json: { bobinas: [{ ...BOBINA, id: 'bob_bajo', status: 'en_uso', weight_left_g: 150 }] },
+    }),
+  );
+  await page.goto('/taller#inventario');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  await expect(page.getByText('bajo', { exact: true })).toBeVisible();
 });
 
 test('la sección piezas del inventario reserva una pieza en stock', async ({ page }) => {
