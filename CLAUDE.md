@@ -96,10 +96,11 @@ siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
 
 ## Flujo de trabajo con Salva
 
-Fases pequeñas y desplegables; verifica los checks requeridos antes de
-mergear; squash-merge a `master`. Salva opera desde su teléfono (/taller) y su
-PC Windows (agente actual; futura estación de trabajo); dale pasos manuales con
-comandos exactos de PowerShell o del shell de la Mac, según la máquina.
+Fases pequeñas y desplegables; cada PR lleva auto-merge con método squash hacia
+`master` y GitHub espera los checks requeridos. Salva opera desde su teléfono
+(/taller) y su PC Windows (agente actual; futura estación de trabajo); dale
+pasos manuales con comandos exactos de PowerShell o del shell de la Mac, según
+la máquina.
 
 Al iniciar cada sesión, antes del trabajo nuevo, revisa si Codex dejó
 conversaciones o comentarios pendientes en PR anteriores, incluidos los ya
@@ -116,16 +117,16 @@ vista o flujo local y muéstrale una demostración clara con capturas; itera en
 esa misma rama hasta que confirme el resultado. Si depende de un servicio
 externo, prueba en modo local o de prueba todo lo posible y explica qué
 activación externa quedaría para después. Esa confirmación es sobre el producto
-y autoriza abrir el PR y continuar con checks y squash-merge sin pedirle otra
-aprobación de GitHub. No añadas esta pausa a mantenimiento interno sin cambios
-perceptibles, como dependencias, CI, tests, documentación o refactors puramente
-técnicos.
+y autoriza abrir el PR, activar auto-merge con método squash y continuar con
+los checks sin pedirle otra aprobación de GitHub. No añadas esta pausa a
+mantenimiento interno sin cambios perceptibles, como dependencias, CI, tests,
+documentación o refactors puramente técnicos.
 
 Claude hace el trabajo operativo de GitHub: crea la rama, implementa, abre el
-PR cuando corresponda y corrige los hallazgos de CI y de Codex. Puede hacer
-squash-merge cuando los checks requeridos estén verdes y todas las
-conversaciones estén resueltas. El merge a `master` dispara el deploy a
-Hostinger.
+PR cuando corresponda, activa auto-merge con método squash y corrige los
+hallazgos de CI y de Codex. GitHub hace el merge cuando los checks requeridos
+están verdes y todas las conversaciones están resueltas. El merge a `master`
+dispara el deploy a Hostinger.
 
 Ramas: `master` es la única de larga vida (= producción). Cada cambio va en
 una rama corta desde `master`, se squash-mergea y muere; nunca se apilan
