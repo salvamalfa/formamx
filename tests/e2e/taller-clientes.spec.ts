@@ -367,7 +367,9 @@ test('si enviar falla conserva el borrador y permite reintentar', async ({ page 
   await input.fill('No pierdas este texto.');
   await input.press('Enter');
 
-  await expect(page.getByRole('alert')).toContainText('El mensaje sigue aquí para reintentar.');
+  await expect(page.getByRole('alert').filter({ hasText: 'No se pudo enviar.' })).toContainText(
+    'El mensaje sigue aquí para reintentar.',
+  );
   await expect(input).toHaveValue('No pierdas este texto.');
 
   await page.getByRole('button', { name: 'Enviar', exact: true }).click();
