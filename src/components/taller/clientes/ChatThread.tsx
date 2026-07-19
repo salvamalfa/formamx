@@ -56,19 +56,29 @@ function RegistrarEntrante({
   onRegistrar,
 }: {
   nuevoContacto: boolean;
-  onRegistrar: (opts: { nombre?: string; canal: string; body: string }) => void;
+  onRegistrar: (opts: { nombre?: string; canal: string; body: string }) => Promise<void>;
 }) {
   const [nombre, setNombre] = useState('');
   const [canal, setCanal] = useState('whatsapp');
   const [cuerpo, setCuerpo] = useState('');
+  const [registrando, setRegistrando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function registrar() {
+  async function registrar() {
     const texto = cuerpo.trim();
-    if (!texto) return;
+    if (!texto || registrando) return;
     if (nuevoContacto && !nombre.trim()) return;
-    onRegistrar({ ...(nuevoContacto ? { nombre: nombre.trim() } : {}), canal, body: texto });
-    setNombre('');
-    setCuerpo('');
+    setRegistrando(true);
+    setError(null);
+    try {
+      await onRegistrar({ ...(nuevoContacto ? { nombre: nombre.trim() } : {}), canal, body: texto });
+      setNombre('');
+      setCuerpo('');
+    } catch {
+      setError('No se pudo registrar. El mensaje sigue aquí para reintentar.');
+    } finally {
+      setRegistrando(false);
+    }
   }
 
   return (
@@ -105,11 +115,16 @@ function RegistrarEntrante({
       <button
         type="button"
         class="btn btn-primary btn-sm self-start disabled:cursor-default disabled:opacity-60"
-        disabled={!cuerpo.trim() || (nuevoContacto && !nombre.trim())}
-        onClick={registrar}
+        disabled={registrando || !cuerpo.trim() || (nuevoContacto && !nombre.trim())}
+        onClick={() => void registrar()}
       >
-        Registrar
+        {registrando ? 'Registrando…' : 'Registrar'}
       </button>
+      {error && (
+        <p class="m-0 text-sm text-[var(--support)]" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -128,13 +143,15 @@ export function ChatThread({
   nuevoContacto?: boolean;
   // Verdadero mientras un envío está en vuelo: deshabilita Enter/botón.
   enviando?: boolean;
-  onEnviar: (body: string) => void;
-  onRegistrarEntrante: (opts: { nombre?: string; canal: string; body: string }) => void;
+  onEnviar: (body: string) => Promise<void>;
+  onRegistrarEntrante: (opts: { nombre?: string; canal: string; body: string }) => Promise<void>;
   onArchivar: (mensaje: Mensaje) => void;
   onVolver?: () => void;
   onVerFicha?: () => void;
 }) {
   const [borrador, setBorrador] = useState('');
+  const [envioLocal, setEnvioLocal] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState<string | null>(null);
   const zonaRef = useRef<HTMLDivElement>(null);
 
   const mensajes = persona?.mensajes ?? [];
@@ -152,12 +169,22 @@ export function ChatThread({
     if (el) el.scrollTop = el.scrollHeight;
   }, [ultimoId, persona?.key]);
 
-  function enviar() {
-    if (enviando) return;
+  async function enviar() {
+    if (enviando || envioLocal) return;
     const texto = borrador.trim();
     if (!texto) return;
-    onEnviar(texto);
-    setBorrador('');
+    setEnvioLocal(true);
+    setErrorEnvio(null);
+    try {
+      await onEnviar(texto);
+      // Si Salva empezó a escribir el siguiente mensaje mientras el POST
+      // estaba en vuelo, conserva ese borrador y limpia solo el texto enviado.
+      setBorrador((actual) => (actual === texto ? '' : actual));
+    } catch {
+      setErrorEnvio('No se pudo enviar. El mensaje sigue aquí para reintentar.');
+    } finally {
+      setEnvioLocal(false);
+    }
   }
 
   return (
@@ -219,19 +246,25 @@ export function ChatThread({
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                enviar();
+                void enviar();
               }
             }}
           />
           <button
             type="button"
             class="btn btn-primary disabled:cursor-default disabled:opacity-60"
-            disabled={!borrador.trim() || enviando}
-            onClick={enviar}
+            disabled={!borrador.trim() || enviando || envioLocal}
+            onClick={() => void enviar()}
           >
-            Enviar
+            {enviando || envioLocal ? 'Enviando…' : 'Enviar'}
           </button>
         </div>
+      )}
+
+      {errorEnvio && (
+        <p class="m-0 border-t border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--support)]" role="alert">
+          {errorEnvio}
+        </p>
       )}
 
       <details class="border-t border-[var(--border-soft)] px-3 py-2 sm:px-4" open={nuevoContacto}>

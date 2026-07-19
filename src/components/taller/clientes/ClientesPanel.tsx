@@ -121,8 +121,8 @@ export function ClientesPanel({ persona }: { persona?: string }) {
   const chat = nuevo ? (
     <ChatThread
       nuevoContacto
-      onEnviar={() => undefined}
-      onRegistrarEntrante={(opts) => void crearContacto(opts)}
+      onEnviar={async () => undefined}
+      onRegistrarEntrante={crearContacto}
       onArchivar={() => undefined}
       onVolver={esDesktop ? undefined : () => setMovil('lista')}
     />
@@ -130,9 +130,9 @@ export function ClientesPanel({ persona }: { persona?: string }) {
     <ChatThread
       persona={selPersona}
       enviando={enviando}
-      onEnviar={(body) => void enviar(selPersona, body)}
+      onEnviar={(body) => enviar(selPersona, body)}
       onRegistrarEntrante={(opts) =>
-        void registrarEntrante({ persona: selPersona, canal: opts.canal, body: opts.body })
+        registrarEntrante({ persona: selPersona, canal: opts.canal, body: opts.body })
       }
       onArchivar={(m: Mensaje) => void archivar(m)}
       onVolver={esDesktop ? undefined : () => setMovil('lista')}
