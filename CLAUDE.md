@@ -64,7 +64,8 @@ merge del sitio.
 El repo es **privado** desde julio 2026 (fue público). Eso NO relaja las
 reglas: los secretos jamás se commitean (viven en `wrangler secret`, en
 `.dev.vars` o en configs locales de las máquinas de Salva) y los STL/3MF
-siguen fuera del repo (binarios pesados; viven en `C:\formamx\3mf\`).
+siguen fuera del repo (binarios pesados; viven en
+`C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\`).
 
 - Worker (`wrangler secret put`): `STRIPE_SECRET_KEY` (test),
   `STRIPE_WEBHOOK_SECRET`, `ADMIN_TOKEN`, `AGENT_TOKEN`, `NTFY_TOPIC`
