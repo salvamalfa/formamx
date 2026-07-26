@@ -40,8 +40,9 @@ este documento cubre SOLO este proyecto.)
   `tessera.petg.gcode.3mf`, `cuerpo.pla.gcode.3mf` — sin genéricos: el
   G-code fija temperaturas al rebanar, un archivo sin material es ambiguo.
   El agente elige el archivo según el **material de la ranura mapeada**.
-- Los 3MF rebanados viven SOLO en la PC de Salva (`C:\formamx\3mf\
-  {pantalla|cuerpo|tapa}\`). Jamás subir STL/3MF al repo: son binarios
+- Los 3MF rebanados viven SOLO en la PC de Salva
+  (`C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\{pantalla|cuerpo|tapa}\`).
+  Jamás subir STL/3MF al repo: son binarios
   pesados y no son código (la regla nació cuando el repo era público y se
   mantiene ahora que es privado).
   Hoy solo existe el modelo **Tessera**; los otros 4 (diamond, fluted,
@@ -85,10 +86,11 @@ cadena; es LAN propia).
 
 ## Config del agente (PC de Salva, nunca al repo)
 
-`C:\formamx\config.toml`: api_base, agent_token, files_dir, dry_run,
-`[printer]` ip/serial/access_code. El **modo ensayo** (`dry_run = true`)
-simula las impresiones pero SÍ lee el AMS real — sirve para probar el
-circuito completo sin filamento. Log en `C:\formamx\agent.log`.
+`C:\Users\salva\Desktop\FORMA\04-Web\formamx\config.toml`: api_base,
+agent_token, files_dir, dry_run, `[printer]` ip/serial/access_code. El
+**modo ensayo** (`dry_run = true`) simula las impresiones pero SÍ lee el AMS
+real — sirve para probar el circuito completo sin filamento. Log en
+`C:\Users\salva\Desktop\FORMA\04-Web\formamx\agent.log`.
 
 ## Verificación al tocar este proyecto
 
