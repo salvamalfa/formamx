@@ -1,8 +1,9 @@
-Etiqueta pill para materiales, estados y categorías.
+Etiqueta pill; el color dice de qué habla.
 
 ```jsx
-<Tag tone="bosque">madera</Tag>
-<Tag tone="mostaza">en proceso</Tag>
+<Tag tone="taller">madera</Tag>     {/* naranja: materiales de taller */}
+<Tag tone="bosque">exterior</Tag>   {/* verde: afuera, naturaleza */}
+<Tag tone="azul">impresión 3d</Tag> {/* azul: técnico, digital */}
 <Tag tone="tinta">pieza única</Tag>
 ```
 

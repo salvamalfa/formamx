@@ -40,7 +40,7 @@ export function PersonaList({
         <span class="meta-caps text-[var(--text-faint)]">Personas</span>
         <button
           type="button"
-          class="flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--crema-claro)] hover:text-[var(--text-body)]"
+          class="flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--hueso)] hover:text-[var(--text-body)]"
           aria-label="Registrar contacto nuevo"
           title="Registrar contacto nuevo"
           onClick={onNuevoContacto}
@@ -65,7 +65,7 @@ export function PersonaList({
                 key={p.key}
                 type="button"
                 class={`rounded-[var(--radius-s)] p-3 text-left transition-colors ${
-                  activo ? 'bg-[var(--crema-oscuro)]' : 'hover:bg-[var(--crema-claro)]'
+                  activo ? 'bg-[var(--borde)]' : 'hover:bg-[var(--hueso)]'
                 }`}
                 onClick={() => onSelect(p.key)}
               >
@@ -79,7 +79,7 @@ export function PersonaList({
                     <span
                       data-testid="pendiente-dot"
                       title="pendiente"
-                      class="h-2 w-2 shrink-0 rounded-full bg-[var(--naranja)]"
+                      class="h-2 w-2 shrink-0 rounded-full bg-[var(--accent)]"
                     />
                   )}
                 </div>

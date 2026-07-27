@@ -7,19 +7,19 @@ export function Button({ variant = 'primary', size = 'md', disabled = false, chi
   const fontSize = size === 'sm' ? 13 : size === 'lg' ? 16 : 14;
   const variants = {
     primary: {
-      background: press ? 'var(--naranja-oscuro)' : hover ? 'var(--accent-hover)' : 'var(--accent)',
+      background: press ? 'var(--azul-oscuro)' : hover ? 'var(--accent-hover)' : 'var(--accent)',
       color: 'var(--accent-contrast)', border: 'none',
     },
     support: {
       background: press || hover ? 'var(--support-hover)' : 'var(--support)',
-      color: 'var(--crema)', border: 'none',
+      color: 'var(--blanco)', border: 'none',
     },
     secondary: {
-      background: hover ? 'var(--crema-oscuro)' : 'transparent',
+      background: hover ? 'var(--hueso)' : 'transparent',
       color: 'var(--text-body)', border: '1.5px solid var(--border-strong)',
     },
     ghost: {
-      background: hover ? 'var(--crema-oscuro)' : 'transparent',
+      background: hover ? 'var(--hueso)' : 'transparent',
       color: 'var(--text-body)', border: 'none',
     },
   };
@@ -31,7 +31,7 @@ export function Button({ variant = 'primary', size = 'md', disabled = false, chi
     onMouseDown: (e) => { setPress(true); rest.onMouseDown && rest.onMouseDown(e); },
     onMouseUp: (e) => { setPress(false); rest.onMouseUp && rest.onMouseUp(e); },
     style: {
-      fontFamily: 'var(--font-body)', fontWeight: 600, fontSize, padding: pad,
+      fontFamily: 'var(--font-body)', fontWeight: 700, fontSize, padding: pad,
       borderRadius: 'var(--radius-pill)', cursor: disabled ? 'default' : 'pointer',
       opacity: disabled ? 0.45 : 1, transition: 'background var(--duration-fast) var(--ease-out)',
       display: 'inline-flex', alignItems: 'center', gap: 8, lineHeight: 1.2,

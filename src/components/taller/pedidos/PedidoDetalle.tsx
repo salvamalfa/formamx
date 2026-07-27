@@ -191,8 +191,7 @@ export function PedidoDetalle({ id, manifest }: { id: string; manifest: LampImag
                 <LampPreview config={order.config} manifest={manifest} />
                 <div class="flex min-w-0 flex-1 flex-col gap-3">
                   <div
-                    class="rounded-[var(--radius-s)] bg-[var(--crema-claro)] p-3 text-[12px] text-[var(--text-muted)]"
-                    style={{ fontFamily: 'var(--font-mono)' }}
+                    class="rounded-[var(--radius-s)] bg-[var(--hueso)] p-3 text-[12px] text-[var(--text-muted)]"
                   >
                     {configDescription(order.config)}
                   </div>
@@ -239,7 +238,6 @@ export function PedidoDetalle({ id, manifest }: { id: string; manifest: LampImag
             {order.payment_method && (
               <div
                 class="mt-1 text-[11px] text-[var(--text-faint)]"
-                style={{ fontFamily: 'var(--font-mono)' }}
               >
                 pago con {order.payment_method}
               </div>
@@ -270,7 +268,6 @@ export function PedidoDetalle({ id, manifest }: { id: string; manifest: LampImag
             {order.customer.phone && (
               <div
                 class="mt-0.5 text-[12px] text-[var(--text-faint)]"
-                style={{ fontFamily: 'var(--font-mono)' }}
               >
                 {order.customer.phone}
               </div>
@@ -284,7 +281,7 @@ export function PedidoDetalle({ id, manifest }: { id: string; manifest: LampImag
 
 function GuiaRow({ guia }: { guia: Envio }) {
   return (
-    <div class="flex items-center justify-between gap-2 text-[12px]" style={{ fontFamily: 'var(--font-mono)' }}>
+    <div class="flex items-center justify-between gap-2 text-[12px]">
       <span class="text-[var(--text-muted)]">{guia.carrier ?? 'paquetería —'}</span>
       <span class="min-w-0 flex-1 truncate text-[var(--text-faint)]">
         {guia.tracking_number ?? 'sin guía'}
@@ -298,7 +295,7 @@ function ShippingBlock({ order }: { order: Order }) {
   const a = order.shipping?.address;
   const name = order.shipping?.name ?? order.customer.name;
   return (
-    <div class="text-[13px] leading-[1.7] text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-mono)' }}>
+    <div class="text-[13px] leading-[1.7] text-[var(--text-muted)]">
       {name && <div>{name}</div>}
       {a?.line1 && (
         <div>

@@ -1,4 +1,4 @@
-/** Checkbox redondeado; marcado en verde bosque. */
+/** Checkbox redondeado; marcado en azul taller. */
 export interface CheckboxProps {
   label?: string;
   checked?: boolean;

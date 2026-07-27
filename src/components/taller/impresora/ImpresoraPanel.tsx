@@ -42,7 +42,7 @@ export function ImpresoraPanel() {
   return (
     <div class="mt-4 flex flex-col gap-4">
       {!core.bedClear && (
-        <div class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-m)] bg-[var(--highlight-soft)] px-5 py-4">
+        <div class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-m)] bg-[var(--azul-claro)] px-5 py-4">
           <p class="m-0 text-sm text-[var(--tinta)]">
             <strong>La cama no está despejada.</strong> Retira la última pieza para que el
             agente siga mandando trabajos.
@@ -50,7 +50,7 @@ export function ImpresoraPanel() {
           <button
             type="button"
             class="btn btn-sm shrink-0"
-            style={{ background: 'var(--mostaza)', color: 'var(--tinta)' }}
+            style={{ background: 'var(--azul)', color: 'var(--tinta)' }}
             onClick={() => void core.bedCleared()}
           >
             Ya la despejé
@@ -79,8 +79,8 @@ function TrabajoActual({
   amsSyncedAt: string | null;
 }) {
   return (
-    <div class="rounded-[var(--radius-m)] bg-[var(--surface-inverse)] p-5 text-[var(--crema)] shadow-[var(--shadow-card)]">
-      <div class="meta-caps mb-3 text-[10px]" style={{ color: 'rgba(246,238,221,0.5)' }}>
+    <div class="rounded-[var(--radius-m)] bg-[var(--surface-inverse)] p-5 text-[var(--blanco)] shadow-[var(--shadow-card)]">
+      <div class="meta-caps mb-3 text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
         Imprimiendo ahora
       </div>
       {actual ? (
@@ -93,7 +93,7 @@ function TrabajoActual({
               {PART_LABEL[actual.job.part]} · {shortId(actual.order.id)}
             </div>
             <div
-              class="shrink-0 text-[26px] font-bold text-[var(--mostaza)]"
+              class="shrink-0 text-[26px] font-bold text-[var(--azul)]"
               style={{ fontFamily: 'var(--font-display)' }}
             >
               {actual.job.progress_pct ?? 0}%
@@ -101,7 +101,7 @@ function TrabajoActual({
           </div>
           <div
             class="my-4 h-2.5 overflow-hidden rounded-[var(--radius-pill)]"
-            style={{ background: 'rgba(246,238,221,0.15)' }}
+            style={{ background: 'rgba(255,255,255,0.15)' }}
           >
             <div
               class="h-full rounded-[var(--radius-pill)] bg-[var(--naranja)]"
@@ -111,7 +111,7 @@ function TrabajoActual({
               }}
             />
           </div>
-          <div class="meta-caps text-[11px]" style={{ color: 'rgba(246,238,221,0.6)' }}>
+          <div class="meta-caps text-[11px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
             filamento {actual.job.colors.map((c) => colorLabel(c)).join(', ') || '—'}
           </div>
         </>
@@ -121,7 +121,7 @@ function TrabajoActual({
           {/* Nota corta, con otro texto que el aviso de la card de bobinas
               (más abajo) para no duplicar el mismo mensaje dos veces en la
               misma pantalla. */}
-          <p class="meta-caps mt-2 text-[11px]" style={{ color: 'rgba(246,238,221,0.55)' }}>
+          <p class="meta-caps mt-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
             {amsSyncedAt ? `AMS sincronizado ${formatSync(amsSyncedAt)}` : 'AMS sin sincronizar'}
           </p>
         </>
@@ -150,13 +150,12 @@ function EnCola({ jobs }: { jobs: { job: PrintJob; order: Order }[] }) {
               class="grid items-center gap-3 border-t border-[var(--border-soft)] px-2 py-3"
               style={{ gridTemplateColumns: COLA_COLS }}
             >
-              <span class="text-[12px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+              <span class="text-[12px] text-[var(--text-faint)]">
                 {shortId(order.id)}
               </span>
               <span class="text-sm">{PART_LABEL[job.part]}</span>
               <span
                 class="truncate text-right text-[11px] text-[var(--text-muted)]"
-                style={{ fontFamily: 'var(--font-mono)' }}
               >
                 {job.colors.map((c) => colorLabel(c)).join(', ') || '—'}
               </span>
@@ -201,14 +200,12 @@ function BobinasAms({
         {amsSyncedAt ? (
           <span
             class="text-[10px] text-[var(--text-faint)]"
-            style={{ fontFamily: 'var(--font-mono)' }}
           >
             leído de la impresora: {formatSync(amsSyncedAt)}
           </span>
         ) : (
           <span
             class="text-[10px] text-[var(--naranja-oscuro)]"
-            style={{ fontFamily: 'var(--font-mono)' }}
           >
             sin lectura de la impresora — arranca el agente
           </span>
@@ -235,7 +232,6 @@ function BobinasAms({
                 {hex && catalogId && (
                   <span
                     class="text-[10px] text-[var(--text-faint)]"
-                    style={{ fontFamily: 'var(--font-mono)' }}
                   >
                     {hex}
                   </span>
@@ -243,14 +239,13 @@ function BobinasAms({
                 <span
                   class="ml-auto shrink-0 text-[11px]"
                   style={{
-                    fontFamily: 'var(--font-mono)',
                     color: bajo ? 'var(--naranja-oscuro)' : 'var(--text-faint)',
                   }}
                 >
                   {empty ? '—' : pct == null ? 'sin datos' : `${pct}%`}
                 </span>
               </div>
-              <div class="h-1.5 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--crema-oscuro)]">
+              <div class="h-1.5 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--borde)]">
                 {pct != null && (
                   <div
                     class="h-full rounded-[var(--radius-pill)]"
@@ -276,7 +271,7 @@ export function BedAlert() {
   if (bedClear) return null;
   return (
     <div
-      class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-m)] bg-[var(--tinta)] p-4 text-[var(--crema)]"
+      class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-m)] bg-[var(--tinta)] p-4 text-[var(--blanco)]"
       role="alert"
     >
       <p class="m-0 text-sm">

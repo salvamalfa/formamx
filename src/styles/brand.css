@@ -1,57 +1,87 @@
 /* Brand kit "forma" — tokens y componentes del design system de Claude Design
-   (_ds/forma-brand-kit). Con alcance a .brand-forma para no interferir con las
-   páginas que aún usan el estilo anterior (/banca, /lampara). */
+   (proyecto "Forma - Brand Kit"; el espejo local vive en ds-bundle/). Con
+   alcance a .brand-forma para no interferir con lo que aún use el estilo
+   anterior.
+
+   Paleta de julio 2026: fondo blanco, azul taller como color principal
+   (acciones, enlaces, metadata, foco), naranja SOLO para materiales y oficio
+   —nunca un botón ni un enlace—, verde bosque para lo que vive afuera. El
+   crema y el mostaza salieron de la paleta. Ver ds-bundle/readme.md. */
 
 .brand-forma {
-  /* ── Color ─────────────────────────────────────────── */
-  --crema: #F6EEDD;
-  --crema-claro: #FBF6EB;
-  --crema-oscuro: #EFE3CB;
-  --blanco: #FFFDF8;
+  /* ── Color: base ───────────────────────────────────── */
+  --blanco: #ffffff;
+  --hueso: #f7f7f5; /* bandas de sección */
+  --borde: #e8e8e4;
+  --gris: #6e6e68; /* texto secundario */
+  --gris-claro: #a8a8a2; /* texto secundario sobre tinta */
+  --gris-tenue: #9a9a94; /* etiquetas, pistas */
+  --tinta: #1a1a18;
 
-  --tinta: #1E1A14;
-  --tinta-suave: #5C5342;
-  --tinta-tenue: #8A7A5E;
+  /* ── Color: azul taller (principal) ────────────────── */
+  --azul: #2e6da4;
+  --azul-oscuro: #245883; /* hover, texto sobre azul-claro */
+  --azul-claro: #e6eff7; /* fondos de tag y foco */
+  --azul-noche: #5b95c7; /* sobre tinta */
 
-  --naranja: #D06A2C;
-  --naranja-oscuro: #B5541E;
-  --naranja-claro: #F2D9BC;
+  /* ── Color: naranja (taller y materiales) ──────────── */
+  --naranja: #d06a2c;
+  --naranja-oscuro: #a8511d;
+  --naranja-claro: #faebdf;
+  --naranja-noche: #e28e5a;
+  --naranja-sombra: #3a2a1e; /* fondo de tag sobre tinta */
 
-  --mostaza: #E3A63B;
-  --mostaza-claro: #F3E3BE;
-  --mostaza-oscuro: #8A6510;
+  /* ── Color: verde bosque (afuera) ──────────────────── */
+  --bosque: #3e5a40;
+  --bosque-oscuro: #2f4632;
+  --bosque-claro: #e4eae0;
+  --bosque-noche: #7a9b7c;
+  --bosque-sombra: #28332a;
 
-  --bosque: #3E5A40;
-  --bosque-oscuro: #2F4632;
-  --bosque-claro: #E4EAE0;
-
-  --surface-page: var(--crema);
+  /* ── Color: semánticos ─────────────────────────────── */
+  --surface-page: var(--blanco);
   --surface-card: var(--blanco);
-  --surface-sunken: var(--crema-oscuro);
+  --surface-sunken: var(--hueso);
   --surface-inverse: var(--tinta);
 
   --text-body: var(--tinta);
-  --text-muted: var(--tinta-suave);
-  --text-faint: var(--tinta-tenue);
-  --text-inverse: var(--crema);
+  --text-muted: var(--gris);
+  --text-faint: var(--gris-tenue);
+  --text-inverse: var(--blanco);
 
-  --accent: var(--naranja);
-  --accent-hover: var(--naranja-oscuro);
+  --accent: var(--azul);
+  --accent-hover: var(--azul-oscuro);
   --accent-contrast: var(--blanco);
+  --accent-soft: var(--azul-claro);
+
+  --taller: var(--naranja);
+  --taller-soft: var(--naranja-claro);
+  --taller-ink: var(--naranja-oscuro);
+
   --support: var(--bosque);
   --support-hover: var(--bosque-oscuro);
   --support-soft: var(--bosque-claro);
-  --highlight: var(--mostaza);
-  --highlight-soft: var(--mostaza-claro);
 
-  --border-soft: #E8DCC2;
-  --border-strong: #D8C9A8;
-  --focus-ring: var(--mostaza);
+  --border-soft: var(--borde);
+  --border-strong: #d8d8d3;
+  /* El kit apunta --focus-ring al azul claro, que ahí es el halo del Input
+     (borde azul + halo). Aquí el token se usa como el trazo visible del
+     focus-visible, así que va el azul pleno: el halo solo no se ve. */
+  --focus-ring: var(--azul);
 
   /* ── Tipografía ────────────────────────────────────── */
+  /* Una sola familia en todo: el kit retiró la monoespaciada. Los datos del
+     taller conservan la alineación con cifras de ancho fijo
+     (font-variant-numeric, más abajo). */
   --font-display: 'Alan Sans', ui-sans-serif, system-ui, sans-serif;
   --font-body: 'Alan Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-meta: 'Alan Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --weight-display: 700; /* títulos */
+  --weight-display-strong: 800; /* cifras o una palabra destacada */
+  --weight-body: 400;
+  --weight-body-medium: 500;
+  --weight-body-bold: 700;
 
   --text-xs: 12px;
   --text-sm: 14px;
@@ -64,13 +94,16 @@
 
   --leading-display: 1.15;
   --leading-body: 1.6;
+  --leading-tight: 1.3;
   --tracking-caps: 0.08em;
   --tracking-display: -0.01em;
-  --meta-size: 12px;
-  --meta-tracking: 0.05em;
+
+  /* Metadata: Alan Sans 700, MAYÚSCULAS, tracking amplio */
+  --meta-size: 11.5px;
+  --meta-weight: 700;
+  --meta-tracking: 0.12em;
 
   /* ── Espaciado / radios / sombras ──────────────────── */
-  /* Escala de espaciado (copiada de ds-bundle/tokens/spacing.css). */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -88,20 +121,26 @@
   --radius-l: 24px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 1px 2px rgba(30, 26, 20, 0.05), 0 6px 20px rgba(30, 26, 20, 0.07);
-  --shadow-raised: 0 2px 4px rgba(30, 26, 20, 0.08), 0 12px 32px rgba(30, 26, 20, 0.12);
+  --shadow-card: 0 1px 2px rgba(26, 26, 24, 0.05), 0 6px 20px rgba(26, 26, 24, 0.07);
+  --shadow-raised: 0 2px 4px rgba(26, 26, 24, 0.08), 0 12px 32px rgba(26, 26, 24, 0.12);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-fast: 150ms;
   --duration-slow: 300ms;
 
   font-family: var(--font-body);
+  /* Sustituye a la monoespaciada: las columnas de datos del taller siguen
+     alineadas aunque todo el sitio use Alan Sans. */
+  font-variant-numeric: tabular-nums;
 }
 
-/* Metadata mono en mayúsculas (componente Meta del kit) */
+/* Metadata en mayúsculas (componente Meta del kit). El color lo pone quien la
+   usa —azul sobre claro, --azul-noche sobre tinta— para no ganarle a las
+   utilidades de Tailwind, que van en capa y pierden contra esta regla. */
 .brand-forma .meta-caps {
-  font-family: var(--font-mono);
+  font-family: var(--font-meta);
   font-size: var(--meta-size);
+  font-weight: var(--meta-weight);
   letter-spacing: var(--meta-tracking);
   text-transform: uppercase;
 }
@@ -109,7 +148,7 @@
 /* Botones (componente Button del kit) */
 .brand-forma .btn {
   font-family: var(--font-body);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   padding: 11px 22px;
   border-radius: var(--radius-pill);
@@ -129,13 +168,35 @@
 .brand-forma .btn-primary { background: var(--accent); color: var(--accent-contrast); }
 .brand-forma .btn-primary:hover { background: var(--accent-hover); }
 
-.brand-forma .btn-support { background: var(--support); color: var(--crema); }
+.brand-forma .btn-support { background: var(--support); color: var(--blanco); }
 .brand-forma .btn-support:hover { background: var(--support-hover); }
 
-.brand-forma .btn-ghost { background: transparent; color: var(--crema); }
-.brand-forma .btn-ghost:hover { background: rgba(246, 238, 221, 0.12); }
+/* Secundario del kit: contorno sobre fondo claro */
+.brand-forma .btn-secondary {
+  background: transparent;
+  color: var(--text-body);
+  border: 1.5px solid var(--border-strong);
+}
+.brand-forma .btn-secondary:hover { background: var(--hueso); }
 
-/* Tags (componente Tag del kit) */
+/* Secundario sobre tinta (cabecera de la portada en modo noche) */
+.brand-forma .btn-secondary-noche {
+  background: transparent;
+  color: var(--blanco);
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+}
+.brand-forma .btn-secondary-noche:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* Fantasma sobre tinta (portada en modo noche) */
+.brand-forma .btn-ghost { background: transparent; color: var(--blanco); }
+.brand-forma .btn-ghost:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* Fantasma sobre fondo claro */
+.brand-forma .btn-ghost-claro { background: transparent; color: var(--text-body); }
+.brand-forma .btn-ghost-claro:hover { background: var(--hueso); }
+
+/* Tags (componente Tag del kit). Un tono por trabajo: azul lo técnico,
+   naranja los materiales, bosque lo que vive afuera. */
 .brand-forma .tag {
   font-family: var(--font-body);
   font-size: 12px;
@@ -149,8 +210,18 @@
   white-space: nowrap;
 }
 
+.brand-forma .tag-neutral { background: var(--hueso); color: var(--text-muted); }
+.brand-forma .tag-azul { background: var(--azul-claro); color: var(--azul-oscuro); }
+.brand-forma .tag-taller { background: var(--taller-soft); color: var(--taller-ink); }
 .brand-forma .tag-bosque { background: var(--support-soft); color: var(--support); }
 .brand-forma .tag-tinta { background: var(--surface-inverse); color: var(--text-inverse); }
+.brand-forma .tag-blanco { background: var(--blanco); color: var(--tinta); }
+
+/* Variantes sobre tinta (modo noche) */
+.brand-forma .tag-neutral-noche { background: #262623; color: var(--gris-claro); }
+.brand-forma .tag-azul-noche { background: #1e2a33; color: var(--azul-noche); }
+.brand-forma .tag-taller-noche { background: var(--naranja-sombra); color: var(--naranja-noche); }
+.brand-forma .tag-bosque-noche { background: var(--bosque-sombra); color: var(--bosque-noche); }
 
 /* Chips de filtro de la bitácora (ambiente noche) */
 .brand-forma .chip {
@@ -160,9 +231,9 @@
   cursor: pointer;
   padding: 6px 14px;
   border-radius: var(--radius-pill);
-  border: 1.5px solid rgba(246, 238, 221, 0.3);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   background: transparent;
-  color: var(--crema-oscuro);
+  color: var(--gris-claro);
   transition:
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
@@ -170,13 +241,12 @@
 }
 
 .brand-forma .chip.activo {
-  border-color: var(--mostaza);
-  background: var(--mostaza);
+  border-color: var(--azul-noche);
+  background: var(--azul-noche);
   color: var(--tinta);
 }
 
-/* Chips sobre fondo claro (sub-pestañas del taller). El .chip de arriba está
-   pensado para ambiente noche; este es su variante para el dashboard. */
+/* Chips sobre fondo claro (sub-pestañas del taller) */
 .brand-forma .chip-claro {
   font-family: var(--font-body);
   font-size: 13px;
@@ -194,27 +264,18 @@
 }
 
 .brand-forma .chip-claro:hover {
-  background: var(--crema-claro);
+  background: var(--hueso);
 }
 
 .brand-forma .chip-claro.activo {
   background: var(--tinta);
   border-color: var(--tinta);
-  color: var(--crema);
+  color: var(--blanco);
   font-weight: 700;
 }
 
-/* Botón fantasma sobre fondo claro (el .btn-ghost del kit es para tinta). */
-.brand-forma .btn-ghost-claro {
-  background: transparent;
-  color: var(--tinta);
-}
-
-.brand-forma .btn-ghost-claro:hover {
-  background: var(--crema-oscuro);
-}
-
-/* Tarjeta de proyecto (componente ProjectCard del kit) */
+/* Tarjeta de proyecto (componente ProjectCard del kit). Blanco sobre blanco:
+   la separa la sombra, no un color de fondo. */
 .brand-forma .project-card {
   background: var(--surface-card);
   border-radius: var(--radius-m);
@@ -242,7 +303,7 @@
 }
 
 .brand-forma .nav-btn:focus-visible {
-  outline-color: var(--focus-ring);
+  outline-color: var(--accent);
 }
 
 /* Menú móvil: tarjeta sólida sobre la página, como las cards del kit */
@@ -271,7 +332,7 @@
 }
 
 .brand-forma .menu-movil a:not(.btn):hover {
-  background: var(--crema-oscuro);
+  background: var(--hueso);
 }
 
 @keyframes menu-in {
@@ -285,7 +346,7 @@
   }
 }
 
-/* Input (componente Input del kit) */
+/* Input (componente Input del kit): foco en azul, el color principal */
 .brand-forma .input-brand {
   font-family: var(--font-body);
   font-size: 15px;
@@ -301,8 +362,8 @@
 }
 
 .brand-forma .input-brand:focus {
-  border-color: var(--support);
-  outline: 3px solid var(--support-soft);
+  border-color: var(--accent);
+  outline: 3px solid var(--accent-soft);
 }
 
 .brand-forma .input-brand::placeholder {

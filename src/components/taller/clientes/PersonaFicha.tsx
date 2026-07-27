@@ -60,7 +60,7 @@ export function PersonaFicha({
           <div class="text-[15px] font-bold">{nombre}</div>
           <div
             class="mt-0.5 text-[10px] uppercase text-[var(--text-faint)]"
-            style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}
+            style={{ letterSpacing: '0.04em' }}
           >
             {persona.kind === 'cliente'
               ? `${persona.cliente.city ?? 'Sin ciudad'} · desde ${mesAnio(persona.cliente.created_at)}`
@@ -162,7 +162,6 @@ function FichaCliente({
           <a
             href={`tel:${cliente.phone}`}
             class="mt-0.5 block text-[12px] text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
-            style={{ fontFamily: 'var(--font-mono)' }}
           >
             {cliente.phone}
           </a>
@@ -191,14 +190,13 @@ function FichaCliente({
             <button
               key={p.id}
               type="button"
-              class="flex w-full items-center justify-between gap-2 border-t border-[var(--border-soft)] py-2 text-left transition-colors hover:bg-[var(--crema-claro)]"
+              class="flex w-full items-center justify-between gap-2 border-t border-[var(--border-soft)] py-2 text-left transition-colors hover:bg-[var(--hueso)]"
               onClick={() => navigate({ vista: 'pedido', id: p.id })}
             >
               <span class="min-w-0">
                 <span class="block truncate text-[13px] font-medium">{productLabel(p)}</span>
                 <span
                   class="mt-px block text-[10px] text-[var(--text-faint)]"
-                  style={{ fontFamily: 'var(--font-mono)' }}
                 >
                   {p.id} · {money(p.amount_mxn)}
                 </span>
@@ -209,8 +207,8 @@ function FichaCliente({
         )}
       </div>
 
-      <div class="rounded-[var(--radius-s)] p-3" style={{ background: 'var(--highlight-soft)' }}>
-        <div class="meta-caps mb-1 text-[var(--tinta-suave)]">Notas</div>
+      <div class="rounded-[var(--radius-s)] p-3" style={{ background: 'var(--azul-claro)' }}>
+        <div class="meta-caps mb-1 text-[var(--gris)]">Notas</div>
         <textarea
           class="w-full resize-y rounded-[var(--radius-s)] border border-[var(--border-soft)] bg-[var(--blanco)] p-2 text-[13px] outline-none focus:border-[var(--support)]"
           rows={3}

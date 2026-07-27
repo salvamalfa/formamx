@@ -1,4 +1,4 @@
-/** Interruptor pill; encendido en verde bosque. */
+/** Interruptor pill; encendido en azul taller. */
 export interface SwitchProps {
   label?: string;
   checked?: boolean;

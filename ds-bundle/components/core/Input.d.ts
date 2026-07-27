@@ -1,4 +1,4 @@
-/** Campo de texto (o textarea con multiline). Foco verde bosque con halo suave. */
+/** Campo de texto (o textarea con multiline). Foco azul taller con halo suave. */
 export interface InputProps {
   label?: string;
   /** Texto de ayuda bajo el campo */

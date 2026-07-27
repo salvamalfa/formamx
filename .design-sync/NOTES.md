@@ -7,4 +7,5 @@
 - No se genera `_ds_sync.json` (no hay recipe para este shape): cada re-sync compara contra el remoto con `list_files`/`get_file` o re-sube todo — es barato (~80 archivos, ~10 MB).
 - El `readme.md` del kit ya es el archivo de convenciones (voz, color, tipo, componentes); no se autora `conventions.md` aparte.
 - Re-sync: extraer el zip actualizado a `ds-bundle/` (gitignoreado), `finalize_plan` con los mismos globs y re-subir. El proyecto destino está pineado en `config.json`.
+- **2026-07-27 — cambió el proyecto destino.** Salva rehízo el kit en `de3143d0-f23a-4b70-9a24-cd6713c5db0f` ("Forma - Brand Kit", tipo proyecto normal, no design system). `config.json` ya apunta ahí; el anterior `02d55857-…` ("Forma Brand Kit") sigue existiendo pero quedó congelado en la paleta crema. Al subir, `register_assets` es el camino para las tarjetas del panel: en un proyecto normal no hay compilador que lea los marcadores `@dsCard`.
 - Fuentes tipográficas vienen de Google Fonts (sin binarios locales) — caveat documentado en el readme del kit.

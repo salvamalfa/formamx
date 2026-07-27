@@ -260,7 +260,7 @@ function BobinaRow({
         />
         <span class="truncate text-sm font-semibold">{colorLabel(bobina.color_id)}</span>
       </span>
-      <span class="text-[12px] text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-mono)' }}>
+      <span class="text-[12px] text-[var(--text-muted)]">
         {bobina.material}
       </span>
       <span class="truncate text-sm text-[var(--text-muted)]">{bobina.brand ?? '—'}</span>
@@ -274,7 +274,7 @@ function BobinaRow({
           value={peso}
           onInput={(e) => setPeso((e.target as HTMLInputElement).value)}
         />
-        <span class="text-[11px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+        <span class="text-[11px] text-[var(--text-faint)]">
           / {bobina.weight_g} g
         </span>
         <button
@@ -345,7 +345,7 @@ function BobinaCard({
         {bobina.brand ? `${bobina.brand} · ` : ''}
         {bobina.material} · {formatSync(bobina.created_at)}
       </p>
-      <p class="m-0 text-sm" style={{ fontFamily: 'var(--font-mono)' }}>
+      <p class="m-0 text-sm">
         {bobina.weight_left_g} g / {bobina.weight_g} g
       </p>
       <div class="mt-1 flex flex-wrap items-center gap-2">
@@ -695,7 +695,6 @@ function PiezaRow({
         {pieza.config && (
           <span
             class="mt-0.5 block truncate text-[11px] text-[var(--text-faint)]"
-            style={{ fontFamily: 'var(--font-mono)' }}
           >
             pantalla {colorLabel(pieza.config.pantalla)} · tapa {colorLabel(pieza.config.tapa)}
           </span>

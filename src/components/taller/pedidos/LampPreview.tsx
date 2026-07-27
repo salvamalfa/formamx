@@ -21,7 +21,7 @@ export function LampPreview({
   const shade = manifest[pantallaKey(model, pantalla)];
 
   return (
-    <div class="relative h-32 w-28 shrink-0 self-center rounded-[var(--radius-s)] bg-[var(--crema-oscuro)]">
+    <div class="relative h-32 w-28 shrink-0 self-center rounded-[var(--radius-s)] bg-[var(--hueso)]">
       {base && (
         <img
           src={base.src}

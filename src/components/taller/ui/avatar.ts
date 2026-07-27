@@ -5,7 +5,7 @@
 const PALETAS: { bg: string; color: string }[] = [
   { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
   { bg: 'var(--bosque-claro)', color: 'var(--bosque-oscuro)' },
-  { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
+  { bg: 'var(--azul-claro)', color: 'var(--azul-oscuro)' },
 ];
 
 function hash(s: string): number {

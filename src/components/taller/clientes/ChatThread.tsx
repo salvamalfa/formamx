@@ -22,7 +22,7 @@ function Burbuja({ mensaje, onArchivar }: { mensaje: Mensaje; onArchivar: () => 
         class="text-sm"
         style={{
           maxWidth: '78%',
-          background: out ? 'var(--naranja)' : 'var(--blanco)',
+          background: out ? 'var(--accent)' : 'var(--blanco)',
           color: out ? 'var(--blanco)' : 'var(--text-body)',
           border: out ? 'none' : '1px solid var(--border-soft)',
           borderRadius: out ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
@@ -33,14 +33,13 @@ function Burbuja({ mensaje, onArchivar }: { mensaje: Mensaje; onArchivar: () => 
         {mensaje.body}
       </div>
       <div class="mt-1 flex items-center gap-2">
-        <span class="text-[10px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+        <span class="text-[10px] text-[var(--text-faint)]">
           {formatSync(mensaje.created_at)}
         </span>
         {!optimista && (
           <button
             type="button"
             class="text-[10px] text-[var(--text-faint)] uppercase transition-colors hover:text-[var(--text-muted)]"
-            style={{ fontFamily: 'var(--font-mono)' }}
             onClick={onArchivar}
           >
             archivar
@@ -208,8 +207,8 @@ export function ChatThread({
           {nombre}
         </button>
         <span
-          class="shrink-0 rounded-full bg-[var(--crema-oscuro)] px-2 py-0.5 text-[10px] uppercase text-[var(--text-faint)]"
-          style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}
+          class="shrink-0 rounded-full bg-[var(--hueso)] px-2 py-0.5 text-[10px] uppercase text-[var(--text-faint)]"
+          style={{ letterSpacing: '0.04em' }}
         >
           {canal}
         </span>
@@ -219,7 +218,7 @@ export function ChatThread({
         ref={zonaRef}
         data-testid="chat-mensajes"
         class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5"
-        style={{ background: 'var(--crema-claro)' }}
+        style={{ background: 'var(--hueso)' }}
       >
         {mensajes.length === 0 ? (
           <p class="m-auto text-center text-[13px] text-[var(--text-faint)]">
@@ -238,7 +237,7 @@ export function ChatThread({
         <div class="flex gap-2 border-t border-[var(--border-soft)] px-3 py-3 sm:px-4">
           <input
             type="text"
-            class="min-w-0 flex-1 rounded-full border border-[var(--border-soft)] bg-[var(--crema-claro)] px-4 py-2.5 text-sm outline-none focus:border-[var(--support)]"
+            class="min-w-0 flex-1 rounded-full border border-[var(--border-soft)] bg-[var(--hueso)] px-4 py-2.5 text-sm outline-none focus:border-[var(--support)]"
             placeholder="Escribe un mensaje…"
             aria-label="Escribe un mensaje"
             value={borrador}
