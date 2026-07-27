@@ -33,7 +33,7 @@ function NavButton({ label, activo, onClick, badge }: NavEntry) {
       <span>{label}</span>
       {badge ? (
         <span
-          class="rounded-full bg-[var(--azul)] px-2 py-px text-[11px] text-[var(--tinta)]"
+          class="rounded-full bg-[var(--blanco)] px-2 py-px text-[11px] font-bold text-[var(--tinta)]"
         >
           {badge}
         </span>
