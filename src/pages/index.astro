@@ -14,9 +14,9 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
 <BaseLayout
   title="forma"
   description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Cada pieza se hace una vez."
-  themeColor="#1E1A14"
+  themeColor="#1A1A18"
 >
-  <main class="brand-forma min-h-dvh bg-[var(--tinta)] text-[var(--crema)]">
+  <main class="brand-forma min-h-dvh bg-[var(--tinta)] text-[var(--blanco)]">
     <!-- Cabecera -->
     <header class="relative mx-auto flex max-w-[1100px] items-center justify-between gap-6 px-6 py-5 sm:px-12">
       <a href="/" aria-label="forma — inicio" class="shrink-0">
@@ -25,10 +25,10 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
 
       <!-- Nav en línea (tablet y escritorio) -->
       <nav class="hidden items-center gap-7 sm:flex">
-        <a href="/" class="text-[15px] font-semibold text-[var(--crema)] no-underline">Bitácora</a>
-        <a href="#bitacora" class="text-[15px] text-[var(--crema-oscuro)] no-underline">Piezas</a>
-        <span class="cursor-default text-[15px] text-[var(--crema-oscuro)]">Quién</span>
-        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-support">Escríbeme</a>
+        <a href="/" class="text-[15px] font-semibold text-[var(--blanco)] no-underline">Bitácora</a>
+        <a href="#bitacora" class="text-[15px] text-[var(--gris-claro)] no-underline">Piezas</a>
+        <span class="cursor-default text-[15px] text-[var(--gris-claro)]">Quién</span>
+        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-secondary-noche">Escríbeme</a>
       </nav>
 
       <!-- Menú móvil: botón hamburguesa + panel desplegable -->
@@ -38,7 +38,7 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
         aria-expanded="false"
         aria-controls="menu-movil"
         aria-label="Abrir menú"
-        class="grid size-10 cursor-pointer place-items-center rounded-full border-[1.5px] border-[rgba(246,238,221,0.3)] bg-transparent text-[var(--crema)] sm:hidden"
+        class="grid size-10 cursor-pointer place-items-center rounded-full border-[1.5px] border-[rgba(255,255,255,0.3)] bg-transparent text-[var(--blanco)] sm:hidden"
       >
         <svg data-icon="abrir" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path>
@@ -52,7 +52,7 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
         <a href="/" class="font-semibold">Bitácora</a>
         <a href="#bitacora">Piezas</a>
         <span class="cursor-default px-3 py-2.5 text-[15px] text-[var(--text-faint)]">Quién</span>
-        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-support mt-1.5 justify-center">Escríbeme</a>
+        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-primary mt-1.5 justify-center">Escríbeme</a>
       </nav>
     </header>
 
@@ -61,14 +61,14 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
       class="mx-auto grid max-w-[1100px] items-center gap-12 px-6 pt-12 sm:px-12 md:grid-cols-[1.1fr_1fr]"
     >
       <div>
-        <p class="meta-caps m-0 text-[var(--naranja-claro)]">Taller de proyectos — Desde 2026</p>
+        <p class="meta-caps m-0 text-[var(--azul-noche)]">Taller de proyectos — Desde 2026</p>
         <h1
-          class="m-0 mt-3.5 text-[length:var(--display-lg)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)] text-[var(--crema)] md:text-[length:var(--display-xl)]"
+          class="m-0 mt-3.5 text-[length:var(--display-lg)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)] text-[var(--blanco)] md:text-[length:var(--display-xl)]"
           style="font-family: var(--font-display)"
         >
           Cada pieza se hace una vez.
         </h1>
-        <p class="m-0 mt-[18px] max-w-[440px] text-[length:var(--text-lg)] leading-[var(--leading-body)] text-[var(--crema-oscuro)]">
+        <p class="m-0 mt-[18px] max-w-[440px] text-[length:var(--text-lg)] leading-[var(--leading-body)] text-[var(--gris-claro)]">
           Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema,
           documentado. Se vende, si quieres — pero primero la historia.
         </p>
@@ -90,7 +90,7 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
     <section id="bitacora" class="mx-auto max-w-[1100px] px-6 py-16 sm:px-12">
       <div class="flex flex-wrap items-baseline justify-between gap-6">
         <h2
-          class="m-0 text-[length:var(--display-md)] font-bold text-[var(--crema)]"
+          class="m-0 text-[length:var(--display-md)] font-bold text-[var(--blanco)]"
           style="font-family: var(--font-display)"
         >
           Bitácora
@@ -114,6 +114,7 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
           tags={['madera', 'exterior']}
           unique
           href="/banca"
+          dark
         />
         <ProjectCard
           cat="impresión 3d"
@@ -122,8 +123,9 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
           note="Tercer intento del difusor. Los dos primeros se doblaron."
           tags={['impresión 3d', 'luz']}
           href="/lampara"
+          dark
         >
-          <div slot="media" class="relative h-[210px] w-full bg-[var(--crema-oscuro)]">
+          <div slot="media" class="relative h-[210px] w-full border-b border-[#33332f] bg-[#242421]">
             <Image
               src={lampBase}
               alt=""
@@ -148,16 +150,17 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
           title="Video: el jardín en junio"
           note="Grabando las tardes. Sin guion, con pájaros."
           tags={['video', 'naturaleza']}
+          dark
         />
       </div>
     </section>
 
     <!-- Pie con aviso por correo -->
-    <footer class="border-t border-[rgba(246,238,221,0.15)] bg-[var(--surface-inverse)] px-6 py-14 sm:px-12">
+    <footer class="border-t border-[rgba(255,255,255,0.14)] bg-[var(--surface-inverse)] px-6 py-14 sm:px-12">
       <div class="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-12">
         <div>
           <Image src={logoBlanco} alt="forma" class="block h-[26px] w-auto" />
-          <p class="m-0 mt-3.5 max-w-[340px] text-sm leading-[1.6] text-[var(--naranja-claro)]">
+          <p class="m-0 mt-3.5 max-w-[340px] text-sm leading-[1.6] text-[var(--gris-claro)]">
             Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez
             en cuando.
           </p>

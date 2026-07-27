@@ -26,7 +26,6 @@ function StatusBadge({
     <span
       class="inline-block whitespace-nowrap rounded-[var(--radius-pill)] text-[11px]"
       style={{
-        fontFamily: 'var(--font-mono)',
         background: badge.bg,
         color: badge.color,
         padding: size === 'lg' ? '5px 14px' : '3px 10px',
@@ -42,23 +41,23 @@ function DesktopRow({ order }: { order: Order }) {
     <button
       type="button"
       onClick={() => navigate({ vista: 'pedido', id: order.id })}
-      class="grid w-full items-center gap-3 rounded-[var(--radius-s)] border-t border-[var(--border-soft)] px-2 py-3 text-left transition-colors hover:bg-[var(--crema-claro)]"
+      class="grid w-full items-center gap-3 rounded-[var(--radius-s)] border-t border-[var(--border-soft)] px-2 py-3 text-left transition-colors hover:bg-[var(--hueso)]"
       style={{ gridTemplateColumns: COLS }}
     >
-      <span class="truncate text-[12px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+      <span class="truncate text-[12px] text-[var(--text-faint)]">
         {shortId(order.id)}
       </span>
       <span class="min-w-0">
         <span class="block truncate text-sm font-semibold">{productLabel(order)}</span>
-        <span class="mt-0.5 block text-[11px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+        <span class="mt-0.5 block text-[11px] text-[var(--text-faint)]">
           {typeLabel(order)}
         </span>
       </span>
       <span class="truncate text-sm text-[var(--text-muted)]">{order.customer.name ?? '—'}</span>
-      <span class="text-[12px] text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-mono)' }}>
+      <span class="text-[12px] text-[var(--text-muted)]">
         {formatDate(order.created_at)}
       </span>
-      <span class="text-[12px]" style={{ fontFamily: 'var(--font-mono)' }}>
+      <span class="text-[12px]">
         {money(order.amount_mxn)}
       </span>
       <span class="justify-self-end">
@@ -73,12 +72,12 @@ function MobileCard({ order }: { order: Order }) {
     <button
       type="button"
       onClick={() => navigate({ vista: 'pedido', id: order.id })}
-      class="flex w-full flex-col gap-2 rounded-[var(--radius-s)] border-t border-[var(--border-soft)] px-2 py-3 text-left transition-colors hover:bg-[var(--crema-claro)]"
+      class="flex w-full flex-col gap-2 rounded-[var(--radius-s)] border-t border-[var(--border-soft)] px-2 py-3 text-left transition-colors hover:bg-[var(--hueso)]"
     >
       <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
           <span class="block text-sm font-semibold">{productLabel(order)}</span>
-          <span class="mt-0.5 block text-[11px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+          <span class="mt-0.5 block text-[11px] text-[var(--text-faint)]">
             {typeLabel(order)}
           </span>
         </div>
@@ -86,7 +85,6 @@ function MobileCard({ order }: { order: Order }) {
       </div>
       <div
         class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--text-muted)]"
-        style={{ fontFamily: 'var(--font-mono)' }}
       >
         <span class="text-[var(--text-faint)]">{shortId(order.id)}</span>
         <span aria-hidden="true">·</span>

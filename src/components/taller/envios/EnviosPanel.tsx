@@ -26,7 +26,7 @@ function EstadoBadge({ status }: { status: string }) {
   return (
     <span
       class="inline-block whitespace-nowrap rounded-[var(--radius-pill)] text-[11px]"
-      style={{ fontFamily: 'var(--font-mono)', background: badge.bg, color: badge.color, padding: '3px 10px' }}
+      style={{ background: badge.bg, color: badge.color, padding: '3px 10px' }}
     >
       {ENVIO_STATUS_LABEL[status] ?? status}
     </span>
@@ -75,21 +75,20 @@ function EnvioRow({ envio, onAvanzar }: { envio: Envio; onAvanzar: (status: stri
   return (
     <div class="border-t border-[var(--border-soft)] px-2 py-3">
       <div class="grid items-center gap-3" style={{ gridTemplateColumns: ENVIOS_COLS }}>
-        <span class="truncate text-[12px] text-[var(--text-faint)]" style={{ fontFamily: 'var(--font-mono)' }}>
+        <span class="truncate text-[12px] text-[var(--text-faint)]">
           {shortId(envio.id)}
         </span>
         <button
           type="button"
           aria-label={`Ver pedido ${shortId(envio.order_id)}`}
           class="justify-self-start truncate text-[12px] text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
-          style={{ fontFamily: 'var(--font-mono)' }}
           onClick={() => navigate({ vista: 'pedido', id: envio.order_id })}
         >
           {shortId(envio.order_id)}
         </button>
         <span class="truncate text-sm">{ciudad ?? '—'}</span>
         <span class="truncate text-sm text-[var(--text-muted)]">{envio.carrier ?? '—'}</span>
-        <span class="truncate text-[12px] text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-mono)' }}>
+        <span class="truncate text-[12px] text-[var(--text-muted)]">
           <GuiaTexto envio={envio} />
         </span>
         <span class="justify-self-end">
@@ -120,7 +119,7 @@ function EnvioCard({ envio, onAvanzar }: { envio: Envio; onAvanzar: (status: str
         {ciudad ? `${ciudad} · ` : ''}
         {formatSync(envio.created_at)}
       </p>
-      <p class="m-0 text-sm text-[var(--text-muted)]" style={{ fontFamily: 'var(--font-mono)' }}>
+      <p class="m-0 text-sm text-[var(--text-muted)]">
         {envio.carrier ?? 'Sin paquetería'}
         {envio.tracking_number && (
           <>

@@ -12,12 +12,12 @@ export function Checkbox({ label, checked, defaultChecked = false, onChange, sty
       style: {
         width: 20, height: 20, borderRadius: 6, flexShrink: 0, boxSizing: 'border-box',
         border: isOn ? 'none' : '1.5px solid var(--border-strong)',
-        background: isOn ? 'var(--support)' : 'var(--blanco)',
+        background: isOn ? 'var(--accent)' : 'var(--blanco)',
         display: 'grid', placeItems: 'center',
         transition: 'background var(--duration-fast) var(--ease-out)',
       },
     }, isOn ? React.createElement('svg', { width: 12, height: 12, viewBox: '0 0 12 12' },
-      React.createElement('path', { d: 'M2 6.5L5 9.5L10 3', stroke: 'var(--crema)', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' })
+      React.createElement('path', { d: 'M2 6.5L5 9.5L10 3', stroke: 'var(--blanco)', strokeWidth: 2, fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' })
     ) : null),
     label
   );

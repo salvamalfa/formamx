@@ -22,14 +22,19 @@
 
 ## VISUAL FOUNDATIONS
 
-- **Vibe:** setentero sobrio. Cálido, artesanal, elegante; deja hablar al objeto.
-- **Color:** fondo crema `#F6EEDD` (la página nunca es blanca pura); tinta `#1E1A14` para texto (nunca negro #000); naranja quemado `#D06A2C` como acento de acción; mostaza `#E3A63B` para detalles y focos; verde bosque `#3E5A40` como apoyo (tags, secciones, éxito). Ver `tokens/colors.css`.
-- **Tipografía:** Alan Sans en todo — Bold 700 en títulos (800 solo para cifras o una palabra), 400/500/700 en textos y UI; IBM Plex Mono para metadata (fecha · material · nº pieza). Una sola familia, cohesiva y limpia; el logo NUNCA se usa como fuente de títulos: es la marca.
-- **Fondos:** planos, color crema; bloques de color pleno (naranja, bosque, tinta) para secciones o tarjetas destacadas. **Sin gradientes.** Fotos a sangre completa cuando la pieza es protagonista.
+- **Vibe:** sobrio y artesanal, con un fondo blanco limpio que deja hablar al objeto. Cálido en los acentos, nunca decorativo.
+- **Color — tres colores con un trabajo cada uno.** Ver `tokens/colors.css`.
+  - **Azul taller `#2E6DA4` — PRINCIPAL.** Todo lo accionable e informativo: botones primarios, enlaces, metadata, filtro activo, foco. Es el color con el que se reconoce la marca. Sobre tinta usa `--azul-noche #5B95C7`.
+  - **Naranja `#D06A2C` — TALLER.** Solo materiales y oficio: madera, barro, metal, barniz. Nunca como botón ni enlace. Tags con `--taller-soft` de fondo y `--taller-ink` de texto.
+  - **Verde bosque `#3E5A40` — AFUERA.** Lo que vive fuera del taller: exterior, naturaleza, energía renovable, jardín.
+  - **Base:** fondo `#FFFFFF`, bandas de sección `--hueso #F7F7F5`, texto `--tinta #1A1A18` (nunca #000), texto secundario `--gris #6E6E68`, bordes `--borde #E8E8E4`.
+  - Fuera de la paleta: el mostaza y el crema de versiones anteriores. No los uses.
+- **Tipografía: Alan Sans en TODO** (una sola familia, sin monoespaciada). Títulos Bold 700 (800 solo para una cifra o una palabra); textos 400/500. **Metadata** (fecha · material · nº pieza) = Alan Sans 700, MAYÚSCULAS, `letter-spacing: 0.12em`, en azul taller — es el hilo conductor de la bitácora. El logo NUNCA se usa como fuente de títulos: es la marca.
+- **Fondos:** blanco por defecto, `--hueso` para separar una banda de sección; bloques de color pleno (azul, tinta) para destacar. **Sin gradientes.** Fotos a sangre cuando la pieza es protagonista.
 - **Imágenes:** fotos reales con luz natural cálida (sol de tarde), exteriores, sin filtros fríos. La pieza en uso, no en estudio.
 - **Bordes y radios:** todo redondeado (`--radius-m: 16px` en tarjetas, `--radius-pill` en botones y tags). Nunca esquinas duras.
 - **Sombras:** cálidas y suaves (tinta 5–10%), ver `--shadow-card`. Nada de sombras negras duras.
-- **Tarjetas:** fondo `--blanco` sobre página crema, borde `--border-soft` opcional, sombra `--shadow-card`, radio 16px.
+- **Tarjetas:** blanco sobre blanco, separadas por sombra `--shadow-card` (no por color de fondo); borde `--border-soft` opcional, radio 16px. En modo noche, tarjeta `--tinta` y texto `--blanco`.
 - **Hover:** botones oscurecen (`--accent-hover`); tarjetas suben la sombra (`--shadow-raised`) y nada más. **Press:** oscurecer un paso, sin encoger.
 - **Animación:** discreta — fades y desplazamientos cortos con `--ease-out`, 150–300ms. Sin rebotes.
 - **Transparencia/blur:** no se usan. Superficies sólidas.
@@ -37,7 +42,7 @@
 
 ## ICONOGRAPHY
 
-- **Marca:** wordmark + 2 iconos derivados del logo en `assets/logo/` (la «f» suelta y la «f» en contenedor app). El icono de app oficial es `icono-app-f.svg`.
+- **Marca:** wordmark + 3 iconos derivados del logo en `assets/logo/` (la «f», la «f» en contenedor app, la «o»). El icono de app oficial es `icono-app-f.svg`.
 - **Iconos UI:** no existía un set. **Sustitución flagged:** usar [Lucide](https://lucide.dev) vía CDN (`https://unpkg.com/lucide@latest`), trazo 2px, redondeado — combina con lo blando de la marca. Usar POCOS iconos; forma prefiere texto y metadata mono.
 - **Emoji:** nunca. **Unicode como icono:** solo «·» como separador de metadata y «→» en enlaces.
 

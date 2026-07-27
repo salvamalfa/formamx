@@ -30,8 +30,7 @@ export default function BuyBanca({ productId = 'banca-001' }: { productId?: stri
   const mailto = (
     <a
       href="mailto:hola@forma.mx"
-      class="text-xs text-[var(--naranja-oscuro)] underline underline-offset-[3px] hover:text-[var(--naranja)]"
-      style="font-family: var(--font-mono)"
+      class="text-xs text-[var(--accent)] underline underline-offset-[3px] hover:text-[var(--accent-hover)]"
     >
       ¿una a tu medida?
     </a>

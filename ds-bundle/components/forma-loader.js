@@ -24,7 +24,7 @@
   var code = files.map(function (f) { return xhr(base + f) || ''; }).join('\n');
   code = code.replace(/^import .*$/gm, '').replace(/^export /gm, '');
   try {
-    window.Forma = new Function(code + '\nreturn { Button: Button, Tag: Tag, Input: Input, Checkbox: Checkbox, Switch: Switch, Meta: Meta, ProjectCard: ProjectCard };')();
+    window.Forma = new Function(code + '\nreturn { Button: Button, Tag: Tag, Input: Input, Checkbox: Checkbox, Switch: Switch, Meta: Meta, ProjectCard: ProjectCard, tagTone: tagTone };')();
   } catch (e) {
     console.error('forma-loader: no se pudieron construir los componentes', e);
   }

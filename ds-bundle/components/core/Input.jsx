@@ -9,8 +9,8 @@ export function Input({ label, hint, multiline = false, style, ...rest }) {
     style: {
       fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--text-body)',
       background: 'var(--blanco)', width: '100%', boxSizing: 'border-box',
-      border: focus ? '1.5px solid var(--support)' : '1.5px solid var(--border-strong)',
-      outline: focus ? '3px solid var(--support-soft)' : 'none',
+      border: focus ? '1.5px solid var(--accent)' : '1.5px solid var(--border-strong)',
+      outline: focus ? '3px solid var(--accent-soft)' : 'none',
       borderRadius: 'var(--radius-s)', padding: '11px 14px',
       minHeight: multiline ? 96 : undefined, resize: multiline ? 'vertical' : undefined,
       transition: 'border-color var(--duration-fast) var(--ease-out)',

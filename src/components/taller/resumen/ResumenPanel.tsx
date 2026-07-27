@@ -206,7 +206,7 @@ export function ResumenPanel() {
             </div>
 
             <div
-              class="flex flex-col rounded-[var(--radius-m)] p-5 text-[var(--crema)] shadow-[var(--shadow-card)]"
+              class="flex flex-col rounded-[var(--radius-m)] p-5 text-[var(--blanco)] shadow-[var(--shadow-card)]"
               style={{ background: 'var(--bosque)' }}
             >
               <h2 class="m-0 mb-2 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
@@ -214,7 +214,7 @@ export function ResumenPanel() {
               </h2>
               {sinResponder > 0 ? (
                 <>
-                  <p class="m-0 mb-4 text-[13px]" style={{ color: 'rgba(246,238,221,0.7)' }}>
+                  <p class="m-0 mb-4 text-[13px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
                     {sinResponder === 1
                       ? 'Un mensaje espera respuesta.'
                       : `${sinResponder} mensajes esperan respuesta.`}
@@ -224,21 +224,21 @@ export function ResumenPanel() {
                       <button
                         key={h.key}
                         type="button"
-                        class="rounded-[var(--radius-s)] bg-[rgba(246,238,221,0.08)] p-3 text-left transition-colors hover:bg-[rgba(246,238,221,0.16)]"
+                        class="rounded-[var(--radius-s)] bg-[rgba(255,255,255,0.08)] p-3 text-left transition-colors hover:bg-[rgba(255,255,255,0.16)]"
                         onClick={() => navigate({ vista: 'clientes', persona: h.persona })}
                       >
                         <div class="flex items-center justify-between gap-2">
                           <span class="truncate text-[13px] font-medium">{h.nombre}</span>
                           <span
                             class="shrink-0 text-[10px] uppercase"
-                            style={{ fontFamily: 'var(--font-mono)', color: 'rgba(246,238,221,0.55)' }}
+                            style={{ color: 'rgba(255,255,255,0.55)' }}
                           >
                             {h.canal}
                           </span>
                         </div>
                         <div
                           class="mt-1 line-clamp-2 text-[13px]"
-                          style={{ color: 'rgba(246,238,221,0.75)' }}
+                          style={{ color: 'rgba(255,255,255,0.75)' }}
                         >
                           {h.preview}
                         </div>
@@ -247,13 +247,13 @@ export function ResumenPanel() {
                   </div>
                 </>
               ) : (
-                <p class="m-0 flex-1 text-[13px]" style={{ color: 'rgba(246,238,221,0.7)' }}>
+                <p class="m-0 flex-1 text-[13px]" style={{ color: 'rgba(255,255,255,0.7)' }}>
                   Nada pendiente por responder.
                 </p>
               )}
               <button
                 type="button"
-                class="mt-4 self-start text-[13px] font-medium text-[var(--crema)]"
+                class="mt-4 self-start text-[13px] font-medium text-[var(--blanco)]"
                 onClick={() => navigate({ vista: 'clientes' })}
               >
                 Ir a clientes →

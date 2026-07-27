@@ -48,15 +48,15 @@ export interface Badge {
   color: string;
 }
 
-const BADGE_CERRADO: Badge = { bg: 'var(--crema-oscuro)', color: 'var(--text-faint)' };
+const BADGE_CERRADO: Badge = { bg: 'var(--hueso)', color: 'var(--text-faint)' };
 
 export const STATUS_BADGE: Record<string, Badge> = {
-  pendiente: { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
-  pagada: { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
+  pendiente: { bg: 'var(--azul-claro)', color: 'var(--azul-oscuro)' },
+  pagada: { bg: 'var(--azul-claro)', color: 'var(--azul-oscuro)' },
   en_cola: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
   imprimiendo: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
   lista: { bg: 'var(--bosque-claro)', color: 'var(--bosque)' },
-  enviada: { bg: 'var(--crema-oscuro)', color: 'var(--tinta-suave)' },
+  enviada: { bg: 'var(--hueso)', color: 'var(--gris)' },
   cancelada: BADGE_CERRADO,
 };
 

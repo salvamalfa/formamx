@@ -230,8 +230,8 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
                     onClick={() => setModelId(m.id)}
                     class={`shrink-0 cursor-pointer rounded-full border-[1.5px] px-4 py-1.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
                       m.id === modelId
-                        ? 'border-[var(--support)] bg-[var(--support-soft)] text-[var(--support)]'
-                        : 'border-[var(--border-strong)] bg-transparent text-[var(--text-muted)] hover:border-[var(--support)]'
+                        ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-hover)]'
+                        : 'border-[var(--border-strong)] bg-transparent text-[var(--text-muted)] hover:border-[var(--accent)]'
                     }`}
                   >
                     {m.label}

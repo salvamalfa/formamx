@@ -1,47 +1,63 @@
-/* forma — color. Paleta setentera cálida: crema, tinta, naranja quemado, mostaza, verde bosque. */
+/* forma — color.
+   Azul taller = color principal (acciones, enlaces, metadata).
+   Naranja = materiales de taller (madera, barro, metal).
+   Verde bosque = lo que vive afuera (exterior, naturaleza, energía).
+   Fondo BLANCO. No hay crema ni mostaza. */
 :root {
   /* Base */
-  --crema: #F6EEDD;
-  --crema-claro: #FBF6EB;
-  --crema-oscuro: #EFE3CB;
-  --blanco: #FFFDF8;
+  --blanco: #FFFFFF;
+  --hueso: #F7F7F5;        /* bandas de sección */
+  --borde: #E8E8E4;
+  --gris: #6E6E68;         /* texto secundario */
+  --gris-claro: #A8A8A2;   /* texto secundario sobre tinta */
+  --gris-tenue: #9A9A94;   /* etiquetas, pistas */
+  --tinta: #1A1A18;
 
-  --tinta: #1E1A14;
-  --tinta-suave: #5C5342;
-  --tinta-tenue: #8A7A5E;
+  /* Azul taller — principal */
+  --azul: #2E6DA4;
+  --azul-oscuro: #245883;  /* hover, texto sobre azul-claro */
+  --azul-claro: #E6EFF7;   /* fondos de tag y foco */
+  --azul-noche: #5B95C7;   /* sobre tinta */
 
+  /* Naranja — taller y materiales */
   --naranja: #D06A2C;
-  --naranja-oscuro: #B5541E;
-  --naranja-claro: #F2D9BC;
+  --naranja-oscuro: #A8511D;
+  --naranja-claro: #FAEBDF;
+  --naranja-noche: #E28E5A;
+  --naranja-sombra: #3A2A1E; /* fondo de tag sobre tinta */
 
-  --mostaza: #E3A63B;
-  --mostaza-claro: #F3E3BE;
-
+  /* Verde bosque — afuera */
   --bosque: #3E5A40;
   --bosque-oscuro: #2F4632;
   --bosque-claro: #E4EAE0;
+  --bosque-noche: #7A9B7C;
+  --bosque-sombra: #28332A;
 
   /* Semánticos */
-  --surface-page: var(--crema);
+  --surface-page: var(--blanco);
   --surface-card: var(--blanco);
-  --surface-sunken: var(--crema-oscuro);
+  --surface-sunken: var(--hueso);
   --surface-inverse: var(--tinta);
 
   --text-body: var(--tinta);
-  --text-muted: var(--tinta-suave);
-  --text-faint: var(--tinta-tenue);
-  --text-inverse: var(--crema);
+  --text-muted: var(--gris);
+  --text-faint: var(--gris-tenue);
+  --text-inverse: var(--blanco);
 
-  --accent: var(--naranja);
-  --accent-hover: var(--naranja-oscuro);
+  --accent: var(--azul);
+  --accent-hover: var(--azul-oscuro);
   --accent-contrast: var(--blanco);
+  --accent-soft: var(--azul-claro);
+
+  --taller: var(--naranja);
+  --taller-soft: var(--naranja-claro);
+  --taller-ink: var(--naranja-oscuro);
+
   --support: var(--bosque);
   --support-hover: var(--bosque-oscuro);
   --support-soft: var(--bosque-claro);
-  --highlight: var(--mostaza);
-  --highlight-soft: var(--mostaza-claro);
 
-  --border-soft: #E8DCC2;
-  --border-strong: #D8C9A8;
-  --focus-ring: var(--mostaza);
+  --border-soft: var(--borde);
+  --border-strong: #D8D8D3;
+  --focus-ring: var(--azul-claro);
 }

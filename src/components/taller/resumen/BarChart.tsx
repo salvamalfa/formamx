@@ -30,8 +30,9 @@ function formatK(centavos: number): string {
 }
 
 // Gráfica de barras de ventas por mes, CSS puro (sin librerías). El mes
-// actual es siempre el último de la serie: resalta en naranja, el resto en
-// crema oscuro. Accesible vía `role="img"` + `aria-label` que enumera
+// actual es siempre el último de la serie: resalta en azul —el color de lo
+// informativo—, el resto en el gris del borde. Accesible vía `role="img"` +
+// `aria-label` que enumera
 // "mes: valor" (el mes actual se marca aparte en el label).
 export function BarChart({ serie }: { serie: ResumenVentasPunto[] }) {
   if (serie.length === 0) {
@@ -54,8 +55,7 @@ export function BarChart({ serie }: { serie: ResumenVentasPunto[] }) {
             <span
               class="text-[11px]"
               style={{
-                fontFamily: 'var(--font-mono)',
-                color: actual ? 'var(--naranja-oscuro)' : 'var(--text-faint)',
+                color: actual ? 'var(--accent-hover)' : 'var(--text-faint)',
               }}
             >
               {formatK(p.total_mxn)}
@@ -64,7 +64,7 @@ export function BarChart({ serie }: { serie: ResumenVentasPunto[] }) {
               class={actual ? 'mes-actual w-full max-w-[56px]' : 'w-full max-w-[56px]'}
               style={{
                 height: `${alto}px`,
-                background: actual ? 'var(--naranja)' : 'var(--crema-oscuro)',
+                background: actual ? 'var(--accent)' : 'var(--borde)',
                 borderRadius: '8px 8px 4px 4px',
                 transition: 'height var(--duration-slow) var(--ease-out)',
               }}

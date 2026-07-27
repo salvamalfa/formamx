@@ -1,7 +1,8 @@
-/** Etiqueta pill para materiales, estados y categorías («madera», «en proceso», «pieza única»). Siempre minúsculas salvo TINTA para sellos. */
+/** Etiqueta pill para materiales, estados y categorías. El color dice de qué habla: naranja = material de taller, verde = exterior/naturaleza, azul = técnico/digital. */
 export interface TagProps {
-  /** 'neutral' crema · 'bosque' materiales/éxito · 'mostaza' en proceso · 'naranja' destacado · 'tinta' sello (pieza única) */
-  tone?: 'neutral' | 'bosque' | 'mostaza' | 'naranja' | 'tinta';
+  /** 'neutral' hueso · 'taller' naranja (madera, barro, metal) · 'bosque' verde (exterior, naturaleza) · 'azul' técnico (3d, código, video) · 'tinta' sello (pieza única) · sufijo `-noche` para tarjetas sobre tinta, 'blanco' para el sello ahí */
+  tone?: 'neutral' | 'taller' | 'bosque' | 'azul' | 'tinta' | 'blanco'
+    | 'neutral-noche' | 'taller-noche' | 'bosque-noche' | 'azul-noche';
   children?: React.ReactNode;
 }
 export declare function Tag(props: TagProps): JSX.Element;

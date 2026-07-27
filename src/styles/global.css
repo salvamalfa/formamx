@@ -13,7 +13,7 @@
   --color-muted:        oklch(50% 0.01 264);
 
   --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-mono: ui-monospace, monospace;
 
   --radius-card: 0.75rem;
   --radius-btn:  0.5rem;

@@ -1,7 +1,7 @@
 ---
 // Página de proyecto "La banca de los abuelos", con el brand kit de forma:
-// crema/tinta, Alan Sans para títulos y cuerpo, IBM Plex Mono para metadata,
-// ficha de compra como tarjeta blanca con el CTA naranja del kit.
+// blanco/tinta, Alan Sans en todo (metadata en mayúsculas y azul taller),
+// ficha de compra como tarjeta blanca con el CTA azul del kit.
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import BuyBanca from '../components/BuyBanca.tsx';
@@ -13,7 +13,7 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
   title="La banca de los abuelos"
   description="Una silla baja para leer en el jardín, hecha para dos personas que ya no tienen prisa. Pieza única en venta."
 >
-  <main class="brand-forma min-h-dvh bg-[var(--crema)] pb-20 pt-10 text-[var(--text-body)]">
+  <main class="brand-forma min-h-dvh bg-[var(--surface-page)] pb-20 pt-10 text-[var(--text-body)]">
     <div class="mx-auto max-w-[640px] px-6">
       <header class="mb-10 flex items-center justify-between">
         <a href="/" aria-label="forma — inicio" class="shrink-0">
@@ -50,8 +50,7 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
         class="h-auto w-full rounded-[var(--radius-m)]"
       />
       <p
-        class="mb-10 mt-3 text-xs text-[var(--text-faint)]"
-        style="font-family: var(--font-mono); letter-spacing: var(--meta-tracking)"
+        class="mb-10 mt-3 text-xs italic text-[var(--text-faint)]"
       >
         La primera tarde de sol. El libro es de mi abuelo.
       </p>
@@ -66,7 +65,7 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
         class="grid items-center gap-6 rounded-[var(--radius-m)] bg-[var(--surface-card)] p-7 shadow-[var(--shadow-card)] sm:grid-cols-[auto_1fr_auto] sm:gap-8"
       >
         <div class="flex flex-col gap-1.5">
-          <span class="meta-caps text-[var(--support)]">Pieza única — 1 de 1</span>
+          <span class="meta-caps text-[var(--accent)]">Pieza única — 1 de 1</span>
           <span>
             <span
               class="text-[28px] font-extrabold leading-tight"
@@ -79,7 +78,6 @@ import bancaPhoto from '../assets/photos/banca.jpeg';
         </div>
         <div
           class="text-[11px] leading-[1.9] text-[var(--text-muted)] sm:border-l sm:border-[var(--border-soft)] sm:pl-6"
-          style="font-family: var(--font-mono)"
         >
           pino estufado · tinte + aceite<br />142 × 58 × 61 cm · 9.5 kg<br />envío CDMX
           incluido

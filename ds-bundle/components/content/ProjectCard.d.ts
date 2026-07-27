@@ -12,10 +12,12 @@ export interface ProjectCardProps {
   title: string;
   /** Una frase honesta del proceso, no copy de venta */
   note?: string;
-  /** Materiales/categorías en minúsculas */
+  /** Materiales/categorías en minúsculas. El color del tag se elige solo: naranja para materiales de taller, azul para técnico/digital, verde para el resto. */
   tags?: string[];
   /** Muestra el sello «pieza única» */
   unique?: boolean;
+  /** Modo noche: tarjeta tinta, título blanco, tags en tonos oscuros */
+  dark?: boolean;
   onClick?: () => void;
 }
 export declare function ProjectCard(props: ProjectCardProps): JSX.Element;

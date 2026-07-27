@@ -13,10 +13,10 @@ export interface EnvioBadge {
   color: string;
 }
 
-const ENVIO_BADGE_DEFAULT: EnvioBadge = { bg: 'var(--crema-oscuro)', color: 'var(--text-faint)' };
+const ENVIO_BADGE_DEFAULT: EnvioBadge = { bg: 'var(--hueso)', color: 'var(--text-faint)' };
 
 export const ENVIO_STATUS_BADGE: Record<string, EnvioBadge> = {
-  creada: { bg: 'var(--mostaza-claro)', color: 'var(--mostaza-oscuro)' },
+  creada: { bg: 'var(--azul-claro)', color: 'var(--azul-oscuro)' },
   en_transito: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
   entregada: { bg: 'var(--bosque-claro)', color: 'var(--bosque)' },
   incidencia: { bg: 'var(--naranja-claro)', color: 'var(--naranja-oscuro)' },
