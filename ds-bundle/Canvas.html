@@ -1,0 +1,141 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="design_doc_mode" content="canvas"><title>Bitácora web — variantes naranja</title><link rel="stylesheet" href="styles.css"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><style>
+body{margin:0;font-family:var(--font-body);color:var(--text-body)}
+a{color:var(--azul);text-decoration:none}a:hover{color:var(--azul-oscuro)}
+.frame{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radius-l);overflow:hidden;box-shadow:var(--shadow-card)}
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 40px}
+.nav{display:flex;gap:26px;align-items:center}.nav a{font-size:14px}
+.btn{font-family:inherit;font-weight:600;cursor:pointer;border-radius:var(--radius-pill);border:none;transition:filter var(--duration-fast) var(--ease-out)}
+.btn:hover{filter:brightness(0.94)}
+.btn-sm{font-size:13px;padding:8px 16px}.btn-lg{font-size:16px;padding:13px 24px}
+.hero{padding:24px 40px 48px;display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center}
+.hero img{width:100%;height:330px;object-fit:cover;border-radius:var(--radius-l)}
+.eyebrow{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+h1{font-weight:700;font-size:58px;line-height:1.12;letter-spacing:-0.01em;margin:14px 0 0}
+.lede{font-size:18px;line-height:1.6;margin:16px 0 0;max-width:420px;text-wrap:pretty}
+.cta{display:flex;gap:12px;margin-top:26px}
+.sec{padding:36px 40px 40px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:24px}
+.sec-head h2{font-weight:700;font-size:28px;margin:0}
+.chips{display:flex;gap:8px}
+.chip{font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 14px;border-radius:var(--radius-pill);border:1.5px solid var(--border-strong);background:transparent;color:var(--gris)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:20px}
+.card{border:1px solid var(--borde);border-radius:var(--radius-m);overflow:hidden;background:var(--blanco)}
+.card>img{width:100%;height:150px;object-fit:cover;display:block}
+.card>.ph{width:100%;height:150px;display:grid;place-items:center;font-size:13px;background:var(--hueso);color:var(--gris-tenue)}
+.card-body{padding:16px}
+.meta{font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase}
+.card-title{font-weight:700;font-size:20px;margin-top:6px}
+.note{font-size:14px;line-height:1.55;color:var(--gris);margin-top:6px}
+.tags{display:flex;gap:6px;margin-top:12px}
+.tag{font-size:12px;font-weight:600;padding:4px 10px;border-radius:var(--radius-pill)}
+.t-madera{background:var(--naranja-claro);color:var(--naranja-oscuro)}
+.t-afuera{background:var(--bosque-claro);color:var(--bosque-oscuro)}
+.t-azul{background:var(--azul-claro);color:var(--azul-oscuro)}
+footer{padding:36px 40px;display:flex;justify-content:space-between;gap:40px;align-items:center}
+footer p{font-size:14px;line-height:1.6;margin:12px 0 0;max-width:320px;text-wrap:pretty}
+.sub{display:flex;gap:10px}
+.sub input{font-family:inherit;font-size:15px;padding:11px 16px;border-radius:var(--radius-pill);width:230px}
+.label{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+.badge{background:var(--tinta);color:var(--blanco);font-weight:700;font-size:13px;letter-spacing:0.08em;padding:5px 12px;border-radius:var(--radius-pill)}
+.label b{font-size:20px}.label span{font-size:15px;color:var(--gris)}
+</style><link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@300..900&display=swap" rel="stylesheet"></head>
+<body>
+
+<section id="1a" style="position:absolute;left:80px;top:80px;width:1100px">
+<div class="label"><div class="badge">1a</div><b>Naranja de acción</b><span>El azul se queda en enlaces y metadata; el naranja toma botones, chips y tags.</span></div>
+<div class="frame">
+<header class="hdr" style="border-bottom:1px solid var(--borde)">
+<img src="assets/logo/forma-negro.svg" style="height:26px" alt="forma">
+<nav class="nav"><a href="#1a" style="color:var(--tinta);font-weight:600">Bitácora</a><a href="#1a" style="color:var(--gris)">Piezas</a><a href="#1a" style="color:var(--gris)">Quién</a><button class="btn btn-sm" style="background:var(--azul);color:var(--blanco)">Escríbeme</button></nav>
+</header>
+<div class="hero">
+<div>
+<div class="eyebrow" style="color:var(--azul)"><span>Taller de proyectos</span><span style="color:var(--border-strong)">·</span><span>Desde 2026</span></div>
+<h1>Cada pieza se hace una vez.</h1>
+<p class="lede" style="color:var(--gris)">Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema, documentado.</p>
+<div class="cta"><button class="btn btn-lg" style="background:var(--naranja);color:var(--blanco)">Ver la bitácora</button><button class="btn btn-lg" style="background:transparent;color:var(--azul);padding-left:18px;padding-right:18px">Quién soy →</button></div>
+</div>
+<img src="assets/imagenes/silla-jardin-01.jpeg" alt="silla de jardín al sol">
+</div>
+<div class="sec">
+<div class="sec-head"><h2>Bitácora</h2><div class="chips"><button class="chip" style="border-color:var(--azul);background:var(--azul-claro);color:var(--azul-oscuro)">todos</button><button class="chip">madera</button><button class="chip">impresión 3d</button><button class="chip">video</button></div></div>
+<div class="grid">
+<div class="card"><img src="assets/imagenes/silla-jardin-01.jpeg" alt="silla de jardín"><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 001 · 2026.04 · Pino</div><div class="card-title">Silla de jardín</div><div class="note">La primera capa quedó chueca. La segunda, mejor.</div><div class="tags"><span class="tag t-madera">madera</span><span class="tag t-afuera">exterior</span></div></div></div>
+<div class="card"><div class="ph">foto pendiente</div><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 002 · En proceso · PLA</div><div class="card-title">Lámpara impresa</div><div class="note">Tercer intento del difusor. Los dos primeros se doblaron.</div><div class="tags"><span class="tag t-madera">impresión 3d</span><span class="tag t-azul">luz</span></div></div></div>
+<div class="card"><div class="ph">grabando</div><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 003 · Pronto</div><div class="card-title">Video: el jardín en junio</div><div class="note">Grabando las tardes. Sin guion, con pájaros.</div><div class="tags"><span class="tag t-afuera">video</span><span class="tag t-afuera">naturaleza</span></div></div></div>
+</div>
+</div>
+<footer style="background:var(--tinta)">
+<div><img src="assets/logo/forma-blanco.svg" style="height:24px" alt="forma"><p style="color:var(--gris-claro)">Sin algoritmo de por medio: te escribo cuando hay pieza nueva.</p></div>
+<div class="sub"><input placeholder="tu@correo.com" style="border:1.5px solid var(--naranja-sombra);background:#0F0F0E;color:var(--blanco)"><button class="btn" style="font-size:15px;padding:11px 22px;background:var(--naranja);color:var(--blanco)">Avísame</button></div>
+</footer>
+</div>
+</section>
+
+<section id="1b" style="position:absolute;left:1300px;top:80px;width:1100px">
+<div class="label"><div class="badge">1b</div><b>Portada naranja</b><span>La portada entera sobre naranja claro; el resto de la página queda blanco.</span></div>
+<div class="frame">
+<div style="background:var(--naranja-claro)">
+<header class="hdr">
+<img src="assets/logo/forma-negro.svg" style="height:26px" alt="forma">
+<nav class="nav"><a href="#1b" style="color:var(--tinta);font-weight:600">Bitácora</a><a href="#1b" style="color:var(--azul-oscuro)">Piezas</a><a href="#1b" style="color:var(--azul-oscuro)">Quién</a><button class="btn btn-sm" style="background:var(--azul);color:var(--blanco)">Escríbeme</button></nav>
+</header>
+<div class="hero">
+<div>
+<div class="eyebrow" style="color:var(--azul-oscuro)"><span>Taller de proyectos</span><span style="color:var(--azul);opacity:0.4">·</span><span>Desde 2026</span></div>
+<h1>Cada pieza se hace una vez.</h1>
+<p class="lede" style="color:var(--gris)">Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema, documentado.</p>
+<div class="cta"><button class="btn btn-lg" style="background:var(--tinta);color:var(--blanco)">Ver la bitácora</button><button class="btn btn-lg" style="background:transparent;color:var(--naranja-oscuro);padding-left:18px;padding-right:18px">Quién soy →</button></div>
+</div>
+<img src="assets/imagenes/silla-jardin-01.jpeg" alt="silla de jardín al sol">
+</div>
+</div>
+<div class="sec">
+<div class="sec-head"><h2>Bitácora</h2><div class="chips"><button class="chip" style="border-color:var(--azul);background:var(--azul-claro);color:var(--azul-oscuro)">todos</button><button class="chip">madera</button><button class="chip">impresión 3d</button><button class="chip">video</button></div></div>
+<div class="grid">
+<div class="card"><img src="assets/imagenes/silla-jardin-01.jpeg" alt="silla de jardín"><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 001 · 2026.04 · Pino</div><div class="card-title">Silla de jardín</div><div class="note">La primera capa quedó chueca. La segunda, mejor.</div><div class="tags"><span class="tag t-madera">madera</span><span class="tag t-afuera">exterior</span></div></div></div>
+<div class="card"><div class="ph" style="background:var(--naranja-claro);color:var(--naranja-oscuro)">foto pendiente</div><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 002 · En proceso · PLA</div><div class="card-title">Lámpara impresa</div><div class="note">Tercer intento del difusor. Los dos primeros se doblaron.</div><div class="tags"><span class="tag t-madera">impresión 3d</span><span class="tag t-azul">luz</span></div></div></div>
+<div class="card"><div class="ph" style="background:var(--naranja-claro);color:var(--naranja-oscuro)">grabando</div><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 003 · Pronto</div><div class="card-title">Video: el jardín en junio</div><div class="note">Grabando las tardes. Sin guion, con pájaros.</div><div class="tags"><span class="tag t-afuera">video</span><span class="tag t-afuera">naturaleza</span></div></div></div>
+</div>
+</div>
+<footer style="background:var(--tinta)">
+<div><img src="assets/logo/forma-blanco.svg" style="height:24px" alt="forma"><p style="color:var(--gris-claro)">Sin algoritmo de por medio: te escribo cuando hay pieza nueva.</p></div>
+<div class="sub"><input placeholder="tu@correo.com" style="border:1.5px solid var(--naranja-sombra);background:#0F0F0E;color:var(--blanco)"><button class="btn" style="font-size:15px;padding:11px 22px;background:var(--naranja);color:var(--blanco)">Avísame</button></div>
+</footer>
+</div>
+</section>
+
+<section id="1c" style="position:absolute;left:2520px;top:80px;width:1100px">
+<div class="label"><div class="badge">1c</div><b>Naranja pleno</b><span>El naranja como color de marca: portada a sangre, tipografía en blanco, pie en sombra de taller.</span></div>
+<div class="frame">
+<div style="background:var(--naranja)">
+<header class="hdr">
+<img src="assets/logo/forma-blanco.svg" style="height:26px" alt="forma">
+<nav class="nav"><a href="#1c" style="color:var(--blanco);font-weight:600">Bitácora</a><a href="#1c" style="color:var(--naranja-claro)">Piezas</a><a href="#1c" style="color:var(--naranja-claro)">Quién</a><button class="btn btn-sm" style="background:var(--blanco);color:var(--azul-oscuro)">Escríbeme</button></nav>
+</header>
+<div class="hero">
+<div>
+<div class="eyebrow" style="color:var(--naranja-claro)"><span>Taller de proyectos</span><span style="opacity:0.5">·</span><span>Desde 2026</span></div>
+<h1 style="color:var(--blanco)">Cada pieza se hace una vez.</h1>
+<p class="lede" style="color:var(--naranja-claro)">Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema, documentado.</p>
+<div class="cta"><button class="btn btn-lg" style="background:var(--tinta);color:var(--blanco)">Ver la bitácora</button><button class="btn btn-lg" style="background:transparent;color:var(--blanco);border:1.5px solid rgba(255,255,255,0.6)">Quién soy →</button></div>
+</div>
+<img src="assets/imagenes/silla-jardin-01.jpeg" alt="silla de jardín al sol">
+</div>
+</div>
+<div class="sec">
+<div class="sec-head"><h2>Bitácora</h2><div class="chips"><button class="chip" style="border-color:var(--azul);background:var(--azul);color:var(--blanco)">todos</button><button class="chip">madera</button><button class="chip">impresión 3d</button><button class="chip">video</button></div></div>
+<div class="grid">
+<div class="card"><img src="assets/imagenes/silla-jardin-01.jpeg" alt="silla de jardín"><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 001 · 2026.04 · Pino</div><div class="card-title">Silla de jardín</div><div class="note">La primera capa quedó chueca. La segunda, mejor.</div><div class="tags"><span class="tag t-madera">madera</span><span class="tag t-afuera">exterior</span></div></div></div>
+<div class="card"><div class="ph" style="background:var(--naranja-claro);color:var(--naranja-oscuro)">foto pendiente</div><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 002 · En proceso · PLA</div><div class="card-title">Lámpara impresa</div><div class="note">Tercer intento del difusor. Los dos primeros se doblaron.</div><div class="tags"><span class="tag t-madera">impresión 3d</span><span class="tag t-azul">luz</span></div></div></div>
+<div class="card"><div class="ph" style="background:var(--naranja-claro);color:var(--naranja-oscuro)">grabando</div><div class="card-body"><div class="meta" style="color:var(--azul)">Proyecto 003 · Pronto</div><div class="card-title">Video: el jardín en junio</div><div class="note">Grabando las tardes. Sin guion, con pájaros.</div><div class="tags"><span class="tag t-afuera">video</span><span class="tag t-afuera">naturaleza</span></div></div></div>
+</div>
+</div>
+<footer style="background:var(--naranja-sombra)">
+<div><img src="assets/logo/forma-blanco.svg" style="height:24px" alt="forma"><p style="color:var(--naranja-noche)">Sin algoritmo de por medio: te escribo cuando hay pieza nueva.</p></div>
+<div class="sub"><input placeholder="tu@correo.com" style="border:1.5px solid var(--naranja-oscuro);background:#2A1D14;color:var(--blanco)"><button class="btn" style="font-size:15px;padding:11px 22px;background:var(--naranja);color:var(--blanco)">Avísame</button></div>
+</footer>
+</div>
+</section>
+
+</body></html>
