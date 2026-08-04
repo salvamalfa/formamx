@@ -1,8 +1,9 @@
-Botón pill de forma; usa `primary` (azul taller) solo para la acción principal de la vista.
+Botón pill de forma. La jerarquía es de color, no de tamaño: naranja para la acción principal, azul para las secundarias.
 
 ```jsx
-<Button variant="primary" onClick={...}>Ver proyecto</Button>
+<Button variant="primary" onClick={...}>Ver la bitácora</Button>
 <Button variant="secondary" size="sm">Escríbeme</Button>
+<Button variant="tertiary">Ver materiales</Button>
 ```
 
-Variantes: `primary` azul taller, `support` verde bosque, `secondary` con borde, `ghost` solo texto. Tamaños sm/md/lg. Sin iconos por defecto; si llevan, Lucide 2px a la izquierda.
+Variantes: `primary` naranja pleno (una sola por vista) · `secondary` azul pleno · `tertiary` contorno azul, relleno blanco, letra azul · `support` verde bosque para lo que vive afuera · `ghost` solo texto azul. Tamaños sm/md/lg. Sobre fondo de color pleno, invierte: relleno blanco con letra azul. Sin iconos por defecto; si llevan, Lucide 2px a la izquierda.

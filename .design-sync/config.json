@@ -1,5 +1,6 @@
 {
-  "projectId": "de3143d0-f23a-4b70-9a24-cd6713c5db0f",
+  "projectId": "12defee5-ddda-46ee-94c6-e49b7b0b208f",
+  "projectType": "design-system",
   "shape": "prebuilt-export",
   "source": "ds-bundle (versionado en este repo; el zip en Desktop/FORMA/Brand Kit es solo respaldo del import inicial)",
   "localDir": "ds-bundle",

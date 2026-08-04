@@ -1,6 +1,6 @@
 /* forma — color.
-   Azul taller = color principal (acciones, enlaces, metadata).
-   Naranja = materiales de taller (madera, barro, metal).
+   Azul taller = enlaces, metadata y acciones secundarias.
+   Naranja = acción principal, materiales de taller (madera, barro, metal).
    Verde bosque = lo que vive afuera (exterior, naturaleza, energía).
    Fondo BLANCO. No hay crema ni mostaza. */
 :root {
@@ -43,6 +43,15 @@
   --text-muted: var(--gris);
   --text-faint: var(--gris-tenue);
   --text-inverse: var(--blanco);
+
+  /* Jerarquía de acción: primario naranja, secundario azul, terciario azul de contorno.
+     --accent sigue siendo el azul: enlaces, metadata y foco. */
+  --action: var(--naranja);
+  --action-hover: var(--naranja-oscuro);
+  --action-contrast: var(--blanco);
+  --action-2: var(--azul);
+  --action-2-hover: var(--azul-oscuro);
+  --action-2-contrast: var(--blanco);
 
   --accent: var(--azul);
   --accent-hover: var(--azul-oscuro);
