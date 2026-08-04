@@ -24,8 +24,8 @@
 
 - **Vibe:** sobrio y artesanal, con un fondo blanco limpio que deja hablar al objeto. Cálido en los acentos, nunca decorativo.
 - **Color — tres colores con un trabajo cada uno.** Ver `tokens/colors.css`.
-  - **Azul taller `#2E6DA4` — PRINCIPAL.** Todo lo accionable e informativo: botones primarios, enlaces, metadata, filtro activo, foco. Es el color con el que se reconoce la marca. Sobre tinta usa `--azul-noche #5B95C7`.
-  - **Naranja `#D06A2C` — TALLER.** Solo materiales y oficio: madera, barro, metal, barniz. Nunca como botón ni enlace. Tags con `--taller-soft` de fondo y `--taller-ink` de texto.
+  - **Azul taller `#2E6DA4` — INFORMACIÓN Y SEGUNDA ACCIÓN.** Enlaces, metadata («PROYECTO 001», «TALLER DE PROYECTOS»), filtro activo, foco, y los botones secundarios y terciarios. Es el color con el que se lee la marca. Sobre tinta usa `--azul-noche #5B95C7`.
+  - **Naranja `#D06A2C` — ACCIÓN PRINCIPAL Y TALLER.** El botón primario de cada vista (máx 1) y los materiales y el oficio: madera, barro, metal, barniz. Nunca como enlace de texto ni como metadata. Tags con `--taller-soft` de fondo y `--taller-ink` de texto.
   - **Verde bosque `#3E5A40` — AFUERA.** Lo que vive fuera del taller: exterior, naturaleza, energía renovable, jardín.
   - **Base:** fondo `#FFFFFF`, bandas de sección `--hueso #F7F7F5`, texto `--tinta #1A1A18` (nunca #000), texto secundario `--gris #6E6E68`, bordes `--borde #E8E8E4`.
   - Fuera de la paleta: el mostaza y el crema de versiones anteriores. No los uses.
@@ -35,7 +35,8 @@
 - **Bordes y radios:** todo redondeado (`--radius-m: 16px` en tarjetas, `--radius-pill` en botones y tags). Nunca esquinas duras.
 - **Sombras:** cálidas y suaves (tinta 5–10%), ver `--shadow-card`. Nada de sombras negras duras.
 - **Tarjetas:** blanco sobre blanco, separadas por sombra `--shadow-card` (no por color de fondo); borde `--border-soft` opcional, radio 16px. En modo noche, tarjeta `--tinta` y texto `--blanco`.
-- **Hover:** botones oscurecen (`--accent-hover`); tarjetas suben la sombra (`--shadow-raised`) y nada más. **Press:** oscurecer un paso, sin encoger.
+- **Jerarquía de botones** (`--action` naranja, `--action-2` azul): **primario** naranja pleno, uno por vista · **secundario** azul pleno («Escríbeme») · **terciario** contorno azul, relleno blanco, letra azul · **support** verde bosque para lo de afuera · **ghost** solo texto azul. Sobre un fondo de color pleno se invierte: relleno blanco con letra azul.
+- **Hover:** botones oscurecen (`--action-hover` / `--action-2-hover`); tarjetas suben la sombra (`--shadow-raised`) y nada más. **Press:** oscurecer un paso, sin encoger.
 - **Animación:** discreta — fades y desplazamientos cortos con `--ease-out`, 150–300ms. Sin rebotes.
 - **Transparencia/blur:** no se usan. Superficies sólidas.
 - **Layout:** contenidos a máx ~1100px, mucho aire (`--space-7/8` entre secciones). Metadata mono en mayúsculas como hilo conductor.
