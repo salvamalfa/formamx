@@ -51,9 +51,13 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
     subtask = f"{job['order_id']} {job['part']}"
     log.info('trabajo %s: %s (colores %s)', job_id, subtask, job['colors'])
 
-    # 1. Mapear colores → ranuras ANTES de tocar la impresora.
+    # 1. Mapear colores → ranuras ANTES de tocar la impresora. Una pieza de
+    #    cliente ya se rebanó para un material concreto y el trabajo lo trae,
+    #    así que la búsqueda se acota a las ranuras de ese material; para las
+    #    lámparas el material lo sigue poniendo la ranura elegida.
+    material = job.get('material')
     try:
-        ams_mapping = compute_mapping(job['colors'], spools)
+        ams_mapping = compute_mapping(job['colors'], spools, material)
     except FilamentoFaltante as err:
         api.report(job_id, 'failed', message=str(err))
         log.warning('trabajo %s sin filamentos: %s', job_id, err)
@@ -62,7 +66,7 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
     # 2. Localizar el 3MF rebanado. El material de la ranura mapeada es
     #    obligatorio y va explícito en el nombre del archivo (sin genéricos).
     #    En ensayo no es obligatorio que el archivo exista.
-    material = next(
+    material = material or next(
         (s.get('material') for s in spools if s['slot'] == ams_mapping[0]),
         None,
     )

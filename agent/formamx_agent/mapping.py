@@ -12,25 +12,40 @@ from pathlib import Path
 
 
 class FilamentoFaltante(Exception):
-    def __init__(self, faltantes: list[str]):
+    def __init__(self, faltantes: list[str], material: str | None = None):
         self.faltantes = faltantes
-        super().__init__('faltan en el AMS: ' + ', '.join(faltantes))
+        self.material = material
+        detalle = ', '.join(faltantes)
+        if material:
+            detalle += f' en {material}'
+        super().__init__('faltan en el AMS: ' + detalle)
 
 
-def compute_mapping(colors: list[str], spools: list[dict]) -> list[int]:
+def compute_mapping(
+    colors: list[str], spools: list[dict], material: str | None = None
+) -> list[int]:
     """colors: colores en el orden de filamentos del 3MF.
     spools: las 4 ranuras del dashboard ({'slot': 0-3, 'color_id': str | None}).
     Si un color está en varias ranuras se usa la de número menor.
+
+    `material` acota la búsqueda a las ranuras de ese material. Hace falta
+    cuando el archivo ya se rebanó para un material concreto (las piezas de
+    cliente): si hay azul en PETG en la ranura 0 y azul en PLA en la 2, sin
+    acotar se elegiría la 0 y se buscaría un 3MF de PETG que no existe.
     """
+    candidatas = sorted(spools, key=lambda s: s['slot'])
+    if material is not None:
+        candidatas = [s for s in candidatas if s.get('material') == material]
+
     slot_por_color: dict[str, int] = {}
-    for s in sorted(spools, key=lambda s: s['slot']):
+    for s in candidatas:
         color = s.get('color_id')
         if color is not None and color not in slot_por_color:
             slot_por_color[color] = s['slot']
 
     faltantes = sorted({c for c in colors if c not in slot_por_color})
     if faltantes:
-        raise FilamentoFaltante(faltantes)
+        raise FilamentoFaltante(faltantes, material)
     return [slot_por_color[c] for c in colors]
 
 
