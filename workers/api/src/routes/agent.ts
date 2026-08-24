@@ -44,11 +44,22 @@ agent.get('/jobs/next', async (c) => {
   ).first<PrintJobRow>();
   if (!job) return c.body(null, 204);
 
+  // Una pieza de cliente ya se rebanó para un material concreto, así que el
+  // trabajo lo lleva: sin esto el agente elegiría la ranura de número menor
+  // con ese color y, si tiene otro material, buscaría un 3MF que no existe.
+  const material = job.custom_print_id
+    ? (
+        await c.env.DB.prepare('SELECT material FROM custom_prints WHERE id = ?')
+          .bind(job.custom_print_id)
+          .first<{ material: string | null }>()
+      )?.material ?? null
+    : null;
+
   const { results: spools } = await c.env.DB.prepare(
     'SELECT slot, color_id, material, color_hex FROM spool_slots ORDER BY slot',
   ).all<{ slot: number; color_id: string | null; material: string | null; color_hex: string | null }>();
 
-  return c.json({ job: shapeJob(job), spools });
+  return c.json({ job: { ...shapeJob(job), material }, spools });
 });
 
 // El hex viene de la impresora como RGBA (8 dígitos) o RGB (6); se normaliza

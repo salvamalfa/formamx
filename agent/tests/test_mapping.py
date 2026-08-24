@@ -86,3 +86,30 @@ def test_pick_file_rechaza_ruta_absoluta(tmp_path):
     absoluta = '/etc/passwd' if os.name != 'nt' else 'C:/Windows/System32/x'
     with pytest.raises(ValueError):
         pick_file(tmp_path, absoluta, 'PLA')
+
+
+# ---- Material: piezas de cliente -------------------------------------------
+
+DOS_AZULES = [
+    {'slot': 0, 'color_id': 'azul', 'material': 'PETG'},
+    {'slot': 1, 'color_id': 'rojo', 'material': 'PLA'},
+    {'slot': 2, 'color_id': 'azul', 'material': 'PLA'},
+]
+
+
+def test_sin_material_sigue_ganando_la_ranura_menor():
+    # Comportamiento de siempre para las lámparas.
+    assert compute_mapping(['azul'], DOS_AZULES) == [0]
+
+
+def test_con_material_elige_la_ranura_de_ese_material():
+    # La pieza de cliente se rebanó en PLA: la ranura 0 es azul pero PETG, así
+    # que hay que ir a la 2 o el agente buscaría un 3MF de PETG inexistente.
+    assert compute_mapping(['azul'], DOS_AZULES, 'PLA') == [2]
+
+
+def test_material_que_no_esta_cargado_falla_con_el_detalle():
+    with pytest.raises(FilamentoFaltante) as exc:
+        compute_mapping(['azul'], DOS_AZULES, 'TPU')
+    assert exc.value.faltantes == ['azul']
+    assert 'TPU' in str(exc.value)

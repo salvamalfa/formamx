@@ -240,7 +240,14 @@ customPrints.delete('/:id', async (c) => {
     return c.json({ error: 'limpieza_pendiente' }, 503);
   }
 
-  await c.env.DB.prepare('DELETE FROM custom_prints WHERE id = ?').bind(id).run();
+  // Los trabajos de impresión de la pieza se van con ella: apuntan a esta fila
+  // por clave foránea, así que sin borrarlos primero el DELETE falla y la
+  // pieza se queda en 'borrado' para siempre, ya sin sus archivos. Se van en
+  // el mismo batch para no dejar el borrado a medias.
+  await c.env.DB.batch([
+    c.env.DB.prepare('DELETE FROM print_jobs WHERE custom_print_id = ?').bind(id),
+    c.env.DB.prepare('DELETE FROM custom_prints WHERE id = ?').bind(id),
+  ]);
   return c.json({ ok: true });
 });
 
