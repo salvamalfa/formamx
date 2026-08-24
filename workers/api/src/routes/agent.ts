@@ -2,6 +2,12 @@ import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { bearer } from '../lib/auth';
 import { isSpoolMaterial, nearestCatalogColor } from '../lib/catalog';
+import {
+  previewKey,
+  shapeCustomPrint,
+  SLICE_STALE_MINUTES,
+  type CustomPrintRow,
+} from '../lib/custom_prints';
 import { shapeJob, STALE_CLAIM_MINUTES, type PrintJobRow } from '../lib/jobs';
 import { notify } from '../lib/ntfy';
 
@@ -195,4 +201,112 @@ agent.post('/jobs/:id/status', async (c) => {
     .bind(id)
     .first<PrintJobRow>();
   return c.json(shapeJob(updated!));
+});
+
+// ---- Rebanado de STL de clientes -------------------------------------------
+// El agente corre el CLI de Bambu Studio en la PC de Salva: reclama una
+// pieza, se baja el STL, lo rebana y reporta el resultado. Detalle y receta
+// del CLI en docs/STL_CLIENTES.md.
+
+// Reclama la siguiente pieza por rebanar (mismo claim atómico que los
+// trabajos de impresión). SIN candado de cama: rebanar no toca la impresora,
+// así que se puede preparar trabajo mientras hay una pieza en la cama.
+agent.get('/custom-prints/next', async (c) => {
+  await c.env.DB.prepare(
+    `UPDATE custom_prints SET status = 'en_cola', claimed_at = NULL, updated_at = datetime('now')
+     WHERE status = 'rebanando' AND claimed_at < datetime('now', ?)`,
+  )
+    .bind(`-${SLICE_STALE_MINUTES} minutes`)
+    .run();
+
+  const print = await c.env.DB.prepare(
+    `UPDATE custom_prints
+     SET status = 'rebanando', claimed_at = datetime('now'), updated_at = datetime('now')
+     WHERE id = (SELECT id FROM custom_prints WHERE status = 'en_cola' ORDER BY updated_at LIMIT 1)
+     RETURNING *`,
+  ).first<CustomPrintRow>();
+  if (!print) return c.body(null, 204);
+
+  return c.json({ print: shapeCustomPrint(print) });
+});
+
+// El STL crudo, para que el agente lo rebane. Va por el bearer del agente:
+// nada de URLs firmadas ni llaves S3 que rotar.
+agent.get('/custom-prints/:id/stl', async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB.prepare('SELECT r2_key FROM custom_prints WHERE id = ?')
+    .bind(id)
+    .first<{ r2_key: string }>();
+  if (!row) return c.json({ error: 'no_existe' }, 404);
+
+  const obj = await c.env.STL_BUCKET.get(row.r2_key);
+  if (!obj) return c.json({ error: 'archivo_no_existe' }, 404);
+  return c.body(obj.body, 200, {
+    'Content-Type': 'application/octet-stream',
+    'Content-Length': String(obj.size),
+  });
+});
+
+interface SliceResultBody {
+  ok?: boolean;
+  seconds?: number;
+  grams?: number;
+  message?: string;
+}
+
+// Desenlace del rebanado. Un 409 aquí es normal y el agente lo ignora: pasa
+// cuando Salva canceló la pieza mientras se rebanaba.
+agent.post('/custom-prints/:id/slice-result', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json<SliceResultBody>().catch(() => ({}) as SliceResultBody);
+  if (typeof body.ok !== 'boolean') return c.json({ error: 'ok_requerido' }, 400);
+
+  const num = (v: unknown): number | null =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+
+  const updated = body.ok
+    ? await c.env.DB.prepare(
+        `UPDATE custom_prints
+            SET status = 'listo', est_seconds = ?, est_grams = ?, message = NULL,
+                claimed_at = NULL, updated_at = datetime('now')
+          WHERE id = ? AND status = 'rebanando' RETURNING *`,
+      )
+        .bind(
+          num(body.seconds) === null ? null : Math.round(body.seconds as number),
+          num(body.grams),
+          id,
+        )
+        .first<CustomPrintRow>()
+    : await c.env.DB.prepare(
+        `UPDATE custom_prints
+            SET status = 'fallido', message = ?, claimed_at = NULL,
+                updated_at = datetime('now')
+          WHERE id = ? AND status = 'rebanando' RETURNING *`,
+      )
+        .bind(body.message ?? 'el rebanado falló sin detalle', id)
+        .first<CustomPrintRow>();
+
+  if (!updated) return c.json({ error: 'transicion_invalida', to: body.ok ? 'listo' : 'fallido' }, 409);
+  return c.json(shapeCustomPrint(updated));
+});
+
+// Imagen del plato rebanado (best effort: si el rebanador no la generó, el
+// agente simplemente no la sube y /taller muestra solo los estimados).
+agent.post('/custom-prints/:id/preview', async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB.prepare('SELECT id FROM custom_prints WHERE id = ?')
+    .bind(id)
+    .first<{ id: string }>();
+  if (!row) return c.json({ error: 'no_existe' }, 404);
+  if (!c.req.raw.body) return c.json({ error: 'archivo_vacio' }, 400);
+
+  await c.env.STL_BUCKET.put(previewKey(id), c.req.raw.body, {
+    httpMetadata: { contentType: 'image/png' },
+  });
+  await c.env.DB.prepare(
+    "UPDATE custom_prints SET preview = 1, updated_at = datetime('now') WHERE id = ?",
+  )
+    .bind(id)
+    .run();
+  return c.json({ ok: true });
 });

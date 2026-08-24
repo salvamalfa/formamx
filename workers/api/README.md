@@ -33,8 +33,18 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `GET /api/admin/inbox` | `Bearer ADMIN_TOKEN` | Mensajes con clientes (con `customer_name` por JOIN), más recientes primero; por defecto los no archivados. `?status=`, `?customer_id=`, `?limit=`. |
 | `POST /api/admin/inbox` | `Bearer ADMIN_TOKEN` | Registra un mensaje. Body `{"channel","body","direction?","subject?","customer_id?","order_id?"}`; uno enviado (`out`) nace `respondido`, uno recibido (`in`, default) nace `nuevo`. Convención de la UI de Clientes: para un contacto sin ficha (`customer_id` null), `subject` = nombre del contacto (agrupa el hilo). |
 | `PATCH /api/admin/inbox/:id` | `Bearer ADMIN_TOKEN` | Avanza el estado del mensaje (`nuevo → leido → respondido → archivado`, saltos del grafo permitidos); salto ilegal → 409. |
+| `GET /api/admin/custom-prints` | `Bearer ADMIN_TOKEN` | Piezas STL de clientes; por defecto las no canceladas (`?status=`, `?limit=`). Incluye `progress_pct` del trabajo ligado cuando se está imprimiendo. |
+| `POST /api/admin/custom-prints` | `Bearer ADMIN_TOKEN` | Sube un STL. El nombre va en `?filename=x.stl` y el cuerpo es el archivo crudo (no multipart); `Content-Length` obligatorio (411 sin él) y máximo 100 MB. El binario se guarda en R2, D1 solo el metadato. |
+| `POST /api/admin/custom-prints/:id/rebanar` | `Bearer ADMIN_TOKEN` | Encola el rebanado. Body `{"material","color_id","color_hex?","supports?","orient?"}` (`supports`: `auto\|no`, `orient`: `auto\|original`, ambos `auto` por defecto). Limpia los estimados anteriores; desde `subido\|listo\|fallido`. |
+| `POST /api/admin/custom-prints/:id/cancelar` | `Bearer ADMIN_TOKEN` | Cancela la pieza; salto ilegal → 409. |
+| `DELETE /api/admin/custom-prints/:id` | `Bearer ADMIN_TOKEN` | Borra la pieza y sus objetos en R2. 409 mientras está en uso (`en_cola`, `rebanando`, `imprimiendo`). |
+| `GET /api/admin/custom-prints/:id/preview` | `Bearer ADMIN_TOKEN` | PNG del plato rebanado (404 si el rebanador no lo generó). |
 | `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada o la cama sigue ocupada. |
 | `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`; con `bed_dirty` activa el candado de cama. |
+| `GET /api/agent/custom-prints/next` | `Bearer AGENT_TOKEN` | Claim atómico de la siguiente pieza por rebanar; 204 si no hay. Sin candado de cama: rebanar no toca la impresora. |
+| `GET /api/agent/custom-prints/:id/stl` | `Bearer AGENT_TOKEN` | El STL crudo desde R2, para rebanarlo. |
+| `POST /api/agent/custom-prints/:id/slice-result` | `Bearer AGENT_TOKEN` | Desenlace del rebanado: `{"ok":true,"seconds","grams"}` → `listo`; `{"ok":false,"message"}` → `fallido`. 409 si la pieza ya no está `rebanando` (la cancelaron a medias): el agente lo ignora. |
+| `POST /api/agent/custom-prints/:id/preview` | `Bearer AGENT_TOKEN` | Sube el PNG del plato (cuerpo = imagen cruda). Best effort. |
 
 Estados de pedido: `pendiente → pagada → en_cola → imprimiendo → lista → enviada` (+ `cancelada`).
 
@@ -61,6 +71,10 @@ npx wrangler login
 # 1. Base de datos
 npx wrangler d1 create formamx        # pega el database_id que devuelve en wrangler.toml
 npm run migrate:remote
+
+# 1b. Bucket de los STL de clientes (activa R2 en el dashboard antes; la capa
+#     gratuita cubre de sobra este uso, ver docs/STL_CLIENTES.md)
+npx wrangler r2 bucket create formamx-stl
 
 # 2. Secretos (Stripe → Developers → API keys; tokens con `openssl rand -hex 24`)
 npx wrangler secret put STRIPE_SECRET_KEY
