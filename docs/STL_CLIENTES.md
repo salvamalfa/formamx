@@ -139,8 +139,13 @@ Decisiones de implementación que conviene no re-litigar:
   petición del plan gratuito de Workers).
 - **El STL viaja al agente por endpoint autenticado** con el `AGENT_TOKEN` que
   ya existe, no por URL firmada: no hay llaves S3 de R2 que rotar.
-- Borrar limpia R2 primero y D1 después (al revés quedaría basura sin dueño) y
-  se bloquea con 409 mientras la pieza está en uso.
+- **Borrar quita la fila de D1 primero**, con un `DELETE … WHERE status IN (…)
+  RETURNING *` guardado, y solo entonces toca R2. Al revés había una carrera:
+  si alguien encolaba la pieza para rebanar entre la lectura y el borrado, se
+  borraba el STL de una pieza recién encolada y las dos peticiones reportaban
+  éxito. Los objetos de R2 se borran siempre por clave determinista (incluido
+  el preview, cuya bandera pudo quedar en 0 tras un re-rebanado fallido); un
+  fallo ahí solo deja basura recuperable, nunca estado corrupto.
 
 **Verificado:** typecheck, migración local y ciclo completo contra
 `wrangler dev` con R2 local — subida (el STL regresa byte a byte idéntico),

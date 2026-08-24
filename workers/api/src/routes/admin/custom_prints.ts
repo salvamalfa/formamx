@@ -160,8 +160,10 @@ customPrints.post('/:id/cancelar', async (c) => {
   return c.json(shapeCustomPrint(updated));
 });
 
-// Borra la pieza y sus objetos en R2. Primero R2: si algo falla, la fila
-// sigue ahí y se puede reintentar (al revés quedaría basura sin dueño).
+// Borra la pieza y sus objetos en R2. El DELETE de D1 va PRIMERO y guardado
+// por estado: si entre el SELECT y aquí alguien encoló la pieza para rebanar,
+// no borra nada y el archivo se conserva. Al revés (R2 primero) se podía
+// borrar el STL de una pieza recién encolada y reportar éxito a los dos.
 customPrints.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const row = await c.env.DB.prepare('SELECT * FROM custom_prints WHERE id = ?')
@@ -172,9 +174,20 @@ customPrints.delete('/:id', async (c) => {
     return c.json({ error: 'estado_no_borrable', status: row.status }, 409);
   }
 
-  await c.env.STL_BUCKET.delete(row.r2_key);
-  if (row.preview) await c.env.STL_BUCKET.delete(previewKey(id)).catch(() => {});
-  await c.env.DB.prepare('DELETE FROM custom_prints WHERE id = ?').bind(id).run();
+  const marcas = DELETABLE_STATUSES.map(() => '?').join(', ');
+  const deleted = await c.env.DB.prepare(
+    `DELETE FROM custom_prints WHERE id = ? AND status IN (${marcas}) RETURNING *`,
+  )
+    .bind(id, ...DELETABLE_STATUSES)
+    .first<CustomPrintRow>();
+  if (!deleted) return c.json({ error: 'borrado_concurrente' }, 409);
+
+  // Ya nadie apunta a estos objetos. La clave del preview es determinista, así
+  // que se borra siempre: la bandera `preview` pudo quedar en 0 tras un
+  // re-rebanado fallido y el PNG del modelo del cliente seguiría en R2.
+  // Un fallo aquí solo deja basura recuperable; la pieza ya no existe.
+  await c.env.STL_BUCKET.delete(deleted.r2_key).catch(() => {});
+  await c.env.STL_BUCKET.delete(previewKey(id)).catch(() => {});
   return c.json({ ok: true });
 });
 
