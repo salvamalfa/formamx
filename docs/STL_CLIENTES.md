@@ -223,9 +223,10 @@ rebanador:
 | torre 8×8×120 mm | orientación del archivo | 4055 s |
 | la misma | orientación automática | **550 s** (el rebanador la acuesta) |
 
-Pendiente de la PC de Salva: correr `flatten_profiles` contra su instalación y
-rebanar un STL real de cliente (comandos en `agent/README.md`). Si su Bambu
-Studio no es 02.08.02.61, revalidar el comando antes.
+**Hecho en la PC de Salva** (comandos en `agent/README.md`): corrió
+`flatten_profiles` contra su instalación (Bambu Studio 02.07.00.55, distinta a
+la 02.08.02.61 con la que se validó la receta — el comando funcionó igual sin
+tocar nada) y rebanó un STL real de cliente de punta a punta.
 
 ### Fase 3 — /taller: la UI ✅ HECHA
 
