@@ -19,7 +19,7 @@ import re
 import zipfile
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from .lienzo import Lienzo
 
 log = logging.getLogger('formamx.preview')
 
@@ -118,8 +118,7 @@ def dibujar(segmentos: list, destino: Path) -> Path | None:
     z_min, z_max = min(zs), max(zs)
     rango_z = max(z_max - z_min, 1e-6)
 
-    imagen = Image.new('RGB', LIENZO, FONDO)
-    lienzo = ImageDraw.Draw(imagen)
+    lienzo = Lienzo(LIENZO[0], LIENZO[1], FONDO)
     # De abajo hacia arriba: las capas altas tapan a las bajas y la pieza se
     # ve sólida en vez de como una maraña de alambre.
     for x0, y0, z0, x1, y1, z1 in sorted(segmentos, key=lambda s: s[2]):
@@ -129,16 +128,15 @@ def dibujar(segmentos: list, destino: Path) -> Path | None:
         color = tuple(
             round(COLOR_ABAJO[i] + (COLOR_ARRIBA[i] - COLOR_ABAJO[i]) * t) for i in range(3)
         )
-        lienzo.line(
-            [a[0] * escala + off_x, a[1] * escala + off_y,
-             b[0] * escala + off_x, b[1] * escala + off_y],
-            fill=color,
-            width=1,
+        lienzo.linea(
+            a[0] * escala + off_x,
+            a[1] * escala + off_y,
+            b[0] * escala + off_x,
+            b[1] * escala + off_y,
+            color,
         )
 
-    destino.parent.mkdir(parents=True, exist_ok=True)
-    imagen.save(destino, 'PNG', optimize=True)
-    return destino
+    return lienzo.guardar_png(destino)
 
 
 def render_desde_3mf(tmf_path: Path, destino: Path) -> Path | None:

@@ -1,4 +1,2 @@
 paho-mqtt==2.1.0
 requests==2.34.2
-# Dibuja la vista del rebanado desde el G-code (formamx_agent/preview.py).
-Pillow==11.4.0

@@ -186,3 +186,33 @@ def test_un_3mf_sin_gcode_no_revienta(tmp_path):
     with zipfile.ZipFile(vacio, 'w') as z:
         z.writestr('3D/3dmodel.model', '<model/>')
     assert render_desde_3mf(vacio, tmp_path / 'v.png') is None
+
+
+def test_el_png_que_escribimos_es_valido(tmp_path):
+    """El PNG se codifica a mano (sin Pillow): hay que comprobar la cabecera."""
+    import struct
+    import zlib
+
+    from formamx_agent.lienzo import Lienzo
+
+    lienzo = Lienzo(12, 7, (247, 247, 245))
+    lienzo.linea(0, 0, 11, 6, (46, 109, 164))
+    datos = lienzo.guardar_png(tmp_path / 'v.png').read_bytes()
+
+    assert datos[:8] == b'\x89PNG\r\n\x1a\n'
+    largo = struct.unpack('>I', datos[8:12])[0]
+    assert datos[12:16] == b'IHDR'
+    ancho, alto, bits, tipo = struct.unpack('>IIBB', datos[16:16 + 10])
+    assert (ancho, alto, bits, tipo) == (12, 7, 8, 2)  # RGB de 8 bits
+    # El CRC del trozo tiene que cuadrar o el visor lo rechaza.
+    crc = struct.unpack('>I', datos[16 + largo:20 + largo])[0]
+    assert crc == zlib.crc32(datos[12:16 + largo]) & 0xFFFFFFFF
+
+
+def test_la_linea_no_se_sale_del_lienzo(tmp_path):
+    from formamx_agent.lienzo import Lienzo
+
+    # Coordenadas fuera de rango se recortan en vez de reventar.
+    lienzo = Lienzo(5, 5, (0, 0, 0))
+    lienzo.linea(-50, -50, 60, 70, (255, 255, 255))
+    assert lienzo.guardar_png(tmp_path / 'v.png').is_file()
