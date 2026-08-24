@@ -37,7 +37,7 @@ El sitio sigue siendo estático en Hostinger; esto se despliega aparte.
 | `POST /api/admin/custom-prints` | `Bearer ADMIN_TOKEN` | Sube un STL. El nombre va en `?filename=x.stl` y el cuerpo es el archivo crudo (no multipart); `Content-Length` obligatorio (411 sin él) y máximo 100 MB. El binario se guarda en R2, D1 solo el metadato. |
 | `POST /api/admin/custom-prints/:id/rebanar` | `Bearer ADMIN_TOKEN` | Encola el rebanado. Body `{"material","color_id","color_hex?","supports?","orient?"}` (`supports`: `auto\|no`, `orient`: `auto\|original`, ambos `auto` por defecto). Limpia los estimados anteriores; desde `subido\|listo\|fallido`. |
 | `POST /api/admin/custom-prints/:id/cancelar` | `Bearer ADMIN_TOKEN` | Cancela la pieza; salto ilegal → 409. |
-| `DELETE /api/admin/custom-prints/:id` | `Bearer ADMIN_TOKEN` | Borra la pieza y sus objetos en R2. 409 mientras está en uso (`en_cola`, `rebanando`, `imprimiendo`). |
+| `DELETE /api/admin/custom-prints/:id` | `Bearer ADMIN_TOKEN` | Borra la pieza y sus objetos en R2. 409 mientras está en uso (`en_cola`, `rebanando`, `imprimiendo`). Si R2 falla responde 503 `limpieza_pendiente` y la fila queda en `borrado` (visible en la lista); repetir el borrado reintenta la limpieza. |
 | `GET /api/admin/custom-prints/:id/preview` | `Bearer ADMIN_TOKEN` | PNG del plato rebanado (404 si el rebanador no lo generó). |
 | `GET /api/agent/jobs/next` | `Bearer AGENT_TOKEN` | Claim atómico del siguiente trabajo + bobinas actuales; 204 si no hay nada o la cama sigue ocupada. |
 | `POST /api/agent/jobs/:id/status` | `Bearer AGENT_TOKEN` | El agente reporta `printing` (con progreso), `done` o `failed`; con `bed_dirty` activa el candado de cama. |

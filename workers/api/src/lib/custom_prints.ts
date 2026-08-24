@@ -17,7 +17,11 @@ export type CustomPrintStatus =
   | 'imprimiendo'
   | 'terminado'
   | 'fallido'
-  | 'cancelado';
+  | 'cancelado'
+  // Lápida del borrado: la fila queda así mientras se limpian sus objetos en
+  // R2 y desaparece en cuanto se limpian. Solo sobrevive si R2 falló, y
+  // entonces es la única pista que queda de qué archivos hay que borrar.
+  | 'borrado';
 
 export interface CustomPrintRow {
   id: string;
@@ -51,6 +55,7 @@ const TRANSITIONS: Record<CustomPrintStatus, CustomPrintStatus[]> = {
   fallido: ['en_cola', 'cancelado'],
   terminado: [],
   cancelado: [],
+  borrado: [],
 };
 
 export function canTransition(from: string, to: string): boolean {
@@ -63,13 +68,15 @@ export const CUSTOM_PRINT_STATUSES = Object.keys(TRANSITIONS) as CustomPrintStat
 export const REBANABLE_STATUSES: CustomPrintStatus[] = ['subido', 'listo', 'fallido'];
 
 // Borrar limpia D1 y R2. No se permite mientras el archivo está en uso
-// (en_cola/rebanando/imprimiendo): primero se cancela.
+// (en_cola/rebanando/imprimiendo): primero se cancela. Incluye 'borrado' para
+// que repetir el borrado reintente una limpieza de R2 que quedó a medias.
 export const DELETABLE_STATUSES: CustomPrintStatus[] = [
   'subido',
   'listo',
   'fallido',
   'terminado',
   'cancelado',
+  'borrado',
 ];
 
 export const CANCELABLE_STATUSES: CustomPrintStatus[] = [
