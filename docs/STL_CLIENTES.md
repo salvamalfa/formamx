@@ -4,20 +4,21 @@ Plan para aceptar archivos STL que mandan los clientes, rebanarlos
 automáticamente y mandarlos a la Bambu A1 desde /taller, sin pasar por Bambu
 Studio a mano. Léelo completo antes de implementar cualquier fase.
 
-**Estado: las 4 fases implementadas (agosto 2026); falta el smoke test real con
-la impresora.** La prueba de concepto del CLI se hizo en Linux con Bambu Studio
-02.08.02.61 en modo línea de comandos, sin interfaz gráfica: STL → `.gcode.3mf`
-con el arranque real de la A1, temperaturas correctas y estimación de
-tiempo/gramos. La receta exacta está abajo y es la referencia para la fase 2.
+**Estado: las 4 fases implementadas y validadas de punta a punta en producción
+(agosto 2026), smoke test real incluido.** La prueba de concepto del CLI se
+hizo en Linux con Bambu Studio 02.08.02.61 en modo línea de comandos, sin
+interfaz gráfica: STL → `.gcode.3mf` con el arranque real de la A1,
+temperaturas correctas y estimación de tiempo/gramos. La receta exacta está
+abajo y es la referencia para la fase 2.
 
-**Validado de punta a punta en producción** (Salva, PC del taller, Bambu
-Studio 02.07.00.55): subió un colador real por /taller, el agente lo rebanó
-solo (1 h 16 min, 30.45 g, con soportes) y la vista del plato se vio bien. Lo
-único que falló fue la CSP del sitio: `img-src` no incluía `blob:`, que es
-como se sirve la vista previa (va autenticada, no puede ser un `<img src>`
-normal). Corregido agregando `blob:` a `img-src` en `astro.config.mjs`
-(`security.csp.directives`). Falta el clic de **Imprimir** con la impresora
-encendida — eso es el smoke test que sigue pendiente.
+**Ciclo completo probado por Salva** (PC del taller, Bambu Studio 02.07.00.55):
+subió un colador real por /taller, el agente lo rebanó solo (1 h 16 min,
+30.45 g, con soportes), la vista del plato se vio bien, y le dio **Imprimir**
+con la impresora encendida — terminó correctamente. En el camino se corrigió
+un solo fallo: la CSP del sitio no incluía `blob:` en `img-src` (así se sirve
+la vista previa, que va autenticada y no puede ser un `<img src>` normal);
+arreglado en `astro.config.mjs` (`security.csp.directives`). No queda ningún
+pendiente de validación.
 
 Decisiones tomadas con Salva al arrancar la implementación:
 
@@ -244,7 +245,7 @@ abrir el PR (regla de `CLAUDE.md`).
   Imprimir.
 - Playwright con API mockeada, siguiendo `tests/e2e/taller.spec.ts`.
 
-### Fase 4 — Imprimir de verdad ✅ HECHA (falta el smoke test real)
+### Fase 4 — Imprimir de verdad ✅ HECHA
 
 **Corre en: Worker + sitio.** El agente **no cambió ni una línea**: una pieza de
 cliente entra a la MISMA cola que las lámparas, así que hereda claim atómico,
@@ -284,9 +285,10 @@ motivo y activa el candado de cama → reimpresión sin re-rebanar → `terminad
 409 al intentar reimprimir. Los pedidos de lámpara siguen intactos. 61 pruebas
 e2e y 31 de pytest en verde.
 
-**Pendiente:** smoke test REAL con Salva junto a la impresora (regla de la casa
-para todo lo que toca la impresora): primera pieza de cliente completa y
-supervisada, verificando el candado de cama al final.
+**Smoke test REAL hecho por Salva** (regla de la casa para todo lo que toca la
+impresora): subió el colador de prueba en producción, lo rebanó, revisó el
+estimado y la vista del plato, y le dio Imprimir con la impresora encendida —
+terminó correctamente. El sistema queda validado de punta a punta.
 
 ### Después (sin diseño comprometido)
 
