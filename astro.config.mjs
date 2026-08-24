@@ -54,7 +54,12 @@ export default defineConfig({
     csp: {
       directives: [
         "default-src 'self'",
-        "img-src 'self' data:",
+        // blob: es para la vista del plato de las piezas de cliente: la imagen
+        // va autenticada (bearer del taller), así que no puede colgarse de un
+        // <img src> normal — se baja con fetch y se muestra como blob. No
+        // afloja nada: un blob: lo crea nuestro propio script y es del mismo
+        // origen, igual que el data: que ya estaba permitido.
+        "img-src 'self' data: blob:",
         "font-src 'self'",
         "connect-src 'self' https://formamx-api.formamx.workers.dev",
         "object-src 'none'",
