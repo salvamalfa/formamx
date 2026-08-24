@@ -363,6 +363,9 @@ function PiezaCard({
         <p class="m-0 mt-2 px-3 text-[13px] text-[var(--naranja-oscuro)]">{pieza.message}</p>
       )}
 
+      {/* Imprimir va entre rehacer y borrar, en la misma fila: es la acción
+          que Salva busca al revisar el estimado, pero no necesita su propia
+          franja — con eso la tarjeta ahorra espacio. */}
       <div class="mt-3 flex items-center gap-2 px-3 pb-3">
         {rebanable && (
           <IconButton title={abierta ? 'Cerrar' : 'Rebanar'} active={abierta} onClick={onAbrir}>
@@ -374,7 +377,13 @@ function PiezaCard({
             Cancelar
           </button>
         )}
-        <div class="flex-1" />
+        {listo ? (
+          <button type="button" class="btn btn-sm btn-primary flex-1 justify-center" onClick={onImprimir}>
+            Imprimir
+          </button>
+        ) : (
+          <div class="flex-1" />
+        )}
         {!enProceso && (
           <IconButton title="Borrar" danger onClick={onBorrar}>
             <IconBorrar class="size-4" />
@@ -386,18 +395,6 @@ function PiezaCard({
         <div class="border-t border-[var(--border-soft)] px-3 pt-3 pb-3">
           <FormRebanar spools={spools} onRebanar={onRebanar} />
         </div>
-      )}
-
-      {/* Imprimir cierra la tarjeta, de canto a canto: es la acción que Salva
-          busca al revisar el estimado, así que va al final y sin competencia. */}
-      {listo && (
-        <button
-          type="button"
-          class="btn btn-primary mt-auto w-full justify-center rounded-none rounded-b-[var(--radius-m)]"
-          onClick={onImprimir}
-        >
-          Imprimir
-        </button>
       )}
     </div>
   );
