@@ -160,12 +160,34 @@ agent.post('/jobs/:id/status', async (c) => {
   // cancelación ni un reporte repetido.
   if (job.custom_print_id) {
     if (next === 'done') {
-      await c.env.DB.prepare(
+      const marcada = await c.env.DB.prepare(
         `UPDATE custom_prints SET status = 'terminado', updated_at = datetime('now')
-         WHERE id = ? AND status = 'imprimiendo'`,
+         WHERE id = ? AND status = 'imprimiendo' RETURNING r2_key`,
       )
         .bind(job.custom_print_id)
-        .run();
+        .first<{ r2_key: string }>();
+      // Terminada la pieza, el STL del cliente y su vista previa ya cumplieron
+      // su propósito: se limpian de R2 y solo queda el metadato para el
+      // histórico. Best effort (no bloquea la respuesta al agente); si falla,
+      // el botón Borrar del histórico reintenta la limpieza más tarde.
+      if (marcada) {
+        const customPrintId = job.custom_print_id;
+        c.executionCtx.waitUntil(
+          (async () => {
+            try {
+              await c.env.STL_BUCKET.delete(marcada.r2_key);
+              await c.env.STL_BUCKET.delete(previewKey(customPrintId));
+              await c.env.DB.prepare(
+                "UPDATE custom_prints SET preview = 0 WHERE id = ?",
+              )
+                .bind(customPrintId)
+                .run();
+            } catch {
+              /* limpieza best effort; el borrado manual reintenta */
+            }
+          })(),
+        );
+      }
       c.executionCtx.waitUntil(
         notify(
           c.env.NTFY_TOPIC,

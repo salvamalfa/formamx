@@ -971,10 +971,36 @@ test.describe('piezas de clientes', () => {
     const main = page.locator('main');
 
     await expect(main.getByText('soporte-cliente.stl')).toBeVisible();
-    await expect(main.getByText('Listo para imprimir')).toBeVisible();
+    // Lista para imprimir se marca con un punto verde, no con texto.
+    await expect(main.getByTitle('Listo para imprimir')).toBeVisible();
     // 12240 s = 3 h 24 min; el gramaje y el filamento salen del rebanado.
-    await expect(main.getByText('3 h 24 min · 87.5 g · PLA · Azul · con soportes')).toBeVisible();
+    await expect(main.getByText('3 h 24 min')).toBeVisible();
+    await expect(main.getByText('87.5 g')).toBeVisible();
+    await expect(main.getByText('PLA', { exact: true })).toBeVisible();
+    await expect(main.getByText('Azul', { exact: true })).toBeVisible();
+    await expect(main.getByText('con soportes')).toBeVisible();
     await expect(main.getByText('2.3 MB')).toBeVisible();
+    // Placeholder de costo/precio: falta el modelo de costos real.
+    await expect(main.getByText('$50 MXN')).toBeVisible();
+    await expect(main.getByText('$200 MXN')).toBeVisible();
+  });
+
+  test('una pieza terminada aparece en Histórico, no en Pendientes', async ({ page }) => {
+    await mockApi(page, {
+      customPrints: [{ ...PIEZA_LISTA, status: 'terminado', preview: false }],
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    // Pendientes es la pestaña por defecto; una terminada no vive ahí.
+    await expect(main.getByText('soporte-cliente.stl')).toHaveCount(0);
+    await expect(main.getByText(/Importa el STL que te mandó un cliente/)).toBeVisible();
+
+    await main.getByRole('button', { name: /Histórico/ }).click();
+    await expect(main.getByText('soporte-cliente.stl')).toBeVisible();
+    // Terminada: nada de rebanar de nuevo, solo el detalle y borrar.
+    await expect(main.getByRole('button', { name: 'Rebanar', exact: true })).toHaveCount(0);
   });
 
   test('sin piezas explica para qué sirve', async ({ page }) => {

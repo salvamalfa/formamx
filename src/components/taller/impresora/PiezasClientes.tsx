@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import {
   borrarPrint,
@@ -13,10 +14,15 @@ import {
 } from '../../../lib/taller';
 import { useSession } from '../hooks/useSession';
 import { colorLabel, colorSwatch } from '../ui/colores';
+import { IconBorrar, IconRebanar, IconUpload } from '../ui/icons';
 
 // Card "Piezas de clientes": subir un STL, pedir su rebanado con el material y
 // color que hay cargados en el AMS, y revisar el estimado antes de imprimir.
 // El rebanado lo hace el agente en la PC del taller (docs/STL_CLIENTES.md).
+// Tarjetas en vez de filas (rediseño agosto 2026): Pendientes muestra lo que
+// todavía necesita una decisión; Histórico, lo ya impreso — el worker borra
+// el STL y la vista previa de R2 en cuanto la pieza termina, así que ahí solo
+// quedan los datos.
 
 const ESTADO_LABEL: Record<CustomPrintStatus, string> = {
   subido: 'Subido',
@@ -37,6 +43,12 @@ const POLL_TRANQUILO_MS = 60_000;
 const REBANABLES: CustomPrintStatus[] = ['subido', 'listo', 'fallido'];
 const EN_PROCESO: CustomPrintStatus[] = ['en_cola', 'rebanando', 'imprimiendo'];
 
+// Placeholder mientras no existe la pestaña de variables de costo (paso
+// posterior a este rediseño, ver conversación con Salva agosto 2026): cifras
+// fijas, no calculadas por pieza, solo para dejar el layout listo.
+const COSTO_PLACEHOLDER_MXN = 50;
+const PRECIO_PLACEHOLDER_MXN = 200;
+
 export function formatDuracion(segundos: number): string {
   const h = Math.floor(segundos / 3600);
   const m = Math.round((segundos % 3600) / 60);
@@ -48,6 +60,8 @@ export function formatTamano(bytes: number): string {
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
+type Tab = 'pendientes' | 'historico';
+
 export function PiezasClientes({ spools }: { spools: Spool[] }) {
   const { token, invalidate } = useSession();
   const [piezas, setPiezas] = useState<CustomPrint[]>([]);
@@ -55,6 +69,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
   const [error, setError] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState<number | null>(null);
   const [abierta, setAbierta] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('pendientes');
   const input = useRef<HTMLInputElement>(null);
 
   const activo = piezas.some((p) => EN_PROCESO.includes(p.status));
@@ -97,6 +112,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
       const nueva = await uploadCustomPrint(token, file, setSubiendo);
       setPiezas((ps) => [nueva, ...ps]);
       setAbierta(nueva.id);
+      setTab('pendientes');
     } catch (err) {
       const msg = (err as Error).message;
       if (msg === 'no_autorizado') invalidate('Token inválido.');
@@ -126,6 +142,10 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
     }
   }
 
+  const pendientes = piezas.filter((p) => p.status !== 'terminado');
+  const historico = piezas.filter((p) => p.status === 'terminado');
+  const visibles = tab === 'pendientes' ? pendientes : historico;
+
   return (
     <div class="rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]">
       <div class="mb-4 flex flex-wrap items-baseline justify-between gap-3">
@@ -144,11 +164,29 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
         />
         <button
           type="button"
-          class="btn btn-sm btn-terciario"
+          class="btn btn-sm btn-terciario inline-flex items-center gap-1.5"
           disabled={subiendo !== null}
           onClick={() => input.current?.click()}
         >
+          <IconUpload class="size-4" />
           {subiendo !== null ? `Subiendo ${subiendo}%` : 'Importar STL'}
+        </button>
+      </div>
+
+      <div class="mb-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          class={`chip-claro ${tab === 'pendientes' ? 'activo' : ''}`}
+          onClick={() => setTab('pendientes')}
+        >
+          Pendientes{pendientes.length ? ` (${pendientes.length})` : ''}
+        </button>
+        <button
+          type="button"
+          class={`chip-claro ${tab === 'historico' ? 'activo' : ''}`}
+          onClick={() => setTab('historico')}
+        >
+          Histórico{historico.length ? ` (${historico.length})` : ''}
         </button>
       </div>
 
@@ -165,14 +203,16 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
 
       {cargando ? (
         <p class="m-0 text-sm text-[var(--text-muted)]">Cargando…</p>
-      ) : piezas.length === 0 ? (
+      ) : visibles.length === 0 ? (
         <p class="m-0 text-sm text-[var(--text-muted)]">
-          Nada por aquí. Importa el STL que te mandó un cliente y el agente lo rebana.
+          {tab === 'pendientes'
+            ? 'Nada por aquí. Importa el STL que te mandó un cliente y el agente lo rebana.'
+            : 'Todavía no hay piezas de clientes terminadas.'}
         </p>
       ) : (
-        <div class="flex flex-col">
-          {piezas.map((pieza) => (
-            <Fila
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visibles.map((pieza) => (
+            <PiezaCard
               key={pieza.id}
               pieza={pieza}
               spools={spools}
@@ -197,7 +237,38 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
   );
 }
 
-function Fila({
+function IconButton({
+  title,
+  onClick,
+  active,
+  danger,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  active?: boolean;
+  danger?: boolean;
+  children: ComponentChildren;
+}) {
+  const tono = active
+    ? 'border-[var(--azul)] bg-[var(--azul-claro)] text-[var(--azul-oscuro)]'
+    : danger
+      ? 'border-[var(--border-soft)] text-[var(--naranja-oscuro)] hover:bg-[var(--naranja-claro)]'
+      : 'border-[var(--border-soft)] text-[var(--text-muted)] hover:bg-[var(--hueso)]';
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      class={`inline-flex size-8 shrink-0 items-center justify-center rounded-full border transition-colors ${tono}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PiezaCard({
   pieza,
   spools,
   token,
@@ -212,7 +283,6 @@ function Fila({
   spools: Spool[];
   token: string | null;
   abierta: boolean;
-  onAbrir: () => void;
   onRebanar: (op: {
     material: string;
     color_id: string;
@@ -220,67 +290,112 @@ function Fila({
     supports: 'auto' | 'no';
     orient: 'auto' | 'original';
   }) => void;
+  onAbrir: () => void;
   onImprimir: () => void;
   onCancelar: () => void;
   onBorrar: () => void;
 }) {
   const rebanable = REBANABLES.includes(pieza.status);
+  const enProceso = EN_PROCESO.includes(pieza.status);
+  const listo = pieza.status === 'listo';
+  const tieneEstimado = pieza.est_seconds != null && pieza.est_grams != null;
+
   return (
-    <div class="border-t border-[var(--border-soft)] py-3">
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span class="min-w-0 flex-1 truncate text-sm">{pieza.file_name}</span>
-        <span class="text-[11px] text-[var(--text-faint)]">{formatTamano(pieza.size_bytes)}</span>
-        <span class={`tag ${pieza.status === 'listo' ? 'tag-bosque' : 'tag-neutral'}`}>
-          {ESTADO_LABEL[pieza.status]}
-          {pieza.status === 'imprimiendo' && pieza.progress_pct != null
-            ? ` ${pieza.progress_pct}%`
-            : ''}
+    <div class="flex flex-col overflow-hidden rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-sunken)]">
+      <div class="flex items-start justify-between gap-2 px-3 pt-3">
+        <span class="min-w-0 flex-1 truncate text-sm font-semibold" title={pieza.file_name}>
+          {pieza.file_name}
+        </span>
+        <span class="flex shrink-0 items-center gap-1.5 text-[11px] text-[var(--text-faint)]">
+          {listo && (
+            <span
+              class="size-2 rounded-full bg-[var(--bosque)]"
+              title="Listo para imprimir"
+              aria-label="Listo para imprimir"
+            />
+          )}
+          {formatTamano(pieza.size_bytes)}
         </span>
       </div>
 
-      {pieza.est_seconds != null && pieza.est_grams != null && (
-        <p class="m-0 mt-1 text-[13px] text-[var(--text-muted)]">
-          {formatDuracion(pieza.est_seconds)} · {pieza.est_grams} g
-          {pieza.material ? ` · ${pieza.material}` : ''}
-          {pieza.color_id ? ` · ${colorLabel(pieza.color_id)}` : ''}
-          {pieza.supports === 'auto' ? ' · con soportes' : ''}
-        </p>
+      {!listo && (
+        <div class="mt-2 px-3">
+          <span class="tag tag-neutral">
+            {ESTADO_LABEL[pieza.status]}
+            {pieza.status === 'imprimiendo' && pieza.progress_pct != null
+              ? ` ${pieza.progress_pct}%`
+              : ''}
+          </span>
+        </div>
+      )}
+
+      <div class="mt-3 px-3">
+        {pieza.preview && token ? (
+          <Preview id={pieza.id} token={token} />
+        ) : (
+          <div class="flex h-32 items-center justify-center rounded-[var(--radius-s)] border border-dashed border-[var(--border-strong)] text-[12px] text-[var(--text-faint)]">
+            Sin vista previa
+          </div>
+        )}
+      </div>
+
+      {tieneEstimado && (
+        <div class="relative z-10 -mt-3 mx-3 rounded-[var(--radius-s)] bg-[var(--surface-card)] p-3 text-[13px] shadow-[var(--shadow-card)]">
+          <div class="flex flex-wrap gap-x-3 gap-y-1 text-[var(--text-muted)]">
+            <span>{formatDuracion(pieza.est_seconds!)}</span>
+            <span>{pieza.est_grams} g</span>
+            {pieza.material && <span>{pieza.material}</span>}
+            {pieza.color_id && <span>{colorLabel(pieza.color_id)}</span>}
+            <span>{pieza.supports === 'auto' ? 'con soportes' : 'sin soportes'}</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between border-t border-[var(--border-soft)] pt-2">
+            <span class="text-[var(--text-faint)]">
+              Costo <strong class="font-semibold text-[var(--text-body)]">${COSTO_PLACEHOLDER_MXN} MXN</strong>
+            </span>
+            <span class="text-[var(--text-faint)]">
+              Precio <strong class="font-semibold text-[var(--text-body)]">${PRECIO_PLACEHOLDER_MXN} MXN</strong>
+            </span>
+          </div>
+        </div>
       )}
 
       {pieza.message && (
-        <p class="m-0 mt-1 text-[13px] text-[var(--naranja-oscuro)]">{pieza.message}</p>
+        <p class="m-0 mt-2 px-3 text-[13px] text-[var(--naranja-oscuro)]">{pieza.message}</p>
       )}
 
-      {pieza.preview && token && <Preview id={pieza.id} token={token} />}
-
-      <div class="mt-2 flex flex-wrap gap-2">
-        {/* btn-ghost es blanco (para fondos oscuros): sobre esta card va la
-            variante clara, que el kit define justo para acciones de fila. */}
-        {/* Imprimir es la única acción naranja de la card: es la que manda
-            trabajo a la impresora y la que Salva busca al revisar el estimado. */}
-        {pieza.status === 'listo' && (
-          <button type="button" class="btn btn-sm btn-primary" onClick={onImprimir}>
-            Imprimir
-          </button>
-        )}
+      {/* Imprimir va entre rehacer y borrar, en la misma fila: es la acción
+          que Salva busca al revisar el estimado, pero no necesita su propia
+          franja — con eso la tarjeta ahorra espacio. */}
+      <div class="mt-3 flex items-center gap-2 px-3 pb-3">
         {rebanable && (
-          <button type="button" class="btn btn-sm btn-terciario" onClick={onAbrir}>
-            {abierta ? 'Cerrar' : pieza.status === 'listo' ? 'Rebanar otra vez' : 'Rebanar'}
-          </button>
+          <IconButton title={abierta ? 'Cerrar' : 'Rebanar'} active={abierta} onClick={onAbrir}>
+            <IconRebanar class="size-4" />
+          </IconButton>
         )}
-        {EN_PROCESO.includes(pieza.status) && pieza.status !== 'imprimiendo' && (
+        {enProceso && pieza.status !== 'imprimiendo' && (
           <button type="button" class="btn btn-sm btn-ghost-claro" onClick={onCancelar}>
             Cancelar
           </button>
         )}
-        {!EN_PROCESO.includes(pieza.status) && (
-          <button type="button" class="btn btn-sm btn-ghost-claro" onClick={onBorrar}>
-            Borrar
+        {listo ? (
+          <button type="button" class="btn btn-sm btn-primary flex-1 justify-center" onClick={onImprimir}>
+            Imprimir
           </button>
+        ) : (
+          <div class="flex-1" />
+        )}
+        {!enProceso && (
+          <IconButton title="Borrar" danger onClick={onBorrar}>
+            <IconBorrar class="size-4" />
+          </IconButton>
         )}
       </div>
 
-      {abierta && rebanable && <FormRebanar spools={spools} onRebanar={onRebanar} />}
+      {abierta && rebanable && (
+        <div class="border-t border-[var(--border-soft)] px-3 pt-3 pb-3">
+          <FormRebanar spools={spools} onRebanar={onRebanar} />
+        </div>
+      )}
     </div>
   );
 }
@@ -310,7 +425,7 @@ function Preview({ id, token }: { id: string; token: string }) {
     <img
       src={url}
       alt="Vista del plato rebanado"
-      class="mt-2 max-h-40 rounded-[var(--radius-s)] border border-[var(--border-soft)]"
+      class="h-32 w-full rounded-[var(--radius-s)] border border-[var(--border-soft)] object-cover"
     />
   );
 }
@@ -339,7 +454,7 @@ function FormRebanar({
 
   if (usables.length === 0) {
     return (
-      <p class="m-0 mt-3 text-[13px] text-[var(--text-muted)]">
+      <p class="m-0 text-[13px] text-[var(--text-muted)]">
         Ninguna bobina del AMS tiene material y color de catálogo. Revisa los filamentos en la
         impresora.
       </p>
@@ -347,7 +462,7 @@ function FormRebanar({
   }
 
   return (
-    <div class="mt-3 flex flex-col gap-3 rounded-[var(--radius-s)] bg-[var(--surface-sunken)] p-4">
+    <div class="flex flex-col gap-3">
       <div>
         <div class="meta-caps mb-2 text-[10px] text-[var(--text-faint)]">Filamento</div>
         <div class="flex flex-wrap gap-2">
