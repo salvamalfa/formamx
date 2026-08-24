@@ -247,6 +247,14 @@ ams_mapping, candado de cama y reencolado sin duplicar nada.
   El índice único de la 0010 se recrea **parcial** (`WHERE order_id IS NOT
   NULL`): sin eso, dos piezas de cliente —ambas con `order_id` NULL y part
   `cliente`— chocarían entre sí.
+
+  **Trampa para la próxima reconstrucción de `print_jobs`** (la 0017 la esquivó
+  por suerte, no por diseño): otras tablas la referencian por clave foránea
+  —hoy `piezas.print_job_id`— y con filas dependientes el `DROP TABLE` falla
+  con `FOREIGN KEY constraint failed`, dejando la migración a medias. La 0017
+  pasó porque `piezas` está vacía en producción. Quien reconstruya esta tabla
+  otra vez tiene que contar con sus dependientes, no solo con copiar sus
+  propias filas.
 - `POST /api/admin/custom-prints/:id/imprimir`: inserta el trabajo y mueve el
   estado en un `db.batch` (una transacción), las dos sentencias guardadas por
   `status = 'listo'`. `file_key = 'clientes/<id>'` y `colors_json` con el color
