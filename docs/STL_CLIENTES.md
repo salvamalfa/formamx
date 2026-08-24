@@ -4,7 +4,7 @@ Plan para aceptar archivos STL que mandan los clientes, rebanarlos
 automáticamente y mandarlos a la Bambu A1 desde /taller, sin pasar por Bambu
 Studio a mano. Léelo completo antes de implementar cualquier fase.
 
-**Estado: fase 1 implementada (agosto 2026); fases 2-4 pendientes.** La prueba
+**Estado: fases 1 y 2 implementadas (agosto 2026); fases 3-4 pendientes.** La prueba
 de concepto del CLI se hizo en Linux con Bambu Studio 02.08.02.61 en modo línea
 de comandos, sin interfaz gráfica: STL → `.gcode.3mf` con el arranque real de la
 A1, temperaturas correctas y estimación de tiempo/gramos. La receta exacta está
@@ -89,11 +89,23 @@ Mañas descubiertas en la prueba, todas obligatorias:
    (`main_predication`, segundos), gramos (`filaments[].total_used_g`) y bbox
    por objeto. Es la interfaz robusta para el agente; el exit code y stdout no
    lo son.
-5. **Miniaturas**: sin pantalla, glfw falla al renderizar las imágenes de
-   plato pero el rebanado y el 3MF salen completos (el error es tolerable).
-   En Linux/macOS sin sesión gráfica, `xvfb-run` (Linux) lo silencia; en la PC
-   Windows de Salva hay sesión gráfica y no aplica.
-6. El nombre de salida sigue la convención del taller: material explícito
+5. **JAMÁS pasar `--export-png`.** Basta con incluirla —con cualquier valor,
+   sola o junto a `--export-3mf`— para que el CLI conteste
+   `return_code: -2, "Invalid parameters to the slicer."` y **no rebane nada**.
+   La vista previa se saca de dentro del propio 3MF
+   (`Metadata/plate_*.png`, excluyendo `pick`/`top`, que son auxiliares del
+   visor). Esas miniaturas necesitan sesión gráfica: en la PC Windows de Salva
+   existen; sin pantalla el 3MF viene sin ellas y la pieza se revisa solo con
+   los estimados. Es un extra deliberado, nunca un requisito.
+6. **Soportes**: encender `enable_support = '1'` en una copia temporal del
+   process (no tocar el perfil generado). El tipo y el ángulo ya vienen bien
+   del perfil de Bambu (`tree(auto)` a 30°), que es exactamente lo que se
+   activa a mano en la interfaz — no hay que inventarlos.
+7. **Orientación**: `--orient 1` reproduce el "Auto orientar" de la interfaz
+   (evalúa 18 orientaciones por voladizo, área de contacto e imprimibilidad);
+   `--orient 0` respeta la del archivo. Medido con una torre de 8×8×120 mm:
+   de pie 4055 s, auto-orientada 550 s — el rebanador la acuesta solo.
+8. El nombre de salida sigue la convención del taller: material explícito
    (`pieza.pla.gcode.3mf`, `pieza.petg.gcode.3mf`), ver
    `docs/IMPRESION_3D.md`.
 
@@ -159,23 +171,44 @@ el STL inaccesible.
 **Deploy:** activar R2 en la cuenta (paso manual de Salva) →
 `npx wrangler r2 bucket create formamx-stl` → migración remota → worker.
 
-### Fase 2 — Agente: rebanado CLI
+### Fase 2 — Agente: rebanado CLI ✅ HECHA
 
-**Corre en: agent/ (PC Windows).**
+**Corre en: agent/ (PC Windows).** `flatten_profiles.py` (aplanador),
+`slicer.py` (invocación y lectura del `result.json`), métodos nuevos en
+`api.py` y `slice_loop` en `__main__.py`. Sección `[slicer]` **opcional** en el
+config: sin ella el agente solo imprime, así que una máquina sin Bambu Studio
+sigue sirviendo.
 
-- `slicer.py`: localizar el ejecutable de Bambu Studio (ruta en
-  `config.toml`), invocar el CLI con la receta de arriba, timeout generoso,
-  parsear `result.json` y dejar el `.gcode.3mf` en `files_dir` con el material
-  en el nombre.
-- `flatten_profiles.py`: aplanador de perfiles (herencia + templates +
-  `curr_bed_type`) que genera los JSON a partir de la instalación local de
-  Bambu Studio; los JSON generados se guardan junto al config del agente,
-  fuera del repo.
-- Bucle nuevo en el agente: reclamar trabajo de rebanado → descargar STL →
-  validar (que quepa en 256×256×256 mm, malla legible) → rebanar → reportar.
-  El rebanado no bloquea el bucle de impresión existente.
-- pytest con `result.json` de muestra y el aplanador; el CLI real se prueba a
-  mano en la PC de Salva con un STL de verdad (PowerShell exacto en el PR).
+- El rebanado corre en **su propio hilo**, no en el bucle de impresión.
+  `process_job` se queda dentro de una impresión durante horas y rebanar no
+  toca la impresora: una pieza recién subida no tiene por qué esperar a que
+  termine una lámpara. El trabajo pesado lo hace un subproceso (el CLI), así
+  que no compite por el GIL con el reporte de progreso ni con el keepalive de
+  MQTT. Cada hilo tiene su propia `TallerApi`: `requests.Session` no es segura
+  entre hilos.
+- Un 409 al reportar el resultado NO es error: significa que la pieza se
+  canceló mientras se rebanaba. Se anota y se sigue.
+- Los 3MF de cliente van a `<files_dir>/clientes/<id>.<material>.gcode.3mf`,
+  que `pick_file` ya sabe resolver (soporta subcarpetas y tiene contención
+  anti-traversal), así que la fase 4 no necesita tocar `mapping.py`.
+
+**Verificado** con Bambu Studio 02.08.02.61 real (Linux, mismo motor que la
+versión de Windows): 30 pruebas de pytest, y sobre todo una integración de
+punta a punta corriendo `slice_loop` de verdad contra `wrangler dev` — subir
+dos STL por la API, que el agente los reclame, se baje el STL de R2, los rebane
+y reporte. Números medidos que confirman que las opciones sí llegan al
+rebanador:
+
+| pieza | opciones | resultado |
+| --- | --- | --- |
+| T con voladizo de 20 mm | PLA, sin soportes | 1626 s, 3.93 g |
+| la misma | PLA, soportes automáticos | 1986 s, **5.59 g** (el extra es el soporte) |
+| torre 8×8×120 mm | orientación del archivo | 4055 s |
+| la misma | orientación automática | **550 s** (el rebanador la acuesta) |
+
+Pendiente de la PC de Salva: correr `flatten_profiles` contra su instalación y
+rebanar un STL real de cliente (comandos en `agent/README.md`). Si su Bambu
+Studio no es 02.08.02.61, revalidar el comando antes.
 
 ### Fase 3 — /taller: la UI
 

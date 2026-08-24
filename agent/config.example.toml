@@ -26,3 +26,11 @@ log_file = 'C:\Users\salva\Desktop\FORMA\04-Web\formamx\agent.log'
 ip = "PEGA-AQUI-LA-IP-LOCAL"
 serial = "PEGA-AQUI-EL-NUMERO-DE-SERIE"
 access_code = "PEGA-AQUI-EL-ACCESS-CODE"
+
+# Rebanado de los STL que mandan los clientes (docs/STL_CLIENTES.md). Es
+# OPCIONAL: sin esta sección el agente solo imprime. Los perfiles los genera
+# una vez `python -m formamx_agent.flatten_profiles` (ver README).
+# [slicer]
+# exe = 'C:\Program Files\Bambu Studio\bambu-studio.exe'
+# profiles_dir = 'C:\Users\salva\Desktop\FORMA\04-Web\formamx\perfiles'
+# timeout_seconds = 900

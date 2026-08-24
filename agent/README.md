@@ -66,6 +66,47 @@ ensayo, si `[printer]` está en el config) y actualiza solo el panel de
 panel es de **solo lectura** — lo que dice el AMS de la impresora manda; los
 filamentos se configuran en la pantalla de la A1 o en Bambu Studio.
 
+## Rebanar los STL que mandan los clientes (opcional)
+
+Además de imprimir los 3MF que preparas tú, el agente puede rebanar solo los
+STL que subas en /taller → Proyectos → Impresora. Requiere **Bambu Studio
+instalado** en esta PC; sin la sección `[slicer]` en el config, el agente
+ignora esas piezas y solo imprime.
+
+Los perfiles se generan **una vez** (y se repiten al actualizar Bambu Studio),
+porque el CLI no resuelve la herencia de perfiles y rebanaría con valores por
+defecto en silencio — cama a 35 °C y piezas despegadas:
+
+```powershell
+cd C:\Users\salva\Desktop\FORMA\04-Web\formamx\repo\agent
+python -m formamx_agent.flatten_profiles `
+  "C:\Program Files\Bambu Studio\resources\profiles\BBL" `
+  C:\Users\salva\Desktop\FORMA\04-Web\formamx\perfiles
+```
+
+Deja escritos `machine.json`, `process_estandar.json`, `filament_pla.json` y
+`filament_petg.json`. Después descomenta la sección `[slicer]` del config
+apuntando `profiles_dir` a esa carpeta.
+
+Los 3MF resultantes se guardan en `<files_dir>\clientes\` con el mismo nombre
+que la pieza en /taller. Al rebanar eliges en /taller:
+
+- **material y color** de las bobinas que la impresora reporta en el AMS;
+- **soportes**: automáticos (de árbol a 30°, lo mismo que activas a mano) o
+  ninguno;
+- **orientación**: automática (el rebanador evalúa voladizos y área de
+  contacto, y suele acostar la pieza, igual que harías tú) o la del archivo
+  tal como viene.
+
+/taller muestra tiempo estimado y gramos antes de imprimir; **imprimir sigue
+siendo un clic tuyo**. Si Bambu Studio logra generar la imagen del plato, se
+muestra también — necesita sesión gráfica, así que es un extra, no un
+requisito.
+
+El rebanado corre en su propio hilo: una pieza recién subida no espera a que
+termine la lámpara que esté imprimiendo. El trabajo pesado lo hace Bambu
+Studio como proceso aparte.
+
 ## Probar en ensayo (sin impresora)
 
 Con `dry_run = true` en el config, el agente simula las impresiones: despacha
