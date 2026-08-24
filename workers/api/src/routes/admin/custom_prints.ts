@@ -160,10 +160,16 @@ customPrints.post('/:id/cancelar', async (c) => {
   return c.json(shapeCustomPrint(updated));
 });
 
-// Borra la pieza y sus objetos en R2. El DELETE de D1 va PRIMERO y guardado
-// por estado: si entre el SELECT y aquí alguien encoló la pieza para rebanar,
-// no borra nada y el archivo se conserva. Al revés (R2 primero) se podía
-// borrar el STL de una pieza recién encolada y reportar éxito a los dos.
+// Borra la pieza y sus objetos en R2, en tres pasos para no perder ni la
+// carrera ni los archivos:
+//  1. la fila pasa a 'borrado' con un UPDATE guardado por estado — si alguien
+//     la encoló para rebanar entre la lectura y aquí, esto no toca nada y el
+//     archivo se conserva;
+//  2. se limpian los objetos de R2 (claves deterministas, borrado idempotente);
+//  3. recién entonces desaparece la fila.
+// Si R2 falla, la fila se queda en 'borrado': es la única pista de qué archivos
+// hay que limpiar, y repetir el borrado reintenta. Nunca se reporta éxito con
+// el STL del cliente todavía guardado.
 customPrints.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const row = await c.env.DB.prepare('SELECT * FROM custom_prints WHERE id = ?')
@@ -175,19 +181,25 @@ customPrints.delete('/:id', async (c) => {
   }
 
   const marcas = DELETABLE_STATUSES.map(() => '?').join(', ');
-  const deleted = await c.env.DB.prepare(
-    `DELETE FROM custom_prints WHERE id = ? AND status IN (${marcas}) RETURNING *`,
+  const marcada = await c.env.DB.prepare(
+    `UPDATE custom_prints SET status = 'borrado', updated_at = datetime('now')
+      WHERE id = ? AND status IN (${marcas}) RETURNING *`,
   )
     .bind(id, ...DELETABLE_STATUSES)
     .first<CustomPrintRow>();
-  if (!deleted) return c.json({ error: 'borrado_concurrente' }, 409);
+  if (!marcada) return c.json({ error: 'borrado_concurrente' }, 409);
 
-  // Ya nadie apunta a estos objetos. La clave del preview es determinista, así
-  // que se borra siempre: la bandera `preview` pudo quedar en 0 tras un
-  // re-rebanado fallido y el PNG del modelo del cliente seguiría en R2.
-  // Un fallo aquí solo deja basura recuperable; la pieza ya no existe.
-  await c.env.STL_BUCKET.delete(deleted.r2_key).catch(() => {});
-  await c.env.STL_BUCKET.delete(previewKey(id)).catch(() => {});
+  try {
+    // El preview se borra siempre por su clave determinista: la bandera
+    // `preview` pudo quedar en 0 tras un re-rebanado fallido y el PNG del
+    // modelo del cliente seguiría en R2.
+    await c.env.STL_BUCKET.delete(marcada.r2_key);
+    await c.env.STL_BUCKET.delete(previewKey(id));
+  } catch {
+    return c.json({ error: 'limpieza_pendiente' }, 503);
+  }
+
+  await c.env.DB.prepare('DELETE FROM custom_prints WHERE id = ?').bind(id).run();
   return c.json({ ok: true });
 });
 
