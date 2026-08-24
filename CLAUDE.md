@@ -10,6 +10,9 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
 - **Configurador de lámparas, dashboard /taller (sección Impresión 3D),
   agente local, Bambu A1, AMS, trabajos de impresión** →
   lee `docs/IMPRESION_3D.md` ANTES de tocar cualquiera de esas piezas.
+- **STL de clientes (importar en /taller, rebanado automático con el CLI de
+  Bambu Studio, R2)** → lee `docs/STL_CLIENTES.md` (plan por fases con la
+  receta CLI validada, aún sin implementar).
 - **Agregar módulos al dashboard** (Resumen, Proyectos con sub-tabs
   —Pedidos/Impresora/Inventario/Envíos—, Clientes con chat que fusionó el
   inbox, agente autónomo) o tocar la estructura de /taller →
