@@ -15,6 +15,12 @@ database_id = "98dbf2ef-7777-4e1e-85d5-02b3734148b4"
 
 # Rate limiting nativo de Workers para /api/checkout: máximo 10 sesiones de
 # Stripe por IP cada 60 s. Evita que alguien automatice miles de sesiones.
+# STL que mandan los clientes para imprimir (docs/STL_CLIENTES.md). Crear el
+# bucket una vez con: npx wrangler r2 bucket create formamx-stl
+[[r2_buckets]]
+binding = "STL_BUCKET"
+bucket_name = "formamx-stl"
+
 [[unsafe.bindings]]
 name = "CHECKOUT_RL"
 type = "ratelimit"

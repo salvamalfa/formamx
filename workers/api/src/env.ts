@@ -5,6 +5,9 @@ export interface RateLimit {
 
 export interface Env {
   DB: D1Database;
+  // STL que mandan los clientes (ver docs/STL_CLIENTES.md). D1 guarda el
+  // metadato; el binario vive aquí porque no cabe ni conviene en D1.
+  STL_BUCKET: R2Bucket;
   // Límite de creación de sesiones de checkout por IP (ver wrangler.toml).
   CHECKOUT_RL: RateLimit;
   STRIPE_SECRET_KEY: string;

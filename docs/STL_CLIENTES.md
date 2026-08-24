@@ -4,24 +4,43 @@ Plan para aceptar archivos STL que mandan los clientes, rebanarlos
 automáticamente y mandarlos a la Bambu A1 desde /taller, sin pasar por Bambu
 Studio a mano. Léelo completo antes de implementar cualquier fase.
 
-**Estado: prueba de concepto del CLI superada (agosto 2026); ninguna fase
-implementada.** La prueba se hizo en Linux con Bambu Studio 02.08.02.61 en modo
-línea de comandos, sin interfaz gráfica: STL → `.gcode.3mf` con el arranque real
-de la A1, temperaturas correctas y estimación de tiempo/gramos. La receta exacta
-está abajo y es la referencia para la fase 2.
+**Estado: fase 1 implementada (agosto 2026); fases 2-4 pendientes.** La prueba
+de concepto del CLI se hizo en Linux con Bambu Studio 02.08.02.61 en modo línea
+de comandos, sin interfaz gráfica: STL → `.gcode.3mf` con el arranque real de la
+A1, temperaturas correctas y estimación de tiempo/gramos. La receta exacta está
+abajo y es la referencia para la fase 2.
+
+Decisiones tomadas con Salva al arrancar la implementación:
+
+- **Placa**: PEI texturizada (fija en el perfil aplanado, constante `BED_TYPE`).
+- **Calidad**: solo `0.20mm Standard` por ahora; agregar borrador/fino después
+  es aplanar otro process.
+- **Colores**: solo los del catálogo de lámparas (el `color_id` que ya resuelve
+  el AMS). Un filamento negro o gris no es seleccionable hasta ampliar el
+  catálogo.
+- **Soportes y orientación** son opciones por pieza (`supports`: `auto|no`,
+  `orient`: `auto|original`), porque Salva hoy acuesta las piezas a mano y
+  activa soportes. `--orient 1` reproduce el "Auto orientar" de Bambu Studio
+  (evalúa 18 orientaciones por voladizo y área de contacto); `original` respeta
+  la orientación del STL.
+- **Vista previa**: el rebanado exporta un PNG del plato (`--export-png`) que
+  /taller muestra antes de imprimir. Es best effort: sin sesión gráfica falla y
+  la pieza se revisa solo con los estimados.
 
 ## El flujo terminado
 
 1. Un cliente manda un STL. Salva entra a /taller → Proyectos → Impresora y
    pulsa **Importar STL**; el archivo sube al Worker y se guarda en R2.
-2. Salva elige material, color (de las bobinas presentes en el AMS) y calidad,
-   y pulsa **Rebanar**. Se crea un trabajo de rebanado.
+2. Salva elige material y color (de las bobinas presentes en el AMS), decide
+   soportes y orientación, y pulsa **Rebanar**. La pieza entra a la cola de
+   rebanado.
 3. El agente (PC de Salva hoy; Mac mini cuando exista, ver `docs/AGENTE_IA.md`
-   B0) reclama el trabajo, descarga el STL, corre el CLI de Bambu Studio y
-   reporta tiempo estimado, gramos y éxito/error. El `.gcode.3mf` queda en el
-   `files_dir` local del agente.
-4. Salva revisa el estimado en /taller y pulsa **Imprimir**. Desde ahí todo es
-   el pipeline existente: claim, ams_mapping, FTPS, MQTT, candado de cama.
+   B0) reclama la pieza, descarga el STL, corre el CLI de Bambu Studio y
+   reporta tiempo estimado, gramos y éxito/error, más un PNG del plato. El
+   `.gcode.3mf` queda en el `files_dir` local del agente.
+4. Salva revisa el estimado y la vista previa en /taller y pulsa **Imprimir**.
+   Desde ahí todo es el pipeline existente: claim, ams_mapping, FTPS, MQTT,
+   candado de cama.
 
 Reglas que no cambian: el gate humano se conserva (nada se imprime sin el clic
 de Salva tras ver el estimado); los STL y 3MF jamás entran al repo; el candado
@@ -85,28 +104,52 @@ process correspondiente; no inventar perfiles propios.
 
 ## Fases (cada una un PR pequeño y desplegable)
 
-### Fase 1 — Worker: R2 + modelo de datos
+### Fase 1 — Worker: R2 + modelo de datos ✅ HECHA
 
-**Corre en: Worker/D1.** Sin UI todavía.
+**Corre en: Worker/D1.** Sin UI todavía. Migración `0016_custom_prints.sql`,
+lógica en `lib/custom_prints.ts`, rutas en `routes/admin/custom_prints.ts` y
+`routes/agent.ts`; binding `STL_BUCKET` en `wrangler.toml` y `env.ts`.
 
-- Bucket R2 (binding `STL_BUCKET`) y migración D1 para `custom_prints`:
-  id, nombre original, clave R2, tamaño, material, color (hex + nombre de
-  catálogo si empareja), calidad, estado
-  (`subido → rebanando → listo → imprimiendo → terminado`, +`fallido` con
-  motivo, +`cancelado`), estimados (segundos, gramos), fechas. Enums sin
-  CHECK, numeración de migración a 4 dígitos.
-- Rutas admin (`/api/admin/custom-prints`): subir STL (streaming a R2, límite
-  de tamaño explícito ~100 MB), listar, cambiar estado, cancelar, borrar
-  (borra también el objeto R2).
-- Rutas agente (`/api/agent/…`): claim de trabajos de rebanado (mismo patrón
-  atómico de `lib/jobs.ts`), descarga del STL, reporte de resultado con
-  estimados o error.
-- El STL nunca pasa por D1; D1 guarda solo metadatos y la clave R2.
+Grafo real implementado (con un estado más que el boceto original):
 
-**Verifica:** typecheck del worker, migración local, auth cruzada
-admin/agente, wrangler dev con R2 local.
-**Deploy:** activar R2 en la cuenta (paso manual de Salva) → migración remota
-→ worker.
+```
+subido → en_cola → rebanando → listo → imprimiendo → terminado
+                        ↓         ↑ (fallo de impresión: el 3MF sigue estando)
+                     fallido ──────┘ (reintentar rebanado)
+```
+
+`en_cola` existe para que el agente distinga "me pidieron rebanar" de "ya lo
+reclamé", igual que `queued`/`claimed` en `print_jobs`. **`fallido` significa
+siempre "el rebanado no dejó archivo"**: un fallo de IMPRESIÓN devuelve la
+pieza a `listo`, así el gate de Imprimir es simplemente `status === 'listo'`.
+
+Decisiones de implementación que conviene no re-litigar:
+
+- **Sin tabla de trabajos de rebanado**: el claim atómico va directo sobre
+  `custom_prints` (mismo `UPDATE … WHERE id = (SELECT … LIMIT 1) RETURNING *`
+  de `routes/agent.ts`), con reencolado de claims muertos a los
+  `SLICE_STALE_MINUTES = 30` (rebanar tarda más que arrancar una impresión;
+  los 15 de `print_jobs` reencolarían trabajos vivos).
+- **El claim de rebanado NO mira el candado de cama**: rebanar no toca la
+  impresora, así que se puede preparar trabajo con una pieza en la cama.
+- **Subida como cuerpo binario crudo** (`?filename=`, no multipart): permite
+  `STL_BUCKET.put(key, c.req.raw.body)` en streaming. R2 necesita el tamaño de
+  antemano, así que `Content-Length` es obligatorio (411 sin él) y sirve para
+  rechazar lo enorme antes de escribir nada (100 MB, el tope de cuerpo de
+  petición del plan gratuito de Workers).
+- **El STL viaja al agente por endpoint autenticado** con el `AGENT_TOKEN` que
+  ya existe, no por URL firmada: no hay llaves S3 de R2 que rotar.
+- Borrar limpia R2 primero y D1 después (al revés quedaría basura sin dueño) y
+  se bloquea con 409 mientras la pieza está en uso.
+
+**Verificado:** typecheck, migración local y ciclo completo contra
+`wrangler dev` con R2 local — subida (el STL regresa byte a byte idéntico),
+auth cruzada admin/agente 401 en ambos sentidos, rechazo real de un archivo de
+101 MB, claim atómico y 204 con la cola vacía, reporte de éxito y de fallo,
+reintento desde `fallido`, subida y descarga del preview, y borrado que deja
+el STL inaccesible.
+**Deploy:** activar R2 en la cuenta (paso manual de Salva) →
+`npx wrangler r2 bucket create formamx-stl` → migración remota → worker.
 
 ### Fase 2 — Agente: rebanado CLI
 
@@ -134,10 +177,12 @@ abrir el PR (regla de `CLAUDE.md`).
 - En Proyectos → Impresora: botón **Importar STL**, subida con progreso,
   lista de piezas de cliente con estado.
 - Selector de material/color alimentado por el estado del AMS ya sincronizado
-  (solo bobinas presentes; mismo emparejado de color de `lib/catalog.ts`) y
-  selector de calidad.
-- Tarjeta de resultado: tiempo estimado, gramos, error legible si la malla no
-  sirvió, botones Rebanar de nuevo / Cancelar / Imprimir.
+  (solo bobinas presentes; mismo emparejado de color de `lib/catalog.ts`), más
+  los interruptores de soportes (automáticos / sin soportes) y orientación
+  (automática / como viene el archivo).
+- Tarjeta de resultado: vista previa del plato, tiempo estimado, gramos, error
+  legible si la malla no sirvió, botones Rebanar de nuevo / Cancelar /
+  Imprimir.
 - Playwright con API mockeada, siguiendo `tests/e2e/taller.spec.ts`.
 
 ### Fase 4 — Imprimir de verdad
