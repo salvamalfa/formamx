@@ -5,6 +5,7 @@ import { useSession } from '../hooks/useSession';
 import { PART_LABEL } from '../pedidos/labels';
 import { colorLabel, colorSwatch } from '../ui/colores';
 import { formatSync, shortId } from '../ui/format';
+import { PiezasClientes } from './PiezasClientes';
 
 // Sub-pestaña "Impresora": la cama, el trabajo actual, la cola y las bobinas
 // del AMS. El AMS sigue siendo SOLO lectura (lo dicta la impresora, el
@@ -65,6 +66,8 @@ export function ImpresoraPanel() {
         </div>
         <BobinasAms spools={core.spools} bobinas={bobinas} amsSyncedAt={core.amsSyncedAt} />
       </div>
+
+      <PiezasClientes spools={core.spools} />
     </div>
   );
 }

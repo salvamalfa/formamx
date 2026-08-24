@@ -45,6 +45,7 @@ async function mockApi(
     bedClear?: boolean;
     syncedAt?: string | null;
     resumen?: typeof RESUMEN_VACIO;
+    customPrints?: Record<string, unknown>[];
   } = {},
 ) {
   const spools = opts.spools ?? [null, null, null, null];
@@ -102,7 +103,36 @@ async function mockApi(
     }
     return route.fallback();
   });
+  // Piezas STL de clientes (card de la sub-pestaña Impresora). Por defecto
+  // vacío; los specs que la ejercitan registran rutas más nuevas que ganan.
+  await page.route('**/api/admin/custom-prints', (route) => {
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ json: { prints: opts.customPrints ?? [] } });
+    }
+    return route.fallback();
+  });
 }
+
+// Pieza de cliente ya rebanada, lista para imprimir.
+const PIEZA_LISTA = {
+  id: 'cp_11111111',
+  file_name: 'soporte-cliente.stl',
+  size_bytes: 2_400_000,
+  material: 'PLA',
+  color_id: 'azul',
+  color_hex: '#2F5FD6',
+  supports: 'auto',
+  orient: 'auto',
+  status: 'listo',
+  est_seconds: 12_240,
+  est_grams: 87.5,
+  preview: false,
+  message: null,
+  print_job_id: null,
+  progress_pct: null,
+  created_at: '2026-08-24 03:00:00',
+  updated_at: '2026-08-24 03:10:00',
+};
 
 async function entrar(page: Page) {
   await page.getByPlaceholder('token').fill('t');
@@ -931,4 +961,119 @@ test('Ver todos navega a Proyectos/Pedidos y el top-4 de Resumen respeta el lím
   await page.getByRole('button', { name: 'Ver todos →' }).click();
   await expect(page).toHaveURL(/#proyectos\/pedidos$/);
   await expect(page.getByText('Cliente E')).toBeVisible();
+});
+
+test.describe('piezas de clientes', () => {
+  test('lista una pieza rebanada con su estimado', async ({ page }) => {
+    await mockApi(page, { customPrints: [PIEZA_LISTA] });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await expect(main.getByText('soporte-cliente.stl')).toBeVisible();
+    await expect(main.getByText('Listo para imprimir')).toBeVisible();
+    // 12240 s = 3 h 24 min; el gramaje y el filamento salen del rebanado.
+    await expect(main.getByText('3 h 24 min · 87.5 g · PLA · Azul · con soportes')).toBeVisible();
+    await expect(main.getByText('2.3 MB')).toBeVisible();
+  });
+
+  test('sin piezas explica para qué sirve', async ({ page }) => {
+    await mockApi(page);
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    await expect(page.locator('main').getByText(/Importa el STL que te mandó un cliente/)).toBeVisible();
+  });
+
+  test('un fallo del rebanado se ve con su motivo', async ({ page }) => {
+    await mockApi(page, {
+      customPrints: [
+        {
+          ...PIEZA_LISTA,
+          status: 'fallido',
+          est_seconds: null,
+          est_grams: null,
+          message: 'la pieza mide 300 × 20 × 20 mm y no cabe en la cama (256 mm)',
+        },
+      ],
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+    await expect(main.getByText('No se pudo rebanar')).toBeVisible();
+    await expect(main.getByText(/no cabe en la cama/)).toBeVisible();
+  });
+
+  test('subir un STL lo agrega a la lista', async ({ page }) => {
+    await mockApi(page);
+    let subido: string | null = null;
+    // El nombre del archivo viaja en la query, así que el patrón tiene que
+    // aceptarla (el de mockApi solo matchea la ruta pelada).
+    await page.route('**/api/admin/custom-prints**', (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      subido = new URL(route.request().url()).searchParams.get('filename');
+      return route.fulfill({
+        json: { ...PIEZA_LISTA, id: 'cp_nueva', file_name: subido, status: 'subido',
+                est_seconds: null, est_grams: null, material: null, color_id: null },
+      });
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await main.locator('input[type=file]').setInputFiles({
+      name: 'pieza-cliente.stl',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.from('solid pieza\nendsolid pieza\n'),
+    });
+
+    await expect(main.getByText('pieza-cliente.stl')).toBeVisible();
+    await expect(main.getByText('Subido')).toBeVisible();
+    expect(subido).toBe('pieza-cliente.stl');
+  });
+
+  test('rebanar manda el filamento y las opciones elegidas', async ({ page }) => {
+    await mockApi(page, {
+      spools: ['azul', 'blanco', null, null],
+      customPrints: [
+        { ...PIEZA_LISTA, status: 'subido', est_seconds: null, est_grams: null,
+          material: null, color_id: null, supports: null, orient: null },
+      ],
+    });
+    let enviado: Record<string, unknown> | null = null;
+    await page.route('**/api/admin/custom-prints/*/rebanar', (route) => {
+      enviado = route.request().postDataJSON();
+      return route.fulfill({ json: { ...PIEZA_LISTA, status: 'en_cola' } });
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await main.getByRole('button', { name: 'Rebanar', exact: true }).click();
+    await main.getByRole('button', { name: 'Sin soportes' }).click();
+    await main.getByRole('button', { name: 'Como viene el archivo' }).click();
+    await main.getByRole('button', { name: 'Rebanar', exact: true }).last().click();
+
+    await expect.poll(() => enviado).not.toBeNull();
+    expect(enviado).toMatchObject({
+      material: 'PLA',
+      color_id: 'azul',
+      supports: 'no',
+      orient: 'original',
+    });
+  });
+
+  test('sin bobinas usables no ofrece rebanar a ciegas', async ({ page }) => {
+    await mockApi(page, {
+      spools: [null, null, null, null],
+      customPrints: [
+        { ...PIEZA_LISTA, status: 'subido', est_seconds: null, est_grams: null,
+          material: null, color_id: null },
+      ],
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+    await main.getByRole('button', { name: 'Rebanar', exact: true }).click();
+    await expect(main.getByText(/Ninguna bobina del AMS/)).toBeVisible();
+  });
 });

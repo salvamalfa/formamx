@@ -1,0 +1,426 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
+import {
+  borrarPrint,
+  cancelarPrint,
+  getCustomPrints,
+  getPreviewUrl,
+  rebanarPrint,
+  uploadCustomPrint,
+  type CustomPrint,
+  type CustomPrintStatus,
+  type Spool,
+} from '../../../lib/taller';
+import { useSession } from '../hooks/useSession';
+import { colorLabel, colorSwatch } from '../ui/colores';
+
+// Card "Piezas de clientes": subir un STL, pedir su rebanado con el material y
+// color que hay cargados en el AMS, y revisar el estimado antes de imprimir.
+// El rebanado lo hace el agente en la PC del taller (docs/STL_CLIENTES.md).
+
+const ESTADO_LABEL: Record<CustomPrintStatus, string> = {
+  subido: 'Subido',
+  en_cola: 'En cola de rebanado',
+  rebanando: 'Rebanando',
+  listo: 'Listo para imprimir',
+  imprimiendo: 'Imprimiendo',
+  terminado: 'Terminado',
+  fallido: 'No se pudo rebanar',
+  cancelado: 'Cancelada',
+  borrado: 'Borrado a medias',
+};
+
+// Mientras alguna pieza está en la cola del agente, se refresca más seguido.
+const POLL_ACTIVO_MS = 15_000;
+const POLL_TRANQUILO_MS = 60_000;
+
+const REBANABLES: CustomPrintStatus[] = ['subido', 'listo', 'fallido'];
+const EN_PROCESO: CustomPrintStatus[] = ['en_cola', 'rebanando', 'imprimiendo'];
+
+export function formatDuracion(segundos: number): string {
+  const h = Math.floor(segundos / 3600);
+  const m = Math.round((segundos % 3600) / 60);
+  return h > 0 ? `${h} h ${m} min` : `${m} min`;
+}
+
+export function formatTamano(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+export function PiezasClientes({ spools }: { spools: Spool[] }) {
+  const { token, invalidate } = useSession();
+  const [piezas, setPiezas] = useState<CustomPrint[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [subiendo, setSubiendo] = useState<number | null>(null);
+  const [abierta, setAbierta] = useState<string | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+
+  const activo = piezas.some((p) => EN_PROCESO.includes(p.status));
+
+  // useSession() devuelve funciones nuevas en cada render, así que `invalidate`
+  // NO puede ir en las dependencias del efecto: lo re-dispararía en cada
+  // render y el polling se volvería un bucle que martillea la API.
+  const invalidateRef = useRef(invalidate);
+  invalidateRef.current = invalidate;
+
+  useEffect(() => {
+    if (!token) return;
+    let vivo = true;
+    const cargar = () =>
+      getCustomPrints(token)
+        .then((ps) => {
+          if (!vivo) return;
+          setPiezas(ps);
+          setError(null);
+        })
+        .catch((err: Error) => {
+          if (!vivo) return;
+          if (err.message === 'no_autorizado') invalidateRef.current('Token inválido.');
+          else setError('No pude leer las piezas de clientes.');
+        })
+        .finally(() => vivo && setCargando(false));
+    void cargar();
+    const id = setInterval(cargar, activo ? POLL_ACTIVO_MS : POLL_TRANQUILO_MS);
+    return () => {
+      vivo = false;
+      clearInterval(id);
+    };
+  }, [token, activo]);
+
+  async function subir(file: File) {
+    if (!token) return;
+    setError(null);
+    setSubiendo(0);
+    try {
+      const nueva = await uploadCustomPrint(token, file, setSubiendo);
+      setPiezas((ps) => [nueva, ...ps]);
+      setAbierta(nueva.id);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === 'no_autorizado') invalidate('Token inválido.');
+      else if (msg === 'error_400') setError('El archivo no sirve: debe ser un .stl de menos de 100 MB.');
+      else setError('No pude subir el archivo.');
+    } finally {
+      setSubiendo(null);
+      if (input.current) input.current.value = '';
+    }
+  }
+
+  // Actualización optimista con vuelta atrás, como en Inventario: la acción se
+  // ve al instante y si el worker la rechaza se restaura lo que había.
+  async function accion(id: string, fn: () => Promise<unknown>, optimista: Partial<CustomPrint>) {
+    const previas = piezas;
+    setError(null);
+    setPiezas((ps) => ps.map((p) => (p.id === id ? { ...p, ...optimista } : p)));
+    try {
+      await fn();
+      if (token) setPiezas(await getCustomPrints(token));
+    } catch (err) {
+      setPiezas(previas);
+      const msg = (err as Error).message;
+      if (msg === 'no_autorizado') invalidate('Token inválido.');
+      else if (msg === 'error_503') setError('No pude borrar el archivo. Inténtalo otra vez.');
+      else setError('No pude hacer ese cambio.');
+    }
+  }
+
+  return (
+    <div class="rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]">
+      <div class="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 class="m-0 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+          Piezas de clientes
+        </h2>
+        <input
+          ref={input}
+          type="file"
+          accept=".stl"
+          class="hidden"
+          onChange={(e) => {
+            const file = (e.currentTarget as HTMLInputElement).files?.[0];
+            if (file) void subir(file);
+          }}
+        />
+        <button
+          type="button"
+          class="btn btn-sm btn-terciario"
+          disabled={subiendo !== null}
+          onClick={() => input.current?.click()}
+        >
+          {subiendo !== null ? `Subiendo ${subiendo}%` : 'Importar STL'}
+        </button>
+      </div>
+
+      {subiendo !== null && (
+        <div class="mb-4 h-1.5 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--borde)]">
+          <div
+            class="h-full rounded-[var(--radius-pill)] bg-[var(--azul)]"
+            style={{ width: `${subiendo}%`, transition: 'width var(--duration-fast) var(--ease-out)' }}
+          />
+        </div>
+      )}
+
+      {error && <p class="m-0 mb-3 text-sm text-[var(--naranja-oscuro)]">{error}</p>}
+
+      {cargando ? (
+        <p class="m-0 text-sm text-[var(--text-muted)]">Cargando…</p>
+      ) : piezas.length === 0 ? (
+        <p class="m-0 text-sm text-[var(--text-muted)]">
+          Nada por aquí. Importa el STL que te mandó un cliente y el agente lo rebana.
+        </p>
+      ) : (
+        <div class="flex flex-col">
+          {piezas.map((pieza) => (
+            <Fila
+              key={pieza.id}
+              pieza={pieza}
+              spools={spools}
+              token={token}
+              abierta={abierta === pieza.id}
+              onAbrir={() => setAbierta(abierta === pieza.id ? null : pieza.id)}
+              onRebanar={(op) =>
+                accion(pieza.id, () => rebanarPrint(token!, pieza.id, op), { status: 'en_cola' })
+              }
+              onCancelar={() =>
+                accion(pieza.id, () => cancelarPrint(token!, pieza.id), { status: 'cancelado' })
+              }
+              onBorrar={() => accion(pieza.id, () => borrarPrint(token!, pieza.id), {})}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Fila({
+  pieza,
+  spools,
+  token,
+  abierta,
+  onAbrir,
+  onRebanar,
+  onCancelar,
+  onBorrar,
+}: {
+  pieza: CustomPrint;
+  spools: Spool[];
+  token: string | null;
+  abierta: boolean;
+  onAbrir: () => void;
+  onRebanar: (op: {
+    material: string;
+    color_id: string;
+    color_hex?: string | null;
+    supports: 'auto' | 'no';
+    orient: 'auto' | 'original';
+  }) => void;
+  onCancelar: () => void;
+  onBorrar: () => void;
+}) {
+  const rebanable = REBANABLES.includes(pieza.status);
+  return (
+    <div class="border-t border-[var(--border-soft)] py-3">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span class="min-w-0 flex-1 truncate text-sm">{pieza.file_name}</span>
+        <span class="text-[11px] text-[var(--text-faint)]">{formatTamano(pieza.size_bytes)}</span>
+        <span class={`tag ${pieza.status === 'listo' ? 'tag-bosque' : 'tag-neutral'}`}>
+          {ESTADO_LABEL[pieza.status]}
+          {pieza.status === 'imprimiendo' && pieza.progress_pct != null
+            ? ` ${pieza.progress_pct}%`
+            : ''}
+        </span>
+      </div>
+
+      {pieza.est_seconds != null && pieza.est_grams != null && (
+        <p class="m-0 mt-1 text-[13px] text-[var(--text-muted)]">
+          {formatDuracion(pieza.est_seconds)} · {pieza.est_grams} g
+          {pieza.material ? ` · ${pieza.material}` : ''}
+          {pieza.color_id ? ` · ${colorLabel(pieza.color_id)}` : ''}
+          {pieza.supports === 'auto' ? ' · con soportes' : ''}
+        </p>
+      )}
+
+      {pieza.message && (
+        <p class="m-0 mt-1 text-[13px] text-[var(--naranja-oscuro)]">{pieza.message}</p>
+      )}
+
+      {pieza.preview && token && <Preview id={pieza.id} token={token} />}
+
+      <div class="mt-2 flex flex-wrap gap-2">
+        {/* btn-ghost es blanco (para fondos oscuros): sobre esta card va la
+            variante clara, que el kit define justo para acciones de fila. */}
+        {rebanable && (
+          <button type="button" class="btn btn-sm btn-terciario" onClick={onAbrir}>
+            {abierta ? 'Cerrar' : pieza.status === 'listo' ? 'Rebanar otra vez' : 'Rebanar'}
+          </button>
+        )}
+        {EN_PROCESO.includes(pieza.status) && pieza.status !== 'imprimiendo' && (
+          <button type="button" class="btn btn-sm btn-ghost-claro" onClick={onCancelar}>
+            Cancelar
+          </button>
+        )}
+        {!EN_PROCESO.includes(pieza.status) && (
+          <button type="button" class="btn btn-sm btn-ghost-claro" onClick={onBorrar}>
+            Borrar
+          </button>
+        )}
+      </div>
+
+      {abierta && rebanable && <FormRebanar spools={spools} onRebanar={onRebanar} />}
+    </div>
+  );
+}
+
+// La imagen del plato va autenticada: se baja como blob y se revoca al salir.
+function Preview({ id, token }: { id: string; token: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    let actual: string | null = null;
+    getPreviewUrl(token, id)
+      .then((u) => {
+        if (!vivo) return URL.revokeObjectURL(u);
+        actual = u;
+        setUrl(u);
+      })
+      .catch(() => {
+        /* sin imagen: la pieza se revisa con los estimados */
+      });
+    return () => {
+      vivo = false;
+      if (actual) URL.revokeObjectURL(actual);
+    };
+  }, [id, token]);
+  if (!url) return null;
+  return (
+    <img
+      src={url}
+      alt="Vista del plato rebanado"
+      class="mt-2 max-h-40 rounded-[var(--radius-s)] border border-[var(--border-soft)]"
+    />
+  );
+}
+
+// Solo se ofrecen las ranuras que la impresora reporta con material Y color de
+// catálogo: el agente mapea por color_id, así que una bobina sin match no se
+// puede pedir todavía.
+function FormRebanar({
+  spools,
+  onRebanar,
+}: {
+  spools: Spool[];
+  onRebanar: (op: {
+    material: string;
+    color_id: string;
+    color_hex?: string | null;
+    supports: 'auto' | 'no';
+    orient: 'auto' | 'original';
+  }) => void;
+}) {
+  const usables = spools.filter((s) => s.material && s.color_id);
+  const [elegida, setElegida] = useState<number | null>(usables[0]?.slot ?? null);
+  const [supports, setSupports] = useState<'auto' | 'no'>('auto');
+  const [orient, setOrient] = useState<'auto' | 'original'>('auto');
+  const spool = usables.find((s) => s.slot === elegida);
+
+  if (usables.length === 0) {
+    return (
+      <p class="m-0 mt-3 text-[13px] text-[var(--text-muted)]">
+        Ninguna bobina del AMS tiene material y color de catálogo. Revisa los filamentos en la
+        impresora.
+      </p>
+    );
+  }
+
+  return (
+    <div class="mt-3 flex flex-col gap-3 rounded-[var(--radius-s)] bg-[var(--surface-sunken)] p-4">
+      <div>
+        <div class="meta-caps mb-2 text-[10px] text-[var(--text-faint)]">Filamento</div>
+        <div class="flex flex-wrap gap-2">
+          {usables.map((s) => (
+            <button
+              key={s.slot}
+              type="button"
+              class={`chip chip-claro ${elegida === s.slot ? 'activo' : ''}`}
+              onClick={() => setElegida(s.slot)}
+            >
+              <span
+                class="mr-1.5 inline-block size-2.5 rounded-full border border-[var(--border-strong)] align-middle"
+                style={{ background: s.color_hex ?? colorSwatch(s.color_id!) }}
+              />
+              {colorLabel(s.color_id)} · {s.material}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Opcion
+        titulo="Soportes"
+        valor={supports}
+        opciones={[
+          ['auto', 'Automáticos'],
+          ['no', 'Sin soportes'],
+        ]}
+        onElegir={(v) => setSupports(v as 'auto' | 'no')}
+      />
+      <Opcion
+        titulo="Orientación"
+        valor={orient}
+        opciones={[
+          ['auto', 'La mejor automática'],
+          ['original', 'Como viene el archivo'],
+        ]}
+        onElegir={(v) => setOrient(v as 'auto' | 'original')}
+      />
+
+      <button
+        type="button"
+        class="btn btn-sm btn-primary self-start"
+        disabled={!spool}
+        onClick={() =>
+          spool &&
+          onRebanar({
+            material: spool.material!,
+            color_id: spool.color_id!,
+            color_hex: spool.color_hex,
+            supports,
+            orient,
+          })
+        }
+      >
+        Rebanar
+      </button>
+    </div>
+  );
+}
+
+function Opcion({
+  titulo,
+  valor,
+  opciones,
+  onElegir,
+}: {
+  titulo: string;
+  valor: string;
+  opciones: [string, string][];
+  onElegir: (v: string) => void;
+}) {
+  return (
+    <div>
+      <div class="meta-caps mb-2 text-[10px] text-[var(--text-faint)]">{titulo}</div>
+      <div class="flex flex-wrap gap-2">
+        {opciones.map(([v, label]) => (
+          <button
+            key={v}
+            type="button"
+            class={`chip chip-claro ${valor === v ? 'activo' : ''}`}
+            onClick={() => onElegir(v)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
