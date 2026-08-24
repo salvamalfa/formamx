@@ -19,6 +19,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from .preview import render_desde_3mf
+
 log = logging.getLogger('formamx.slicer')
 
 # Cama de la A1. El chequeo es una red de seguridad con mensaje legible: el
@@ -81,28 +83,34 @@ def _process_con_soportes(profiles_dir: Path, destino: Path) -> Path:
 
 
 def _extraer_preview(tmf_path: Path) -> Path | None:
-    """Saca la imagen del plato que Bambu Studio incrusta en el 3MF.
+    """Deja la vista del rebanado junto al 3MF.
 
-    Es un extra deliberado: el render de esas miniaturas necesita sesión
-    gráfica, así que en una máquina sin pantalla el 3MF viene sin ellas y la
-    pieza se revisa solo con los estimados. NO se usa la bandera --export-png
-    del CLI: hace que el rebanador rechace todos los parámetros y falle el
-    rebanado entero, que es demasiado que arriesgar por una imagen.
+    Primero busca la miniatura que Bambu Studio incrusta en el 3MF, que es un
+    render bonito pero solo existe si la máquina tuvo sesión gráfica al rebanar.
+    Si no está, se dibuja el recorrido real del extrusor desde el G-code
+    (preview.py): así la vista SIEMPRE existe, con o sin pantalla.
+    NO se usa la bandera --export-png del CLI: incluirla hace que el rebanador
+    rechace todos los parámetros y no rebane nada.
     """
+    destino = tmf_path.with_suffix('.png')
     try:
         with zipfile.ZipFile(tmf_path) as z:
-            nombres = z.namelist()
-            candidatos = [n for n in nombres if n.startswith('Metadata/plate_') and n.endswith('.png')]
             # 'pick' y 'top' son auxiliares del visor, no la vista del plato.
-            candidatos = [n for n in candidatos if 'pick' not in n and 'top' not in n]
-            if not candidatos:
-                return None
-            destino = tmf_path.with_suffix('.png')
-            destino.write_bytes(z.read(sorted(candidatos)[0]))
-            return destino
+            candidatos = [
+                n
+                for n in z.namelist()
+                if n.startswith('Metadata/plate_')
+                and n.endswith('.png')
+                and 'pick' not in n
+                and 'top' not in n
+            ]
+            if candidatos:
+                destino.write_bytes(z.read(sorted(candidatos)[0]))
+                return destino
     except (zipfile.BadZipFile, OSError) as err:
-        log.warning('no pude sacar la vista previa del 3MF: %s', err)
-        return None
+        log.warning('no pude leer las miniaturas del 3MF: %s', err)
+
+    return render_desde_3mf(tmf_path, destino)
 
 
 def slice_stl(

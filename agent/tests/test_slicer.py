@@ -123,3 +123,66 @@ def test_los_soportes_solo_se_encienden_cuando_toca(tmp_path, soportes):
         assert datos['support_type'] == 'tree(auto)'
     original = json.loads((tmp_path / 'process_estandar.json').read_text(encoding='utf-8'))
     assert original['enable_support'] == '0'
+
+
+# ---- Vista del rebanado -----------------------------------------------------
+
+GCODE_MINIMO = """
+;comentario que se ignora
+M83
+G1 X10 Y10 Z0.2 F600
+G1 X20 Y10 E0.5
+G1 X20 Y20 E0.5
+G1 X30 Y30 F9000
+G1 X10 Y10 Z0.4
+G1 X20 Y20 E0.8
+"""
+
+
+def test_solo_cuentan_los_movimientos_que_extruyen():
+    from formamx_agent.preview import leer_segmentos
+
+    segmentos = leer_segmentos(GCODE_MINIMO)
+    # 3 con E; el viaje sin E (X30 Y30) y el cambio de capa no cuentan.
+    assert len(segmentos) == 3
+    assert segmentos[0][:2] == (10.0, 10.0)
+    assert segmentos[0][3:5] == (20.0, 10.0)
+
+
+def test_extrusion_absoluta_tambien_se_entiende():
+    from formamx_agent.preview import leer_segmentos
+
+    # Con M82 la E es acumulada: extruye solo si sube respecto a la anterior.
+    absoluto = 'M82\nG1 X0 Y0 Z0.2\nG1 X10 Y0 E5\nG1 X20 Y0 E5\nG1 X30 Y0 E9\n'
+    assert len(leer_segmentos(absoluto)) == 2
+
+
+def test_los_arcos_cuentan_como_segmento():
+    from formamx_agent.preview import leer_segmentos
+
+    assert len(leer_segmentos('M83\nG1 X0 Y0 Z0.2\nG2 X10 Y10 I5 J5 E1\n')) == 1
+
+
+def test_dibuja_un_png_de_verdad(tmp_path):
+    from formamx_agent.preview import dibujar, leer_segmentos
+
+    destino = dibujar(leer_segmentos(GCODE_MINIMO), tmp_path / 'v.png')
+    assert destino.is_file()
+    assert destino.read_bytes()[:8] == b'\x89PNG\r\n\x1a\n'
+
+
+def test_sin_extrusiones_no_inventa_imagen(tmp_path):
+    from formamx_agent.preview import dibujar
+
+    assert dibujar([], tmp_path / 'v.png') is None
+
+
+def test_un_3mf_sin_gcode_no_revienta(tmp_path):
+    import zipfile
+
+    from formamx_agent.preview import render_desde_3mf
+
+    vacio = tmp_path / 'vacio.3mf'
+    with zipfile.ZipFile(vacio, 'w') as z:
+        z.writestr('3D/3dmodel.model', '<model/>')
+    assert render_desde_3mf(vacio, tmp_path / 'v.png') is None
