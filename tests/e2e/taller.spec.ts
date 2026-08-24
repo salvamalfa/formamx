@@ -1077,3 +1077,47 @@ test.describe('piezas de clientes', () => {
     await expect(main.getByText(/Ninguna bobina del AMS/)).toBeVisible();
   });
 });
+
+test.describe('imprimir una pieza de cliente', () => {
+  test('el botón manda la pieza a la cola', async ({ page }) => {
+    await mockApi(page, { customPrints: [PIEZA_LISTA] });
+    let pedido = false;
+    await page.route('**/api/admin/custom-prints/*/imprimir', (route) => {
+      pedido = true;
+      return route.fulfill({
+        json: { ...PIEZA_LISTA, status: 'imprimiendo', print_job_id: 'job_1', progress_pct: 0 },
+      });
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await main.getByRole('button', { name: 'Imprimir' }).click();
+    await expect.poll(() => pedido).toBe(true);
+    // exact: la card "Imprimiendo ahora" de arriba también contiene la palabra.
+    await expect(main.getByText('Imprimiendo', { exact: true })).toBeVisible();
+  });
+
+  test('una pieza que aún no se rebana no ofrece imprimir', async ({ page }) => {
+    await mockApi(page, {
+      customPrints: [
+        { ...PIEZA_LISTA, status: 'subido', est_seconds: null, est_grams: null,
+          material: null, color_id: null },
+      ],
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    await expect(page.locator('main').getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
+  });
+
+  test('mientras imprime muestra el progreso y no deja borrarla', async ({ page }) => {
+    await mockApi(page, {
+      customPrints: [{ ...PIEZA_LISTA, status: 'imprimiendo', print_job_id: 'job_1', progress_pct: 40 }],
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+    await expect(main.getByText('Imprimiendo 40%')).toBeVisible();
+    await expect(main.getByRole('button', { name: 'Borrar' })).toHaveCount(0);
+  });
+});

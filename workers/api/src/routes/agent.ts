@@ -144,6 +144,49 @@ agent.post('/jobs/:id/status', async (c) => {
     ).run();
   }
 
+  // Una pieza de cliente no tiene pedido: su espejo es la fila de
+  // custom_prints. Los UPDATE van guardados por estado para no pisar una
+  // cancelación ni un reporte repetido.
+  if (job.custom_print_id) {
+    if (next === 'done') {
+      await c.env.DB.prepare(
+        `UPDATE custom_prints SET status = 'terminado', updated_at = datetime('now')
+         WHERE id = ? AND status = 'imprimiendo'`,
+      )
+        .bind(job.custom_print_id)
+        .run();
+      c.executionCtx.waitUntil(
+        notify(
+          c.env.NTFY_TOPIC,
+          'forma: pieza de cliente lista',
+          `Salió de la impresora.${
+            body.bed_dirty ? ' Retírala de la cama y confirma en /taller para continuar.' : ''
+          }`,
+        ),
+      );
+    } else if (next === 'failed') {
+      // Vuelve a 'listo', no a 'fallido': el .gcode.3mf sigue existiendo, así
+      // que se puede reintentar la impresión sin volver a rebanar.
+      await c.env.DB.prepare(
+        `UPDATE custom_prints SET status = 'listo', message = ?, updated_at = datetime('now')
+         WHERE id = ? AND status = 'imprimiendo'`,
+      )
+        .bind(body.message ?? 'falló la impresión', job.custom_print_id)
+        .run();
+      c.executionCtx.waitUntil(
+        notify(
+          c.env.NTFY_TOPIC,
+          'forma: fallo de impresion',
+          `Pieza de cliente: ${body.message ?? 'sin detalle'}. Reintenta desde /taller.`,
+        ),
+      );
+    }
+    const updatedJob = await c.env.DB.prepare('SELECT * FROM print_jobs WHERE id = ?')
+      .bind(id)
+      .first<PrintJobRow>();
+    return c.json(shapeJob(updatedJob!));
+  }
+
   // Efectos sobre el pedido y avisos al taller.
   const label = job.part;
   if (next === 'printing' && job.status === 'claimed') {
