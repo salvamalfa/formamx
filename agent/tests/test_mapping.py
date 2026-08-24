@@ -61,6 +61,14 @@ def test_pick_file_pla_en_minusculas(tmp_path):
     assert ruta.name == 'cuerpo.pla.gcode.3mf'
 
 
+def test_pick_file_resuelve_una_pieza_de_cliente(tmp_path):
+    # Las piezas de cliente usan el mismo pipeline con file_key
+    # 'clientes/<id>' (migración 0017): pick_file ya lo resuelve tal cual, así
+    # que el agente no necesita ninguna rama especial para imprimirlas.
+    ruta = pick_file(tmp_path, 'clientes/cp_abc123', 'PLA')
+    assert ruta == tmp_path / 'clientes' / 'cp_abc123.pla.gcode.3mf'
+
+
 def test_pick_file_sin_material_es_error(tmp_path):
     # No existen archivos genéricos: sin material no hay archivo que elegir.
     with pytest.raises(ValueError):

@@ -1,7 +1,10 @@
+// Un trabajo viene de un pedido (lámpara) O de una pieza STL de cliente:
+// exactamente uno de order_id / custom_print_id tiene valor (migración 0017).
 export interface PrintJobRow {
   id: string;
-  order_id: string;
-  part: 'pantalla' | 'cuerpo' | 'tapa';
+  order_id: string | null;
+  custom_print_id: string | null;
+  part: 'pantalla' | 'cuerpo' | 'tapa' | 'cliente';
   file_key: string;
   colors_json: string;
   status: 'queued' | 'claimed' | 'printing' | 'done' | 'failed' | 'canceled';
@@ -16,6 +19,7 @@ export function shapeJob(row: PrintJobRow) {
   return {
     id: row.id,
     order_id: row.order_id,
+    custom_print_id: row.custom_print_id,
     part: row.part,
     file_key: row.file_key,
     colors: JSON.parse(row.colors_json) as string[],

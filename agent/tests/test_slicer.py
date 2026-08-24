@@ -123,3 +123,43 @@ def test_los_soportes_solo_se_encienden_cuando_toca(tmp_path, soportes):
         assert datos['support_type'] == 'tree(auto)'
     original = json.loads((tmp_path / 'process_estandar.json').read_text(encoding='utf-8'))
     assert original['enable_support'] == '0'
+
+
+# ---- Vista del plato (la que incrusta Bambu Studio) -------------------------
+
+
+def _tresemefe(tmp_path, nombres):
+    import zipfile
+
+    ruta = tmp_path / 'pieza.gcode.3mf'
+    with zipfile.ZipFile(ruta, 'w') as z:
+        z.writestr('Metadata/plate_1.gcode', 'G1 X0 Y0\n')
+        for n in nombres:
+            z.writestr(n, b'\x89PNG-falso-' + n.encode())
+    return ruta
+
+
+def test_prefiere_la_miniatura_grande(tmp_path):
+    from formamx_agent.slicer import _extraer_preview
+
+    # Bambu deja plate_1.png y plate_1_small.png; queremos la grande.
+    ruta = _tresemefe(tmp_path, ['Metadata/plate_1_small.png', 'Metadata/plate_1.png'])
+    destino = _extraer_preview(ruta)
+    assert destino.is_file()
+    assert b'Metadata/plate_1.png' in destino.read_bytes()
+
+
+def test_ignora_las_imagenes_auxiliares_del_visor(tmp_path):
+    from formamx_agent.slicer import _extraer_preview
+
+    # pick_ y top_ son para el visor de la impresora, no son la vista del plato.
+    ruta = _tresemefe(tmp_path, ['Metadata/pick_1.png', 'Metadata/top_1.png'])
+    assert _extraer_preview(ruta) is None
+
+
+def test_sin_miniatura_no_hay_vista_y_no_revienta(tmp_path):
+    from formamx_agent.slicer import _extraer_preview
+
+    # Caso de una máquina que rebanó sin sesión gráfica: la pieza se revisa
+    # con los estimados (el reemplazo dibujado vive en agent/apendice/).
+    assert _extraer_preview(_tresemefe(tmp_path, [])) is None

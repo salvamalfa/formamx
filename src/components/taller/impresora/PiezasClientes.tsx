@@ -4,6 +4,7 @@ import {
   cancelarPrint,
   getCustomPrints,
   getPreviewUrl,
+  imprimirPrint,
   rebanarPrint,
   uploadCustomPrint,
   type CustomPrint,
@@ -181,6 +182,9 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
               onRebanar={(op) =>
                 accion(pieza.id, () => rebanarPrint(token!, pieza.id, op), { status: 'en_cola' })
               }
+              onImprimir={() =>
+                accion(pieza.id, () => imprimirPrint(token!, pieza.id), { status: 'imprimiendo' })
+              }
               onCancelar={() =>
                 accion(pieza.id, () => cancelarPrint(token!, pieza.id), { status: 'cancelado' })
               }
@@ -200,6 +204,7 @@ function Fila({
   abierta,
   onAbrir,
   onRebanar,
+  onImprimir,
   onCancelar,
   onBorrar,
 }: {
@@ -215,6 +220,7 @@ function Fila({
     supports: 'auto' | 'no';
     orient: 'auto' | 'original';
   }) => void;
+  onImprimir: () => void;
   onCancelar: () => void;
   onBorrar: () => void;
 }) {
@@ -250,6 +256,13 @@ function Fila({
       <div class="mt-2 flex flex-wrap gap-2">
         {/* btn-ghost es blanco (para fondos oscuros): sobre esta card va la
             variante clara, que el kit define justo para acciones de fila. */}
+        {/* Imprimir es la única acción naranja de la card: es la que manda
+            trabajo a la impresora y la que Salva busca al revisar el estimado. */}
+        {pieza.status === 'listo' && (
+          <button type="button" class="btn btn-sm btn-primary" onClick={onImprimir}>
+            Imprimir
+          </button>
+        )}
         {rebanable && (
           <button type="button" class="btn btn-sm btn-terciario" onClick={onAbrir}>
             {abierta ? 'Cerrar' : pieza.status === 'listo' ? 'Rebanar otra vez' : 'Rebanar'}

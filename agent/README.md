@@ -98,10 +98,12 @@ que la pieza en /taller. Al rebanar eliges en /taller:
   contacto, y suele acostar la pieza, igual que harías tú) o la del archivo
   tal como viene.
 
-/taller muestra tiempo estimado y gramos antes de imprimir; **imprimir sigue
-siendo un clic tuyo**. Si Bambu Studio logra generar la imagen del plato, se
-muestra también — necesita sesión gráfica, así que es un extra, no un
-requisito.
+/taller muestra la vista del plato, el tiempo estimado y los gramos antes de
+imprimir; **imprimir sigue siendo un clic tuyo**. La vista es la miniatura que
+Bambu Studio incrusta en el 3MF, la misma que ves en su interfaz. Si algún día
+el rebanado corre en una máquina sin pantalla, el 3MF sale sin miniatura y la
+pieza se revisa solo con los estimados; el reemplazo está listo y documentado
+en `agent/apendice/`.
 
 El rebanado corre en su propio hilo: una pieza recién subida no espera a que
 termine la lámpara que esté imprimiendo. El trabajo pesado lo hace Bambu

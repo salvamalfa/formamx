@@ -4,7 +4,7 @@ Plan para aceptar archivos STL que mandan los clientes, rebanarlos
 automáticamente y mandarlos a la Bambu A1 desde /taller, sin pasar por Bambu
 Studio a mano. Léelo completo antes de implementar cualquier fase.
 
-**Estado: fases 1 y 2 implementadas (agosto 2026); fases 3-4 pendientes.** La prueba
+**Estado: las 4 fases implementadas (agosto 2026); falta el smoke test real con la impresora.** La prueba
 de concepto del CLI se hizo en Linux con Bambu Studio 02.08.02.61 en modo línea
 de comandos, sin interfaz gráfica: STL → `.gcode.3mf` con el arranque real de la
 A1, temperaturas correctas y estimación de tiempo/gramos. La receta exacta está
@@ -23,9 +23,12 @@ Decisiones tomadas con Salva al arrancar la implementación:
   activa soportes. `--orient 1` reproduce el "Auto orientar" de Bambu Studio
   (evalúa 18 orientaciones por voladizo y área de contacto); `original` respeta
   la orientación del STL.
-- **Vista previa**: el rebanado exporta un PNG del plato (`--export-png`) que
-  /taller muestra antes de imprimir. Es best effort: sin sesión gráfica falla y
-  la pieza se revisa solo con los estimados.
+- **Vista del rebanado**: /taller muestra la miniatura sombreada que Bambu
+  Studio incrusta en el 3MF — la misma que se ve en su interfaz y en la
+  pantalla de la impresora. Confirmada en la PC del taller con Bambu Studio
+  02.07.00.55. Nunca con `--export-png`, que rompe el rebanado entero (maña 5).
+  Necesita sesión gráfica al rebanar; para una máquina sin pantalla hay un
+  dibujante desde G-code listo en `agent/apendice/`, fuera de producción.
 
 ## El flujo terminado
 
@@ -92,11 +95,16 @@ Mañas descubiertas en la prueba, todas obligatorias:
 5. **JAMÁS pasar `--export-png`.** Basta con incluirla —con cualquier valor,
    sola o junto a `--export-3mf`— para que el CLI conteste
    `return_code: -2, "Invalid parameters to the slicer."` y **no rebane nada**.
-   La vista previa se saca de dentro del propio 3MF
-   (`Metadata/plate_*.png`, excluyendo `pick`/`top`, que son auxiliares del
-   visor). Esas miniaturas necesitan sesión gráfica: en la PC Windows de Salva
-   existen; sin pantalla el 3MF viene sin ellas y la pieza se revisa solo con
-   los estimados. Es un extra deliberado, nunca un requisito.
+   La vista se saca de dentro del propio 3MF (`Metadata/plate_*.png`,
+   excluyendo `pick`/`top`, que son auxiliares del visor, y prefiriendo
+   `plate_1.png` sobre `plate_1_small.png`). **Esas miniaturas solo existen si
+   la máquina tuvo sesión gráfica al rebanar**: en la PC del taller existen
+   (confirmado con Bambu Studio 02.07.00.55, distinta a la 02.08.02.61 con la
+   que se validó la receta — el comando funcionó igual). Sin pantalla el 3MF
+   viene sin ellas y la pieza se revisa solo con los estimados; para ese caso
+   hay un dibujante desde G-code listo en `agent/apendice/`, documentado y
+   probado pero fuera del camino de producción: se prefirió el render
+   sombreado de Bambu por verse mejor.
 6. **Soportes**: encender `enable_support = '1'` en una copia temporal del
    process (no tocar el perfil generado). El tipo y el ángulo ya vienen bien
    del perfil de Bambu (`tree(auto)` a 30°), que es exactamente lo que se
@@ -210,7 +218,7 @@ Pendiente de la PC de Salva: correr `flatten_profiles` contra su instalación y
 rebanar un STL real de cliente (comandos en `agent/README.md`). Si su Bambu
 Studio no es 02.08.02.61, revalidar el comando antes.
 
-### Fase 3 — /taller: la UI
+### Fase 3 — /taller: la UI ✅ HECHA
 
 **Corre en: sitio.** Cambio de producto: demo con capturas a Salva ANTES de
 abrir el PR (regla de `CLAUDE.md`).
@@ -226,15 +234,39 @@ abrir el PR (regla de `CLAUDE.md`).
   Imprimir.
 - Playwright con API mockeada, siguiendo `tests/e2e/taller.spec.ts`.
 
-### Fase 4 — Imprimir de verdad
+### Fase 4 — Imprimir de verdad ✅ HECHA (falta el smoke test real)
 
-**Corre en: Worker + agente.**
+**Corre en: Worker + sitio.** El agente **no cambió ni una línea**: una pieza de
+cliente entra a la MISMA cola que las lámparas, así que hereda claim atómico,
+ams_mapping, candado de cama y reencolado sin duplicar nada.
 
-- Al pulsar Imprimir, crear un trabajo del pipeline existente que apunte al
-  `.gcode.3mf` rebanado (el agente ya lo tiene local); ams_mapping, candado de
-  cama y estados de `docs/IMPRESION_3D.md` sin cambios.
-- Smoke test REAL con Salva junto a la impresora (regla de la casa para todo
-  lo que toca `printer.py`): primera pieza de cliente completa y supervisada.
+- Migración **0017**: reconstruye `print_jobs` con `order_id` NULL-able (una
+  pieza de cliente no viene de un pedido) y `custom_print_id`. Es la única
+  migración del plan sobre datos vivos, así que preserva las filas con
+  `INSERT … SELECT` (la 0004 pudo hacer DROP porque sus datos eran de prueba).
+  El índice único de la 0010 se recrea **parcial** (`WHERE order_id IS NOT
+  NULL`): sin eso, dos piezas de cliente —ambas con `order_id` NULL y part
+  `cliente`— chocarían entre sí.
+- `POST /api/admin/custom-prints/:id/imprimir`: inserta el trabajo y mueve el
+  estado en un `db.batch` (una transacción), las dos sentencias guardadas por
+  `status = 'listo'`. `file_key = 'clientes/<id>'` y `colors_json` con el color
+  elegido — ambos formatos que `mapping.py` ya resolvía.
+- `POST /api/agent/jobs/:id/status` espeja el desenlace en la pieza cuando el
+  trabajo trae `custom_print_id`. Un fallo de impresión la devuelve a `listo`
+  (no a `fallido`): el `.gcode.3mf` sigue existiendo, así que se reimprime sin
+  volver a rebanar.
+
+**Verificado** contra `wrangler dev`: migración aplicada sobre un trabajo real
+preexistente que sobrevivió intacto; y el ciclo completo — rebanar → imprimir →
+segundo imprimir 409 → el agente reclama de la misma cola (`part='cliente'`,
+`order_id` nulo) → progreso espejado → fallo que devuelve a `listo` con el
+motivo y activa el candado de cama → reimpresión sin re-rebanar → `terminado` →
+409 al intentar reimprimir. Los pedidos de lámpara siguen intactos. 61 pruebas
+e2e y 31 de pytest en verde.
+
+**Pendiente:** smoke test REAL con Salva junto a la impresora (regla de la casa
+para todo lo que toca la impresora): primera pieza de cliente completa y
+supervisada, verificando el candado de cama al final.
 
 ### Después (sin diseño comprometido)
 

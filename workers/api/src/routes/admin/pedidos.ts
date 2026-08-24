@@ -40,6 +40,9 @@ pedidos.get('/orders', async (c) => {
       .bind(...ids)
       .all<PrintJobRow>();
     for (const j of jobs) {
+      // El WHERE ya excluye los trabajos sin pedido (piezas de cliente); el
+      // guard es para el tipo, que desde la 0017 admite order_id nulo.
+      if (!j.order_id) continue;
       const list = jobsByOrder.get(j.order_id) ?? [];
       list.push(shapeJob(j));
       jobsByOrder.set(j.order_id, list);

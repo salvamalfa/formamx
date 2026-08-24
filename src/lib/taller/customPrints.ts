@@ -71,6 +71,9 @@ export const rebanarPrint = (token: string, id: string, opciones: OpcionesRebana
     body: JSON.stringify(opciones),
   }).then(normalize);
 
+export const imprimirPrint = (token: string, id: string) =>
+  call<CustomPrint>(token, `/custom-prints/${id}/imprimir`, { method: 'POST' }).then(normalize);
+
 export const cancelarPrint = (token: string, id: string) =>
   call<CustomPrint>(token, `/custom-prints/${id}/cancelar`, { method: 'POST' }).then(normalize);
 

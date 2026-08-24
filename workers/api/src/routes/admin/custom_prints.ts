@@ -160,6 +160,47 @@ customPrints.post('/:id/cancelar', async (c) => {
   return c.json(shapeCustomPrint(updated));
 });
 
+// Manda la pieza a la impresora: crea su trabajo en la MISMA cola que las
+// lámparas, así hereda el claim atómico, el candado de cama y el reencolado
+// sin duplicar nada. Las dos sentencias van en un batch (una transacción) y
+// las dos están guardadas por `status = 'listo'`: si la pieza dejó de estarlo
+// entre la lectura y aquí, no se inserta trabajo ni se mueve el estado.
+customPrints.post('/:id/imprimir', async (c) => {
+  const id = c.req.param('id');
+  const row = await c.env.DB.prepare('SELECT * FROM custom_prints WHERE id = ?')
+    .bind(id)
+    .first<CustomPrintRow>();
+  if (!row) return c.json({ error: 'no_existe' }, 404);
+  if (row.status !== 'listo') {
+    return c.json({ error: 'transicion_invalida', from: row.status, to: 'imprimiendo' }, 409);
+  }
+  // Sin color no hay ams_mapping posible: el agente fallaría el trabajo justo
+  // antes de tocar la impresora, así que mejor no crearlo.
+  if (!row.color_id) return c.json({ error: 'color_requerido' }, 400);
+
+  const jobId = `job_${crypto.randomUUID()}`;
+  const [inserted] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO print_jobs (id, order_id, custom_print_id, part, file_key, colors_json)
+       SELECT ?, NULL, id, 'cliente', 'clientes/' || id, json_array(color_id)
+       FROM custom_prints WHERE id = ? AND status = 'listo' AND color_id IS NOT NULL`,
+    ).bind(jobId, id),
+    c.env.DB.prepare(
+      `UPDATE custom_prints SET status = 'imprimiendo', print_job_id = ?, message = NULL,
+         updated_at = datetime('now')
+       WHERE id = ? AND status = 'listo'`,
+    ).bind(jobId, id),
+  ]);
+  if (!inserted.meta.changes) {
+    return c.json({ error: 'transicion_concurrente', from: row.status, to: 'imprimiendo' }, 409);
+  }
+
+  const updated = await c.env.DB.prepare('SELECT * FROM custom_prints WHERE id = ?')
+    .bind(id)
+    .first<CustomPrintRow>();
+  return c.json(shapeCustomPrint(updated!));
+});
+
 // Borra la pieza y sus objetos en R2, en tres pasos para no perder ni la
 // carrera ni los archivos:
 //  1. la fila pasa a 'borrado' con un UPDATE guardado por estado — si alguien
