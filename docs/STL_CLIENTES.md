@@ -23,11 +23,12 @@ Decisiones tomadas con Salva al arrancar la implementación:
   activa soportes. `--orient 1` reproduce el "Auto orientar" de Bambu Studio
   (evalúa 18 orientaciones por voladizo y área de contacto); `original` respeta
   la orientación del STL.
-- **Vista del rebanado**: /taller la muestra SIEMPRE antes de imprimir, con la
-  pieza en la orientación con la que se va a imprimir y con sus soportes. Sale
-  del 3MF si Bambu incrustó su miniatura, y si no, se dibuja desde el G-code
-  (`agent/formamx_agent/preview.py`). Nunca con `--export-png`, que rompe el
-  rebanado entero — ver maña 5.
+- **Vista del rebanado**: /taller muestra la miniatura sombreada que Bambu
+  Studio incrusta en el 3MF — la misma que se ve en su interfaz y en la
+  pantalla de la impresora. Confirmada en la PC del taller con Bambu Studio
+  02.07.00.55. Nunca con `--export-png`, que rompe el rebanado entero (maña 5).
+  Necesita sesión gráfica al rebanar; para una máquina sin pantalla hay un
+  dibujante desde G-code listo en `agent/apendice/`, fuera de producción.
 
 ## El flujo terminado
 
@@ -95,11 +96,15 @@ Mañas descubiertas en la prueba, todas obligatorias:
    sola o junto a `--export-3mf`— para que el CLI conteste
    `return_code: -2, "Invalid parameters to the slicer."` y **no rebane nada**.
    La vista se saca de dentro del propio 3MF (`Metadata/plate_*.png`,
-   excluyendo `pick`/`top`, que son auxiliares del visor). **Esas miniaturas
-   solo existen si la máquina tuvo sesión gráfica al rebanar**, así que no se
-   puede depender de ellas: cuando faltan, `preview.py` dibuja el recorrido
-   real del extrusor leyendo el G-code que el 3MF lleva dentro. Con eso la
-   vista existe siempre, con o sin pantalla.
+   excluyendo `pick`/`top`, que son auxiliares del visor, y prefiriendo
+   `plate_1.png` sobre `plate_1_small.png`). **Esas miniaturas solo existen si
+   la máquina tuvo sesión gráfica al rebanar**: en la PC del taller existen
+   (confirmado con Bambu Studio 02.07.00.55, distinta a la 02.08.02.61 con la
+   que se validó la receta — el comando funcionó igual). Sin pantalla el 3MF
+   viene sin ellas y la pieza se revisa solo con los estimados; para ese caso
+   hay un dibujante desde G-code listo en `agent/apendice/`, documentado y
+   probado pero fuera del camino de producción: se prefirió el render
+   sombreado de Bambu por verse mejor.
 6. **Soportes**: encender `enable_support = '1'` en una copia temporal del
    process (no tocar el perfil generado). El tipo y el ángulo ya vienen bien
    del perfil de Bambu (`tree(auto)` a 30°), que es exactamente lo que se
