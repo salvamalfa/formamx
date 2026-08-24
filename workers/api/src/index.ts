@@ -26,7 +26,7 @@ app.use(
       if (local && DEV_ORIGINS.includes(origin)) return origin;
       return null;
     },
-    allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
   }),
 );
