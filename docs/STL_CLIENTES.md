@@ -4,11 +4,20 @@ Plan para aceptar archivos STL que mandan los clientes, rebanarlos
 automáticamente y mandarlos a la Bambu A1 desde /taller, sin pasar por Bambu
 Studio a mano. Léelo completo antes de implementar cualquier fase.
 
-**Estado: las 4 fases implementadas (agosto 2026); falta el smoke test real con la impresora.** La prueba
-de concepto del CLI se hizo en Linux con Bambu Studio 02.08.02.61 en modo línea
-de comandos, sin interfaz gráfica: STL → `.gcode.3mf` con el arranque real de la
-A1, temperaturas correctas y estimación de tiempo/gramos. La receta exacta está
-abajo y es la referencia para la fase 2.
+**Estado: las 4 fases implementadas (agosto 2026); falta el smoke test real con
+la impresora.** La prueba de concepto del CLI se hizo en Linux con Bambu Studio
+02.08.02.61 en modo línea de comandos, sin interfaz gráfica: STL → `.gcode.3mf`
+con el arranque real de la A1, temperaturas correctas y estimación de
+tiempo/gramos. La receta exacta está abajo y es la referencia para la fase 2.
+
+**Validado de punta a punta en producción** (Salva, PC del taller, Bambu
+Studio 02.07.00.55): subió un colador real por /taller, el agente lo rebanó
+solo (1 h 16 min, 30.45 g, con soportes) y la vista del plato se vio bien. Lo
+único que falló fue la CSP del sitio: `img-src` no incluía `blob:`, que es
+como se sirve la vista previa (va autenticada, no puede ser un `<img src>`
+normal). Corregido agregando `blob:` a `img-src` en `astro.config.mjs`
+(`security.csp.directives`). Falta el clic de **Imprimir** con la impresora
+encendida — eso es el smoke test que sigue pendiente.
 
 Decisiones tomadas con Salva al arrancar la implementación:
 
@@ -214,9 +223,10 @@ rebanador:
 | torre 8×8×120 mm | orientación del archivo | 4055 s |
 | la misma | orientación automática | **550 s** (el rebanador la acuesta) |
 
-Pendiente de la PC de Salva: correr `flatten_profiles` contra su instalación y
-rebanar un STL real de cliente (comandos en `agent/README.md`). Si su Bambu
-Studio no es 02.08.02.61, revalidar el comando antes.
+**Hecho en la PC de Salva** (comandos en `agent/README.md`): corrió
+`flatten_profiles` contra su instalación (Bambu Studio 02.07.00.55, distinta a
+la 02.08.02.61 con la que se validó la receta — el comando funcionó igual sin
+tocar nada) y rebanó un STL real de cliente de punta a punta.
 
 ### Fase 3 — /taller: la UI ✅ HECHA
 
