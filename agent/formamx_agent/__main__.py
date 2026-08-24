@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import logging
 import logging.handlers
+import shutil
 import sys
+import tempfile
+import threading
 import time
 import tomllib
 from pathlib import Path
@@ -16,6 +19,7 @@ from pathlib import Path
 from .api import TallerApi
 from .mapping import FilamentoFaltante, compute_mapping, pick_file
 from .printer import PrinterError
+from .slicer import slice_stl
 
 log = logging.getLogger('formamx')
 
@@ -115,6 +119,79 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
         log.error('trabajo %s falló: %s', job_id, error)
 
 
+def process_slice(sp: dict, cfg: dict, files_dir: Path, api: TallerApi) -> None:
+    """Rebana una pieza de cliente y reporta el desenlace.
+
+    Corre en el hilo de rebanado, con la TallerApi de ese hilo: requests.Session
+    no es segura entre hilos y el bucle principal usa la suya para imprimir.
+    """
+    print_id = sp['id']
+    slicer = cfg['slicer']
+    material = sp.get('material') or 'PLA'
+    tmp_dir = Path(tempfile.mkdtemp(prefix='formamx_stl_'))
+    stl = tmp_dir / f'{print_id}.stl'
+    try:
+        api.download_stl(print_id, stl)
+        destino = files_dir / 'clientes' / f'{print_id}.{material.lower()}.gcode.3mf'
+        res = slice_stl(
+            slicer['exe'],
+            Path(slicer['profiles_dir']),
+            stl,
+            destino,
+            material,
+            supports=sp.get('supports') or 'auto',
+            orient=sp.get('orient') or 'auto',
+            timeout=int(slicer.get('timeout_seconds', 900)),
+        )
+        if res.ok:
+            log.info('pieza %s rebanada: %ss, %sg → %s', print_id, res.seconds, res.grams, destino)
+        else:
+            log.warning('pieza %s no se pudo rebanar: %s', print_id, res.error)
+        vigente = api.report_slice(
+            print_id, res.ok, seconds=res.seconds, grams=res.grams, message=res.error
+        )
+        if not vigente:
+            log.info('pieza %s ya no espera resultado (cancelada); lo descarto', print_id)
+            return
+        # La imagen del plato es un extra: si falla, la pieza se revisa con los
+        # estimados y no pasa nada.
+        if res.ok and res.preview is not None:
+            try:
+                api.upload_preview(print_id, res.preview)
+            except Exception as err:
+                log.warning('no pude subir la vista previa de %s: %s', print_id, err)
+    except Exception as err:
+        log.error('pieza %s: %s', print_id, err)
+        try:
+            api.report_slice(print_id, False, message=f'el agente falló al rebanar: {err}')
+        except Exception as err2:
+            log.warning('tampoco pude reportar el fallo de %s: %s', print_id, err2)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def slice_loop(cfg: dict, files_dir: Path, poll: float) -> None:
+    """Bucle propio para rebanar piezas de cliente.
+
+    Va aparte del bucle de impresión a propósito: process_job se queda dentro de
+    una impresión durante horas, y rebanar no toca la impresora — una pieza
+    recién subida no tiene por qué esperar a que termine una lámpara. El trabajo
+    pesado lo hace un subproceso (el CLI de Bambu Studio), así que no compite por
+    el GIL con el reporte de progreso ni con el keepalive de MQTT.
+    """
+    api = TallerApi(cfg['api_base'], cfg['agent_token'])
+    while True:
+        try:
+            pendiente = api.next_slice()
+            if not pendiente:
+                time.sleep(poll)
+                continue
+            process_slice(pendiente, cfg, files_dir, api)
+        except Exception as err:
+            log.error('error del ciclo de rebanado: %s; reintento en %ss', err, ERROR_BACKOFF_SECONDS)
+            time.sleep(ERROR_BACKOFF_SECONDS)
+
+
 def main() -> None:
     cfg_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('config.toml')
     cfg = tomllib.loads(cfg_path.read_text(encoding='utf-8'))
@@ -149,6 +226,17 @@ def main() -> None:
 
     if real_printer is None:
         log.warning('sin [printer] en config; el panel AMS de /taller no se sincroniza')
+
+    # El rebanado de STL de clientes es opcional: sin [slicer] el agente solo
+    # imprime (útil en una máquina sin Bambu Studio instalado). Va en un hilo
+    # demonio: muere con el proceso, sin apagado ordenado que inventar.
+    if 'slicer' in cfg:
+        threading.Thread(
+            target=slice_loop, args=(cfg, files_dir, poll), daemon=True, name='rebanado'
+        ).start()
+        log.info('rebanado activo con %s', cfg['slicer']['exe'])
+    else:
+        log.info('sin [slicer] en config; no reclamo piezas de cliente por rebanar')
 
     while True:
         try:
