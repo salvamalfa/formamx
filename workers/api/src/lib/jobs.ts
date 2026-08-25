@@ -33,6 +33,13 @@ export function shapeJob(row: PrintJobRow) {
 // muerto a media preparación); vuelve a la cola antes de cada claim nuevo.
 export const STALE_CLAIM_MINUTES = 15;
 
+// El agente reporta progreso cada >=5%; incluso la impresión más lenta (12 h,
+// tope de printer.print_file) avanza esos 5 puntos en bastante menos de 90
+// min. Si 'printing' lleva más que eso sin un solo reporte, el agente se cayó
+// a media impresión (excepción no capturada, proceso muerto) y el trabajo
+// quedó fantasma: nunca va a llegar un 'done'/'failed' para él.
+export const STALE_PRINTING_MINUTES = 90;
+
 // Crea los 3 trabajos de impresión de una lámpara (pantalla en su color,
 // cuerpo blanco, tapa en su color). Cada pieza es su propio archivo rebanado
 // de un filamento; el color real lo pone el AMS al imprimir. Es la costura

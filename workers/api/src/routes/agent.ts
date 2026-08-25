@@ -9,7 +9,7 @@ import {
   SLICE_STALE_MINUTES,
   type CustomPrintRow,
 } from '../lib/custom_prints';
-import { shapeJob, STALE_CLAIM_MINUTES, type PrintJobRow } from '../lib/jobs';
+import { shapeJob, STALE_CLAIM_MINUTES, STALE_PRINTING_MINUTES, type PrintJobRow } from '../lib/jobs';
 import { notify } from '../lib/ntfy';
 
 // API del agente de impresión (la PC junto a la Bambu). Polling: el agente
@@ -37,6 +37,8 @@ agent.get('/jobs/next', async (c) => {
     .bind(`-${STALE_CLAIM_MINUTES} minutes`)
     .run();
 
+  await failStalePrintingJobs(c.env.DB);
+
   const job = await c.env.DB.prepare(
     `UPDATE print_jobs
      SET status = 'claimed', claimed_at = datetime('now'), updated_at = datetime('now')
@@ -62,6 +64,44 @@ agent.get('/jobs/next', async (c) => {
 
   return c.json({ job: { ...shapeJob(job), material }, spools });
 });
+
+const STALE_PRINTING_MESSAGE =
+  'el agente perdió la conexión con este trabajo (sin reportes desde hace ' +
+  `más de ${STALE_PRINTING_MINUTES} min); revisa la impresora y reintenta desde /taller`;
+
+// Job fantasma: quedó en 'printing' sin un solo reporte de progreso en más de
+// STALE_PRINTING_MINUTES. Pasa igual que un fallo normal del agente (ver
+// AGENT_TRANSITIONS más abajo): si es una pieza de cliente, custom_prints
+// vuelve a 'listo' para poder reintentar sin rebanar de nuevo.
+async function failStalePrintingJobs(db: D1Database): Promise<void> {
+  const { results: stale } = await db
+    .prepare(
+      `SELECT id, custom_print_id FROM print_jobs
+       WHERE status = 'printing' AND updated_at < datetime('now', ?)`,
+    )
+    .bind(`-${STALE_PRINTING_MINUTES} minutes`)
+    .all<{ id: string; custom_print_id: string | null }>();
+  if (stale.length === 0) return;
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE print_jobs SET status = 'failed', message = ?, updated_at = datetime('now')
+         WHERE status = 'printing' AND updated_at < datetime('now', ?)`,
+      )
+      .bind(STALE_PRINTING_MESSAGE, `-${STALE_PRINTING_MINUTES} minutes`),
+    ...stale
+      .filter((j) => j.custom_print_id)
+      .map((j) =>
+        db
+          .prepare(
+            `UPDATE custom_prints SET status = 'listo', message = ?, updated_at = datetime('now')
+             WHERE id = ? AND status = 'imprimiendo'`,
+          )
+          .bind(STALE_PRINTING_MESSAGE, j.custom_print_id),
+      ),
+  ]);
+}
 
 // El hex viene de la impresora como RGBA (8 dígitos) o RGB (6); se normaliza
 // a '#RRGGBB' para mostrarlo tal cual en el panel.
