@@ -42,6 +42,11 @@ export interface CustomPrint {
   message: string | null;
   print_job_id: string | null;
   progress_pct: number | null;
+  // Estado del trabajo en la cola física de la impresora. Mientras la pieza
+  // está en 'imprimiendo', el trabajo puede seguir 'queued' (esperando turno)
+  // o 'claimed' (el agente ya se lo llevó): sin esto el tablero decía
+  // "Imprimiendo" desde el clic, aunque la impresora ni hubiera arrancado.
+  job_status: 'queued' | 'claimed' | 'printing' | 'done' | 'failed' | 'canceled' | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +73,7 @@ const normalize = (p: CustomPrint): CustomPrint => ({
   message: p.message ?? null,
   print_job_id: p.print_job_id ?? null,
   progress_pct: p.progress_pct ?? null,
+  job_status: p.job_status ?? null,
 });
 
 export const getCustomPrints = (token: string, scope?: CustomPrintScope) =>

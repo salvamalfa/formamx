@@ -35,13 +35,13 @@ customPrints.get('/', async (c) => {
     ? 'cp.status = ?'
     : (SCOPE_WHERE[scope ?? ''] ?? "cp.status != 'cancelado'");
   const stmt = c.env.DB.prepare(
-    `SELECT cp.*, pj.progress_pct AS job_progress FROM custom_prints cp
+    `SELECT cp.*, pj.progress_pct AS job_progress, pj.status AS job_status FROM custom_prints cp
      LEFT JOIN print_jobs pj ON pj.id = cp.print_job_id
      WHERE ${where} ORDER BY cp.created_at DESC LIMIT ?`,
   );
   const [{ results }, counts] = await Promise.all([
     (status ? stmt.bind(status, limit) : stmt.bind(limit)).all<
-      CustomPrintRow & { job_progress: number | null }
+      CustomPrintRow & { job_progress: number | null; job_status: string | null }
     >(),
     c.env.DB.prepare(
       `SELECT
@@ -66,7 +66,7 @@ customPrints.get('/', async (c) => {
   }
 
   return c.json({
-    prints: results.map((row) => shapeCustomPrint(row, row.job_progress)),
+    prints: results.map((row) => shapeCustomPrint(row, row.job_progress, row.job_status)),
     counts: { pendientes: counts?.pendientes ?? 0, historico: counts?.historico ?? 0 },
   });
 });

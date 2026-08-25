@@ -98,6 +98,21 @@ siguen fuera del repo (binarios pesados; viven en
   términos, CFDI, envíos, respaldos, CI, analytics): plan completo ordenado
   por importancia en `docs/NEGOCIO.md`.
 
+## Cómo escribirle a Salva
+
+Salva ya conoce las reglas de esta casa: no se las recites. Nada de explicarle
+el flujo de ramas, la pausa de la demo antes del PR, el orden de deploy ni que
+"lo manda CLAUDE.md". Haz el trabajo y ya.
+
+Respuestas cortas por defecto: qué cambió, qué falta, qué necesitas de él. Sin
+bitácora paso a paso de lo que acabas de hacer, sin repetir lo que ya está en
+el PR, sin narrar comandos ni verificaciones que salieron bien. Lo que sí va
+siempre: los hallazgos que cambian una decisión, lo que se rompió y las
+preguntas reales.
+
+Salva suele dejarte correr sin leer el output. Escribe para eso: si algo
+importa, que esté en las primeras líneas.
+
 ## Flujo de trabajo con Salva
 
 Fases pequeñas y desplegables; cada PR lleva auto-merge con método squash hacia

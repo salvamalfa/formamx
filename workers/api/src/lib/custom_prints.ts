@@ -156,7 +156,15 @@ export async function purgeCustomPrintFiles(
 }
 
 // La clave de R2 y el claim son internos: el dashboard no los necesita.
-export function shapeCustomPrint(row: CustomPrintRow, progressPct: number | null = null) {
+// `jobStatus` es el estado del trabajo en la cola física: mientras la pieza
+// está en `imprimiendo`, el trabajo puede seguir en cola o recién reclamado,
+// y el tablero necesita distinguirlo para no decir "imprimiendo" antes de que
+// la impresora arranque.
+export function shapeCustomPrint(
+  row: CustomPrintRow,
+  progressPct: number | null = null,
+  jobStatus: string | null = null,
+) {
   return {
     id: row.id,
     file_name: row.file_name,
@@ -174,6 +182,7 @@ export function shapeCustomPrint(row: CustomPrintRow, progressPct: number | null
     message: row.message,
     print_job_id: row.print_job_id,
     progress_pct: progressPct,
+    job_status: jobStatus,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

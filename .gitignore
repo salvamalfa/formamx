@@ -23,8 +23,12 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
-# Claude Code local config
-.claude/
+# Claude Code: lo local se queda fuera, la config compartida del repo entra.
+# settings.local.json es personal de cada máquina (Claude Code lo excluye de
+# git a propósito); settings.json sí viaja, para que el estilo de salida y
+# demás apliquen igual desde el teléfono, la PC y la web.
+.claude/*
+!.claude/settings.json
 
 # Cloudflare Workers (estado local y secretos de dev)
 .wrangler/

@@ -1,11 +1,29 @@
 import { useEffect, useState } from 'preact/hooks';
-import { getBobinas, type Bobina, type Order, type PrintJob, type Spool } from '../../../lib/taller';
+import {
+  getBobinas,
+  getQueue,
+  type Bobina,
+  type QueueJob,
+  type Spool,
+} from '../../../lib/taller';
 import { useTallerCore } from '../coreData';
 import { useSession } from '../hooks/useSession';
-import { PART_LABEL } from '../pedidos/labels';
+import { JOB_STATUS_LABEL, PART_LABEL } from '../pedidos/labels';
 import { colorLabel, colorSwatch } from '../ui/colores';
 import { formatSync, shortId } from '../ui/format';
 import { PiezasClientes } from './PiezasClientes';
+
+// Nombre visible de un trabajo en la cola, venga de donde venga: una pieza de
+// cliente se llama como su STL; una de lámpara, por su parte y su pedido.
+function tituloJob(job: QueueJob): string {
+  if (job.custom_print_id) return job.custom_file_name ?? 'Pieza de cliente';
+  return `${PART_LABEL[job.part]}${job.order_id ? ` · ${shortId(job.order_id)}` : ''}`;
+}
+
+// La cola física de la impresora se refresca sola; más seguido mientras haya
+// algo corriendo, como la card de piezas de clientes.
+const COLA_ACTIVA_MS = 15_000;
+const COLA_TRANQUILA_MS = 60_000;
 
 // Sub-pestaña "Impresora": la cama, el trabajo actual, la cola y las bobinas
 // del AMS. El AMS sigue siendo SOLO lectura (lo dicta la impresora, el
@@ -14,6 +32,7 @@ export function ImpresoraPanel() {
   const core = useTallerCore();
   const { token } = useSession();
   const [bobinas, setBobinas] = useState<Bobina[]>([]);
+  const [cola, setCola] = useState<QueueJob[]>([]);
 
   // Fetch propio del panel: la heurística de % por bobina no entra al core
   // (ver docs/ROADMAP_ARQUITECTURA.md — solo pedidos/impresora viven ahí).
@@ -32,13 +51,30 @@ export function ImpresoraPanel() {
     };
   }, [token]);
 
-  const jobsConPedido = core.orders.flatMap((order) =>
-    order.jobs.map((job) => ({ job, order })),
-  );
-  const actual = jobsConPedido.find((x) => x.job.status === 'printing');
-  const enCola = jobsConPedido.filter(
-    (x) => x.job.status === 'queued' || x.job.status === 'claimed',
-  );
+  // La cola sale del endpoint propio, no de los pedidos: una pieza de cliente
+  // no cuelga de ningún pedido y así también aparece aquí.
+  const actual = cola.find((job) => job.status === 'printing');
+  const enCola = cola.filter((job) => job.status === 'queued' || job.status === 'claimed');
+  const hayTrabajo = cola.length > 0;
+
+  useEffect(() => {
+    if (!token) return;
+    let vivo = true;
+    const cargar = () =>
+      getQueue(token)
+        .then((js) => {
+          if (vivo) setCola(js);
+        })
+        .catch(() => {
+          /* sin cola: las cards de arriba se quedan en su estado vacío */
+        });
+    void cargar();
+    const id = setInterval(cargar, hayTrabajo ? COLA_ACTIVA_MS : COLA_TRANQUILA_MS);
+    return () => {
+      vivo = false;
+      clearInterval(id);
+    };
+  }, [token, hayTrabajo]);
 
   return (
     <div class="mt-4 flex flex-col gap-4">
@@ -78,7 +114,7 @@ function TrabajoActual({
   actual,
   amsSyncedAt,
 }: {
-  actual: { job: PrintJob; order: Order } | undefined;
+  actual: QueueJob | undefined;
   amsSyncedAt: string | null;
 }) {
   return (
@@ -92,14 +128,15 @@ function TrabajoActual({
             <div
               class="min-w-0 truncate text-[26px] font-bold"
               style={{ fontFamily: 'var(--font-display)' }}
+              title={tituloJob(actual)}
             >
-              {PART_LABEL[actual.job.part]} · {shortId(actual.order.id)}
+              {tituloJob(actual)}
             </div>
             <div
               class="shrink-0 text-[26px] font-bold text-[var(--azul)]"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {actual.job.progress_pct ?? 0}%
+              {actual.progress_pct ?? 0}%
             </div>
           </div>
           <div
@@ -109,13 +146,13 @@ function TrabajoActual({
             <div
               class="h-full rounded-[var(--radius-pill)] bg-[var(--naranja)]"
               style={{
-                width: `${actual.job.progress_pct ?? 0}%`,
+                width: `${actual.progress_pct ?? 0}%`,
                 transition: 'width var(--duration-slow) var(--ease-out)',
               }}
             />
           </div>
           <div class="meta-caps text-[11px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            filamento {actual.job.colors.map((c) => colorLabel(c)).join(', ') || '—'}
+            filamento {actual.colors.map((c) => colorLabel(c)).join(', ') || '—'}
           </div>
         </>
       ) : (
@@ -133,11 +170,12 @@ function TrabajoActual({
   );
 }
 
-const COLA_COLS = '90px 1fr 90px';
+const COLA_COLS = '1fr auto auto';
 
-// Card "En cola": jobs pendientes de imprimir (queued/claimed) de cualquier
-// pedido, en el orden en que llegaron.
-function EnCola({ jobs }: { jobs: { job: PrintJob; order: Order }[] }) {
+// Card "En cola": todo lo pendiente de imprimir (queued/claimed) en el orden
+// en que entró, sea de un pedido de lámpara o una pieza que subió un cliente.
+// La impresora tiene UNA cola; esta card es su reflejo.
+function EnCola({ jobs }: { jobs: QueueJob[] }) {
   return (
     <div class="rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]">
       <h2 class="m-0 mb-3 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
@@ -147,21 +185,21 @@ function EnCola({ jobs }: { jobs: { job: PrintJob; order: Order }[] }) {
         <p class="m-0 text-sm text-[var(--text-muted)]">Nada en cola.</p>
       ) : (
         <div class="flex flex-col">
-          {jobs.map(({ job, order }) => (
+          {jobs.map((job) => (
             <div
               key={job.id}
               class="grid items-center gap-3 border-t border-[var(--border-soft)] px-2 py-3"
               style={{ gridTemplateColumns: COLA_COLS }}
             >
-              <span class="text-[12px] text-[var(--text-faint)]">
-                {shortId(order.id)}
+              <span class="min-w-0 truncate text-sm" title={tituloJob(job)}>
+                {tituloJob(job)}
               </span>
-              <span class="text-sm">{PART_LABEL[job.part]}</span>
-              <span
-                class="truncate text-right text-[11px] text-[var(--text-muted)]"
-              >
+              <span class="shrink-0 text-[11px] text-[var(--text-muted)]">
                 {job.colors.map((c) => colorLabel(c)).join(', ') || '—'}
               </span>
+              {/* 'preparando' (claimed) es la ventana en que el agente ya se
+                  llevó el trabajo pero la impresora todavía no arranca. */}
+              <span class="tag tag-neutral shrink-0">{JOB_STATUS_LABEL[job.status]}</span>
             </div>
           ))}
         </div>
