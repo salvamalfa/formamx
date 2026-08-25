@@ -50,6 +50,20 @@ const EN_PROCESO: CustomPrintStatus[] = ['en_cola', 'rebanando', 'imprimiendo'];
 const COSTO_PLACEHOLDER_MXN = 50;
 const PRECIO_PLACEHOLDER_MXN = 200;
 
+// Lo que dice la etiqueta de la tarjeta. Para una pieza mandada a imprimir no
+// basta con su estado propio ('imprimiendo' desde el clic): el trabajo puede
+// seguir esperando turno en la cola física detrás de una lámpara, y decir
+// "Imprimiendo" sin porcentaje mientras la impresora ni ha arrancado es
+// justo lo que confundía. El porcentaje solo existe cuando de verdad imprime.
+export function estadoLabel(pieza: Pick<CustomPrint, 'status' | 'job_status' | 'progress_pct'>): string {
+  if (pieza.status !== 'imprimiendo') return ESTADO_LABEL[pieza.status];
+  // "de impresión" no es adorno: la pieza ya tuvo una cola antes, la de
+  // rebanado, y las dos etiquetas conviven en la misma tarjeta.
+  if (pieza.job_status === 'queued') return 'En cola de impresión';
+  if (pieza.job_status === 'claimed') return 'Preparando';
+  return pieza.progress_pct != null ? `Imprimiendo ${pieza.progress_pct}%` : 'Imprimiendo';
+}
+
 export function formatDuracion(segundos: number): string {
   const h = Math.floor(segundos / 3600);
   const m = Math.round((segundos % 3600) / 60);
@@ -329,12 +343,7 @@ function PiezaCard({
 
       {!listo && (
         <div class="mt-2 px-3">
-          <span class="tag tag-neutral">
-            {ESTADO_LABEL[pieza.status]}
-            {pieza.status === 'imprimiendo' && pieza.progress_pct != null
-              ? ` ${pieza.progress_pct}%`
-              : ''}
-          </span>
+          <span class="tag tag-neutral">{estadoLabel(pieza)}</span>
         </div>
       )}
 

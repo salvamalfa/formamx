@@ -77,4 +77,7 @@ export const PART_LABEL: Record<PrintJob['part'], string> = {
   pantalla: 'Pantalla',
   cuerpo: 'Cuerpo',
   tapa: 'Tapa',
+  // Una pieza de cliente no es parte de una lámpara: su nombre real es el del
+  // STL, que la cola pinta aparte. Esto es solo el respaldo.
+  cliente: 'Pieza de cliente',
 };

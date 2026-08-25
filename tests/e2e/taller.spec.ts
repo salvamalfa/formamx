@@ -46,6 +46,7 @@ async function mockApi(
     syncedAt?: string | null;
     resumen?: typeof RESUMEN_VACIO;
     customPrints?: Record<string, unknown>[];
+    queue?: Record<string, unknown>[];
   } = {},
 ) {
   const spools = opts.spools ?? [null, null, null, null];
@@ -78,6 +79,12 @@ async function mockApi(
       json: { bed_clear: opts.bedClear ?? true, ams_synced_at: opts.syncedAt ?? null },
     }),
   );
+  // La cola física de la impresora: una sola, con trabajos de pedidos y de
+  // piezas de clientes mezclados. Regex para no comerse /jobs/<id>/requeue.
+  await page.route(/\/api\/admin\/jobs$/, (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({ json: { jobs: opts.queue ?? [] } });
+  });
   // El MensajesProvider del shell siempre pide el inbox (badge de sin
   // responder). Por defecto va vacío; los tests que lo necesiten lo pisan.
   await page.route('**/api/admin/inbox**', (route) => {
@@ -463,49 +470,48 @@ test('en la sub-pestaña Impresora el banner de la cama es el del panel, no el g
 test('la sub-pestaña Impresora muestra el trabajo en curso, la cola y el % de bobinas del AMS', async ({
   page,
 }) => {
-  const printing = { ...ORDER, id: 'ord_printing' };
-  const queued = { ...ORDER, id: 'ord_queued' };
-  await mockApi(page, { spools: ['azul'] });
-  await page.route('**/api/admin/orders', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({
-        json: {
-          orders: [
-            {
-              ...printing,
-              jobs: [
-                {
-                  id: 'job_p',
-                  order_id: 'ord_printing',
-                  part: 'pantalla',
-                  file_key: 'x',
-                  colors: ['azul'],
-                  status: 'printing',
-                  progress_pct: 42,
-                  message: null,
-                },
-              ],
-            },
-            {
-              ...queued,
-              jobs: [
-                {
-                  id: 'job_q',
-                  order_id: 'ord_queued',
-                  part: 'tapa',
-                  file_key: 'x',
-                  colors: ['rojo'],
-                  status: 'queued',
-                  progress_pct: null,
-                  message: null,
-                },
-              ],
-            },
-          ],
-        },
-      });
-    }
-    return route.fallback();
+  // La cola es UNA sola y universal: aquí conviven una pieza de lámpara
+  // (viene de un pedido) y una pieza que subió un cliente (sin pedido).
+  await mockApi(page, {
+    spools: ['azul'],
+    queue: [
+      {
+        id: 'job_p',
+        order_id: 'ord_printing',
+        custom_print_id: null,
+        custom_file_name: null,
+        part: 'pantalla',
+        file_key: 'x',
+        colors: ['azul'],
+        status: 'printing',
+        progress_pct: 42,
+        message: null,
+      },
+      {
+        id: 'job_q',
+        order_id: 'ord_queued',
+        custom_print_id: null,
+        custom_file_name: null,
+        part: 'tapa',
+        file_key: 'x',
+        colors: ['rojo'],
+        status: 'queued',
+        progress_pct: null,
+        message: null,
+      },
+      {
+        id: 'job_c',
+        order_id: null,
+        custom_print_id: 'cp_11111111',
+        custom_file_name: 'soporte-cliente.stl',
+        part: 'cliente',
+        file_key: 'clientes/cp_11111111',
+        colors: ['azul'],
+        status: 'queued',
+        progress_pct: null,
+        message: null,
+      },
+    ],
   });
   await page.route('**/api/admin/inventario/bobinas', (route) =>
     route.fulfill({
@@ -537,7 +543,9 @@ test('la sub-pestaña Impresora muestra el trabajo en curso, la cola y el % de b
   const main = page.locator('main');
   await expect(main.getByText('Pantalla · printing')).toBeVisible();
   await expect(main.getByText('42%')).toBeVisible();
-  await expect(main.getByText('Tapa')).toBeVisible();
+  await expect(main.getByText('Tapa · queued')).toBeVisible();
+  // Lo que faltaba: la pieza de cliente también se enlista, con su nombre.
+  await expect(main.getByText('soporte-cliente.stl')).toBeVisible();
   // Bobina en uso con el mismo color+material del slot 0: 120/1000 = 12%, bajo 20%.
   await expect(main.getByText('12%')).toBeVisible();
 });
@@ -1151,9 +1159,29 @@ test.describe('imprimir una pieza de cliente', () => {
     await expect(page.locator('main').getByRole('button', { name: 'Imprimir' })).toHaveCount(0);
   });
 
+  test('mandada a la cola dice En cola, no Imprimiendo sin porcentaje', async ({ page }) => {
+    // El estado propio de la pieza es 'imprimiendo' desde el clic, pero su
+    // trabajo sigue esperando turno detrás de una lámpara: decir
+    // "Imprimiendo" ahí es mentira, y sin porcentaje además desconcierta.
+    await mockApi(page, {
+      customPrints: [
+        { ...PIEZA_LISTA, status: 'imprimiendo', print_job_id: 'job_1',
+          job_status: 'queued', progress_pct: null },
+      ],
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+    await expect(main.getByText('En cola de impresión')).toBeVisible();
+    await expect(main.getByText('Imprimiendo', { exact: true })).toHaveCount(0);
+  });
+
   test('mientras imprime muestra el progreso y no deja borrarla', async ({ page }) => {
     await mockApi(page, {
-      customPrints: [{ ...PIEZA_LISTA, status: 'imprimiendo', print_job_id: 'job_1', progress_pct: 40 }],
+      customPrints: [
+        { ...PIEZA_LISTA, status: 'imprimiendo', print_job_id: 'job_1',
+          job_status: 'printing', progress_pct: 40 },
+      ],
     });
     await page.goto('/taller#proyectos/impresora');
     await entrar(page);

@@ -2,8 +2,10 @@ import { call } from './http';
 
 export interface PrintJob {
   id: string;
-  order_id: string;
-  part: 'pantalla' | 'cuerpo' | 'tapa';
+  // Null cuando el trabajo es de una pieza STL de cliente, que no viene de
+  // ningún pedido (migración 0017).
+  order_id: string | null;
+  part: 'pantalla' | 'cuerpo' | 'tapa' | 'cliente';
   file_key: string;
   colors: string[];
   status: 'queued' | 'claimed' | 'printing' | 'done' | 'failed' | 'canceled';
