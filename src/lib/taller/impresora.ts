@@ -20,10 +20,29 @@ export interface Spool {
   // Color exacto que reporta la impresora ('#RRGGBB'), tenga o no
   // correspondencia con el catálogo.
   color_hex: string | null;
+  // Bobina del almacén (Inventario) vinculada a mano a esta ranura (0019).
+  // NULL = sin vincular todavía: el peso restante se sigue mostrando "sin
+  // datos" hasta que Salva la elija en /taller.
+  bobina_id: string | null;
+  bobina_weight_g: number | null;
+  bobina_weight_left_g: number | null;
 }
 
 export const getSpools = (token: string) =>
-  call<{ slots: Spool[] }>(token, '/spools').then((r) => r.slots);
+  call<{ slots: Spool[] }>(token, '/spools').then((r) =>
+    (r.slots ?? []).map((s) => ({
+      ...s,
+      bobina_id: s.bobina_id ?? null,
+      bobina_weight_g: s.bobina_weight_g ?? null,
+      bobina_weight_left_g: s.bobina_weight_left_g ?? null,
+    })),
+  );
+
+export const linkSpoolBobina = (token: string, slot: number, bobina_id: string | null) =>
+  call<{ slot: number; bobina_id: string | null }>(token, `/spools/${slot}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ bobina_id }),
+  });
 
 export const getPrinter = (token: string) =>
   call<{ bed_clear: boolean; ams_synced_at: string | null }>(token, '/printer');

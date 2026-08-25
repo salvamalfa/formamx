@@ -48,10 +48,53 @@ impresora.post('/printer/bed-clear', async (c) => {
 });
 
 // Estado de las 4 ranuras del AMS, tal como lo reporta la impresora vía el
-// agente (POST /api/agent/ams). Solo lectura: el AMS dicta el estado de la app.
+// agente (POST /api/agent/ams), más la bobina de almacén que Salva vinculó a
+// mano a cada ranura (0019) — de ahí sale el peso restante real en vez de la
+// heurística por color+material.
 impresora.get('/spools', async (c) => {
   const { results } = await c.env.DB.prepare(
-    'SELECT slot, color_id, material, color_hex FROM spool_slots ORDER BY slot',
-  ).all<{ slot: number; color_id: string | null; material: string | null; color_hex: string | null }>();
+    `SELECT s.slot, s.color_id, s.material, s.color_hex, s.bobina_id,
+            b.weight_g AS bobina_weight_g, b.weight_left_g AS bobina_weight_left_g
+       FROM spool_slots s
+       LEFT JOIN bobinas b ON b.id = s.bobina_id
+      ORDER BY s.slot`,
+  ).all<{
+    slot: number;
+    color_id: string | null;
+    material: string | null;
+    color_hex: string | null;
+    bobina_id: string | null;
+    bobina_weight_g: number | null;
+    bobina_weight_left_g: number | null;
+  }>();
   return c.json({ slots: results });
+});
+
+// Vincula (o desvincula con bobina_id: null) una ranura del AMS a una bobina
+// del almacén. Sin esto, spool_slots.bobina_id se queda NULL para siempre y
+// el panel sigue sin datos de peso — es una decisión explícita de Salva, no
+// algo que el sistema deba adivinar por color.
+impresora.patch('/spools/:slot', async (c) => {
+  const slot = Number(c.req.param('slot'));
+  if (!Number.isInteger(slot) || slot < 0 || slot > 3) {
+    return c.json({ error: 'ranura_invalida' }, 400);
+  }
+  const body = await c.req
+    .json<{ bobina_id?: string | null }>()
+    .catch(() => ({}) as { bobina_id?: string | null });
+  const bobinaId = body.bobina_id ?? null;
+
+  if (bobinaId !== null) {
+    const bobina = await c.env.DB.prepare('SELECT id FROM bobinas WHERE id = ?')
+      .bind(bobinaId)
+      .first<{ id: string }>();
+    if (!bobina) return c.json({ error: 'bobina_no_existe' }, 400);
+  }
+
+  await c.env.DB.prepare(
+    "UPDATE spool_slots SET bobina_id = ?, updated_at = datetime('now') WHERE slot = ?",
+  )
+    .bind(bobinaId, slot)
+    .run();
+  return c.json({ slot, bobina_id: bobinaId });
 });

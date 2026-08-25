@@ -8,6 +8,7 @@ import { impresora } from './impresora';
 import { inbox } from './inbox';
 import { inventario } from './inventario';
 import { pedidos } from './pedidos';
+import { pricing } from './pricing';
 import { resumen } from './resumen';
 
 // /api/admin: un sub-app Hono por módulo. El bearer se aplica UNA sola vez
@@ -25,4 +26,5 @@ admin.route('/custom-prints', customPrints);
 admin.route('/envios', envios);
 admin.route('/inbox', inbox);
 admin.route('/inventario', inventario);
+admin.route('/pricing', pricing);
 admin.route('/resumen', resumen);

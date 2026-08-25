@@ -6,6 +6,7 @@ import {
   getCustomPrints,
   getPreviewUrl,
   imprimirPrint,
+  patchPrintPrecio,
   rebanarPrint,
   uploadCustomPrint,
   type CustomPrint,
@@ -44,11 +45,11 @@ const POLL_TRANQUILO_MS = 60_000;
 const REBANABLES: CustomPrintStatus[] = ['subido', 'listo', 'fallido'];
 const EN_PROCESO: CustomPrintStatus[] = ['en_cola', 'rebanando', 'imprimiendo'];
 
-// Placeholder mientras no existe la pestaña de variables de costo (paso
-// posterior a este rediseño, ver conversación con Salva agosto 2026): cifras
-// fijas, no calculadas por pieza, solo para dejar el layout listo.
-const COSTO_PLACEHOLDER_MXN = 50;
-const PRECIO_PLACEHOLDER_MXN = 200;
+// Centavos → "$123 MXN" (sin decimales: los precios del taller siempre son
+// pesos enteros, igual que el resto de /taller).
+export function formatMxn(centavos: number): string {
+  return `$${Math.round(centavos / 100)} MXN`;
+}
 
 // Lo que dice la etiqueta de la tarjeta. Para una pieza mandada a imprimir no
 // basta con su estado propio ('imprimiendo' desde el clic): el trabajo puede
@@ -252,6 +253,11 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
                 accion(pieza.id, () => cancelarPrint(token!, pieza.id), { status: 'cancelado' })
               }
               onBorrar={() => accion(pieza.id, () => borrarPrint(token!, pieza.id), {})}
+              onPrecio={(valor) =>
+                accion(pieza.id, () => patchPrintPrecio(token!, pieza.id, valor), {
+                  price_override_mxn: valor,
+                })
+              }
             />
           ))}
         </div>
@@ -301,6 +307,7 @@ function PiezaCard({
   onImprimir,
   onCancelar,
   onBorrar,
+  onPrecio,
 }: {
   pieza: CustomPrint;
   spools: Spool[];
@@ -317,11 +324,13 @@ function PiezaCard({
   onImprimir: () => void;
   onCancelar: () => void;
   onBorrar: () => void;
+  onPrecio: (valor: number | null) => void;
 }) {
   const rebanable = REBANABLES.includes(pieza.status);
   const enProceso = EN_PROCESO.includes(pieza.status);
   const listo = pieza.status === 'listo';
   const tieneEstimado = pieza.est_seconds != null && pieza.est_grams != null;
+  const [desglose, setDesglose] = useState(false);
 
   return (
     <div class="flex flex-col overflow-hidden rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-sunken)]">
@@ -368,12 +377,30 @@ function PiezaCard({
           </div>
           <div class="mt-2 flex items-center justify-between border-t border-[var(--border-soft)] pt-2">
             <span class="text-[var(--text-faint)]">
-              Costo <strong class="font-semibold text-[var(--text-body)]">${COSTO_PLACEHOLDER_MXN} MXN</strong>
+              Costo{' '}
+              <strong class="font-semibold text-[var(--text-body)]">
+                {pieza.cost_mxn != null ? formatMxn(pieza.cost_mxn) : '—'}
+              </strong>
             </span>
-            <span class="text-[var(--text-faint)]">
-              Precio <strong class="font-semibold text-[var(--text-body)]">${PRECIO_PLACEHOLDER_MXN} MXN</strong>
-            </span>
+            {pieza.cost_breakdown ? (
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 text-[var(--text-faint)] hover:text-[var(--text-body)]"
+                onClick={() => setDesglose((d) => !d)}
+              >
+                Precio{' '}
+                <strong class="font-semibold text-[var(--text-body)]">
+                  {formatMxn(pieza.price_override_mxn ?? pieza.price_mxn!)}
+                </strong>
+                <span aria-hidden="true">{desglose ? '⌄' : '›'}</span>
+              </button>
+            ) : (
+              <span class="text-[var(--text-faint)]">Precio —</span>
+            )}
           </div>
+          {desglose && pieza.cost_breakdown && (
+            <Desglose pieza={pieza} onPrecio={onPrecio} />
+          )}
         </div>
       )}
 
@@ -414,6 +441,89 @@ function PiezaCard({
           <FormRebanar spools={spools} onRebanar={onRebanar} />
         </div>
       )}
+    </div>
+  );
+}
+
+// Desglose de costo (material/luz/mano de obra/amortización) + edición del
+// precio de esta pieza. El costo no se edita aquí: es lo que de verdad costó
+// producirla, según pricing.ts; lo único que Salva decide es el precio.
+function Desglose({
+  pieza,
+  onPrecio,
+}: {
+  pieza: CustomPrint;
+  onPrecio: (valor: number | null) => void;
+}) {
+  const b = pieza.cost_breakdown!;
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(() =>
+    String(Math.round((pieza.price_override_mxn ?? pieza.price_mxn ?? 0) / 100)),
+  );
+
+  const guardar = () => {
+    const pesos = Number(valor);
+    if (!Number.isFinite(pesos) || pesos < 0) return;
+    onPrecio(Math.round(pesos * 100));
+    setEditando(false);
+  };
+
+  return (
+    <div class="mt-2 rounded-[var(--radius-s)] border border-[var(--border-soft)] bg-[var(--surface-sunken)] p-2.5 text-[12px]">
+      <dl class="m-0 grid grid-cols-2 gap-y-1 text-[var(--text-muted)]">
+        <dt>Material</dt>
+        <dd class="m-0 text-right text-[var(--text-body)]">{formatMxn(b.material_mxn)}</dd>
+        <dt>Luz</dt>
+        <dd class="m-0 text-right text-[var(--text-body)]">{formatMxn(b.luz_mxn)}</dd>
+        <dt>Mano de obra</dt>
+        <dd class="m-0 text-right text-[var(--text-body)]">{formatMxn(b.mano_obra_mxn)}</dd>
+        <dt>Amortización</dt>
+        <dd class="m-0 text-right text-[var(--text-body)]">{formatMxn(b.amortizacion_mxn)}</dd>
+      </dl>
+      {b.material_source === 'fallback' && (
+        <p class="m-0 mt-1.5 text-[var(--naranja-oscuro)]">
+          Sin bobina vinculada a esa ranura: el material se estimó con un valor de respaldo, no el
+          costo real.
+        </p>
+      )}
+      {b.amortizada && (
+        <p class="m-0 mt-1.5 text-[var(--text-faint)]">
+          La impresora ya superó su vida útil estimada: la amortización solo cobra mantenimiento.
+        </p>
+      )}
+      <div class="mt-2 flex items-center justify-between border-t border-[var(--border-soft)] pt-2">
+        <span class="text-[var(--text-faint)]">Precio sugerido {formatMxn(pieza.price_mxn!)}</span>
+        {editando ? (
+          <div class="flex items-center gap-1.5">
+            <span class="text-[var(--text-faint)]">$</span>
+            <input
+              type="number"
+              min="0"
+              class="w-20 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-0.5 text-right"
+              value={valor}
+              onInput={(e) => setValor((e.currentTarget as HTMLInputElement).value)}
+            />
+            <button type="button" class="btn btn-sm btn-primary" onClick={guardar}>
+              Guardar
+            </button>
+          </div>
+        ) : (
+          <div class="flex items-center gap-2">
+            {pieza.price_override_mxn != null && (
+              <button
+                type="button"
+                class="text-[var(--text-faint)] underline hover:text-[var(--text-body)]"
+                onClick={() => onPrecio(null)}
+              >
+                Quitar ajuste
+              </button>
+            )}
+            <button type="button" class="btn btn-sm btn-ghost-claro" onClick={() => setEditando(true)}>
+              Editar precio
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

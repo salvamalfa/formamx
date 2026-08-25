@@ -44,6 +44,7 @@ class TallerApi:
         progress_pct: int | None = None,
         message: str | None = None,
         bed_dirty: bool = False,
+        dry: bool = False,
     ) -> None:
         body: dict = {'status': status}
         if progress_pct is not None:
@@ -52,6 +53,10 @@ class TallerApi:
             body['message'] = message
         if bed_dirty:
             body['bed_dirty'] = True
+        # En modo ensayo (DryPrinter) no hubo impresión real: el worker no debe
+        # sumar horas de máquina ni descontar gramos de ninguna bobina por esto.
+        if dry:
+            body['dry_run'] = True
         r = self.session.post(
             f'{self.base}/api/agent/jobs/{job_id}/status', json=body, timeout=self.timeout
         )

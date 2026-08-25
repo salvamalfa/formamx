@@ -6,5 +6,6 @@ export * from './clientes';
 export * from './customPrints';
 export * from './envios';
 export * from './inventario';
+export * from './pricing';
 export * from './inbox';
 export * from './resumen';

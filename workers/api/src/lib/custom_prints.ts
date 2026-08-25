@@ -38,6 +38,13 @@ export interface CustomPrintRow {
   status: string;
   est_seconds: number | null;
   est_grams: number | null;
+  // Costo y precio calculados por pricing.ts al rebanar (Fase 3e); NULL
+  // hasta el primer rebanado exitoso. price_override_mxn manda sobre
+  // price_mxn cuando Salva edita el precio a mano desde el desglose.
+  cost_mxn: number | null;
+  price_mxn: number | null;
+  price_override_mxn: number | null;
+  cost_breakdown_json: string | null;
   preview: number;
   message: string | null;
   print_job_id: string | null;
@@ -160,6 +167,18 @@ export async function purgeCustomPrintFiles(
 // está en `imprimiendo`, el trabajo puede seguir en cola o recién reclamado,
 // y el tablero necesita distinguirlo para no decir "imprimiendo" antes de que
 // la impresora arranque.
+// Igual de tolerante que parseConfig en inventario.ts: un JSON corrupto no
+// tira la fila, solo esconde el desglose (el precio y costo totales siguen
+// mostrándose, salen de sus propias columnas).
+function parseBreakdown(raw: string | null): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export function shapeCustomPrint(
   row: CustomPrintRow,
   progressPct: number | null = null,
@@ -177,6 +196,10 @@ export function shapeCustomPrint(
     status: row.status,
     est_seconds: row.est_seconds,
     est_grams: row.est_grams,
+    cost_mxn: row.cost_mxn,
+    price_mxn: row.price_mxn,
+    price_override_mxn: row.price_override_mxn,
+    cost_breakdown: parseBreakdown(row.cost_breakdown_json),
     preview: row.preview === 1,
     files_deleted: row.files_deleted === 1,
     message: row.message,
