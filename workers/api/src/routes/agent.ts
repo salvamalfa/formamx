@@ -66,36 +66,28 @@ agent.get('/jobs/next', async (c) => {
   return c.json({ job: { ...shapeJob(job), material }, spools });
 });
 
-// Descuenta est_grams de la bobina vinculada a la ranura que coincide con el
-// material/color de esta pieza de cliente (mismo emparejamiento heurístico
-// que ya usa el panel Impresora para el % restante — no hay forma de saber
-// con certeza qué ranura usó el agente, porque el mapeo de colores lo decide
-// el agente localmente y nunca se lo reporta al worker). Sin bobina
-// vinculada o sin est_grams, no descuenta nada: el peso a mano sigue siendo
-// la corrección de respaldo (nunca se auto-agota por debajo de 0).
+// Descuenta est_grams de la bobina que quedó FIJADA en custom_prints.bobina_id
+// al calcular el precio (computeAndSavePricing, en slice-result) — no vuelve
+// a buscar por material+color aquí. Antes cada función (precio y descuento)
+// hacía su propio emparejamiento por separado; si el AMS cambiaba entre el
+// rebanado y el fin de la impresión, o dos ranuras compartían material+color,
+// el costo calculado y el gramaje descontado podían salir de bobinas
+// distintas (hallazgo de revisión, PR de la Fase 3e). Sin bobina fijada o sin
+// est_grams, no descuenta nada: el peso a mano sigue siendo la corrección de
+// respaldo (nunca se auto-agota por debajo de 0).
 async function deductBobinaGrams(db: D1Database, customPrintId: string): Promise<void> {
   const print = await db
-    .prepare('SELECT material, color_id, est_grams FROM custom_prints WHERE id = ?')
+    .prepare('SELECT bobina_id, est_grams FROM custom_prints WHERE id = ?')
     .bind(customPrintId)
-    .first<{ material: string | null; color_id: string | null; est_grams: number | null }>();
-  if (!print || !print.material || !print.color_id || !print.est_grams) return;
-
-  const slot = await db
-    .prepare(
-      `SELECT bobina_id FROM spool_slots
-       WHERE material = ? AND color_id = ? AND bobina_id IS NOT NULL
-       ORDER BY slot LIMIT 1`,
-    )
-    .bind(print.material, print.color_id)
-    .first<{ bobina_id: string }>();
-  if (!slot) return;
+    .first<{ bobina_id: string | null; est_grams: number | null }>();
+  if (!print || !print.bobina_id || !print.est_grams) return;
 
   await db
     .prepare(
       `UPDATE bobinas SET weight_left_g = MAX(0, weight_left_g - ?), updated_at = datetime('now')
        WHERE id = ?`,
     )
-    .bind(print.est_grams, slot.bobina_id)
+    .bind(print.est_grams, print.bobina_id)
     .run();
 }
 
@@ -192,6 +184,12 @@ interface StatusBody {
   // true cuando la impresión llegó a tocar la cama (terminada o fallida a
   // medias): activa el candado hasta que el taller confirme que la despejó.
   bed_dirty?: boolean;
+  // El agente en modo ensayo (DryPrinter, sin impresora real) manda esto en
+  // 'printing'/'done'/'failed': no hubo impresión física, así que no debe
+  // sumar horas de máquina ni descontar gramos de ninguna bobina — solo eso.
+  // El resto del reporte (status, notificaciones) se procesa igual, porque el
+  // ensayo existe justo para probar ese flujo de punta a punta.
+  dry_run?: boolean;
 }
 
 agent.post('/jobs/:id/status', async (c) => {
@@ -244,8 +242,9 @@ agent.post('/jobs/:id/status', async (c) => {
   // trae puesto (0019). Ninguna de las dos bloquea la respuesta al agente si
   // falta el dato (job viejo sin printing_started_at, ranura sin bobina
   // vinculada): mejor un costo/horas ligeramente desalineado que un job que
-  // no puede reportar su desenlace.
-  if ((next === 'done' || next === 'failed') && job.status === 'printing') {
+  // no puede reportar su desenlace. dry_run (DryPrinter, sin impresora real)
+  // se salta esto por completo: nada de eso ocurrió de verdad.
+  if (!body.dry_run && (next === 'done' || next === 'failed') && job.status === 'printing') {
     if (job.printing_started_at) {
       c.executionCtx.waitUntil(
         c.env.DB.prepare(
@@ -456,16 +455,16 @@ async function computeAndSavePricing(
     .prepare('SELECT total_print_seconds FROM printer_flags WHERE id = 1')
     .first<{ total_print_seconds: number }>();
 
-  let bobina: { cost_mxn: number | null; weight_g: number } | null = null;
+  let bobina: { id: string; cost_mxn: number | null; weight_g: number } | null = null;
   if (material && colorId) {
     bobina = await db
       .prepare(
-        `SELECT b.cost_mxn, b.weight_g FROM spool_slots s
+        `SELECT b.id, b.cost_mxn, b.weight_g FROM spool_slots s
          JOIN bobinas b ON b.id = s.bobina_id
          WHERE s.material = ? AND s.color_id = ? ORDER BY s.slot LIMIT 1`,
       )
       .bind(material, colorId)
-      .first<{ cost_mxn: number | null; weight_g: number }>();
+      .first<{ id: string; cost_mxn: number | null; weight_g: number }>();
   }
 
   const breakdown = computeCostBreakdown(
@@ -477,11 +476,16 @@ async function computeAndSavePricing(
   );
   const price = computeSuggestedPrice(breakdown.total_mxn, config);
 
+  // bobina_id queda FIJO aquí: el descuento de gramos al terminar la
+  // impresión (deductBobinaGrams) usa este mismo valor, no vuelve a buscar
+  // por material+color — así el costo calculado y lo que se descuenta
+  // siempre son la misma bobina, sin importar qué cambie en el AMS después.
   await db
     .prepare(
-      'UPDATE custom_prints SET cost_mxn = ?, price_mxn = ?, cost_breakdown_json = ? WHERE id = ?',
+      `UPDATE custom_prints SET cost_mxn = ?, price_mxn = ?, cost_breakdown_json = ?, bobina_id = ?
+       WHERE id = ?`,
     )
-    .bind(breakdown.total_mxn, price, JSON.stringify(breakdown), customPrintId)
+    .bind(breakdown.total_mxn, price, JSON.stringify(breakdown), bobina?.id ?? null, customPrintId)
     .run();
 }
 

@@ -403,17 +403,19 @@ test('el botón volver regresa a la lista de pedidos', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Lámpara Tessera/ })).toBeVisible();
 });
 
-test('la card de bobinas AMS es de solo lectura y muestra el hex de la impresora', async ({ page }) => {
+test('la card de bobinas AMS muestra el hex de la impresora y un selector de bobina por ranura ocupada', async ({
+  page,
+}) => {
   await mockApi(page, { syncedAt: '2026-07-11 15:30:00' });
   await page.route('**/api/admin/spools', (route) =>
     route.fulfill({
       json: {
         slots: [
-          { slot: 0, color_id: 'blanco', material: 'PLA', color_hex: '#F4F4F2' },
-          { slot: 1, color_id: 'azul', material: 'PETG', color_hex: '#2F5FD6' },
+          { slot: 0, color_id: 'blanco', material: 'PLA', color_hex: '#F4F4F2', bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+          { slot: 1, color_id: 'azul', material: 'PETG', color_hex: '#2F5FD6', bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
           // Gris: sin correspondencia en el catálogo, se muestra el hex.
-          { slot: 2, color_id: null, material: 'PLA', color_hex: '#808080' },
-          { slot: 3, color_id: null, material: null, color_hex: null },
+          { slot: 2, color_id: null, material: 'PLA', color_hex: '#808080', bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+          { slot: 3, color_id: null, material: null, color_hex: null, bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
         ],
       },
     }),
@@ -425,7 +427,8 @@ test('la card de bobinas AMS es de solo lectura y muestra el hex de la impresora
 
   await expect(page.getByRole('heading', { name: 'Bobinas AMS' })).toBeVisible();
   // Escapa el <select> que inyecta la barra de dev de Astro fuera de <main>.
-  await expect(page.locator('main select')).toHaveCount(0); // solo lectura, sin formularios
+  // Una ranura por cada slot ocupado (0,1,2); la vacía (3) no ofrece vincular.
+  await expect(page.locator('main select')).toHaveCount(3);
   await expect(page.getByText('#2F5FD6')).toBeVisible(); // hex junto al nombre de catálogo
   await expect(page.getByText('#808080')).toBeVisible(); // gris fuera de catálogo: el hex es el nombre
   await expect(page.getByText('leído de la impresora:')).toBeVisible();

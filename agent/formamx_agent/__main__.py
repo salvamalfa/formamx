@@ -98,28 +98,28 @@ def process_job(job: dict, spools: list[dict], api: TallerApi, printer, files_di
         if pct - last_reported >= 5 or pct == 100:
             last_reported = pct
             try:
-                api.report(job_id, 'printing', progress_pct=pct)
+                api.report(job_id, 'printing', progress_pct=pct, dry=dry)
             except Exception as err:
                 log.warning('no pude reportar progreso: %s', err)
 
     try:
         printer.upload(local_file, 'model.3mf')
-        api.report(job_id, 'printing', progress_pct=0)
+        api.report(job_id, 'printing', progress_pct=0, dry=dry)
         ok, error = printer.print_file('model.3mf', subtask, ams_mapping, on_progress)
     except PrinterError as err:
         # Fallo de comunicación con la impresora ANTES de tocar la cama: el
         # trabajo falla con su motivo visible en /taller (botón Reintentar)
         # en vez de quedarse 'preparando' hasta el reencolado automático.
-        api.report(job_id, 'failed', message=str(err))
+        api.report(job_id, 'failed', message=str(err), dry=dry)
         log.error('trabajo %s: %s', job_id, err)
         return
     # La impresión tocó la cama (bien o mal): se activa el candado y no llegan
     # más trabajos hasta que confirmes en /taller que la despejaste.
     if ok:
-        api.report(job_id, 'done', progress_pct=100, bed_dirty=True)
+        api.report(job_id, 'done', progress_pct=100, bed_dirty=True, dry=dry)
         log.info('trabajo %s terminado; esperando confirmación de cama despejada', job_id)
     else:
-        api.report(job_id, 'failed', message=error or 'fallo sin detalle', bed_dirty=True)
+        api.report(job_id, 'failed', message=error or 'fallo sin detalle', bed_dirty=True, dry=dry)
         log.error('trabajo %s falló: %s', job_id, error)
 
 

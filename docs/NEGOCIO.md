@@ -355,24 +355,37 @@ asigna al mergear, ver nota de 3b):
    sin depender de `claimed_at`). Cada `done`/`failed` de un job de
    impresora (no de rebanado) suma su duración a `total_print_hours`.
 4. **Descuento de gramos** — al reportar `done`/`failed` un `print_job` con
-   `custom_print_id`, restar `est_grams` de la `bobina_id` vinculada a la
-   ranura que se usó (de `spool_slots` en el momento del claim). Sin
-   `bobina_id` vinculada, no se descuenta nada y queda log para revisar a
-   mano — nunca falla el job por esto.
+   `custom_print_id`, restar `est_grams` de `custom_prints.bobina_id`: la
+   bobina que quedó FIJADA al calcular el precio (paso 5), no una que se
+   vuelva a buscar en ese momento — dos búsquedas por separado (precio y
+   descuento) podían acabar en bobinas distintas si el AMS cambiaba entre el
+   rebanado y el fin de la impresión, o si dos ranuras compartían
+   material+color (hallazgo de revisión). Sin `bobina_id` fijada, no se
+   descuenta nada — nunca falla el job por esto. Se salta por completo en
+   modo ensayo (`dry_run` en el reporte del agente): el `DryPrinter` no tocó
+   ninguna bobina real.
 5. **`workers/api/src/lib/pricing.ts`** — función pura (mismo patrón que
    `catalog.ts`): recibe `est_grams`, `est_seconds`, la bobina vinculada y
    `pricing_config`; devuelve el desglose (material, luz, mano de obra,
    amortización) y el costo total. Se calcula automáticamente cuando el
    rebanado reporta resultado (`agent.post('/custom-prints/:id/slice-result')`,
    que ya recibe `est_grams`/`est_seconds`). Nuevas columnas en
-   `custom_prints`: `cost_mxn` (calculado, centavos), `price_mxn` (costo ×
-   `margen_default_pct`), `price_override_mxn` (nullable; si Salva edita el
-   precio a mano, este manda sobre el calculado).
+   `custom_prints`: `cost_mxn` (calculado, centavos), `price_mxn` (markup:
+   `costo × (1 + margen_default_pct / 100)` — `margen_default_pct = 300` da
+   4x, igual que el ejemplo real $50→$200 del screenshot), `price_override_mxn`
+   (nullable; si Salva edita el precio a mano, este manda sobre el calculado).
 6. **UI** — `PiezasClientes.tsx` deja de usar `COSTO_PLACEHOLDER_MXN` /
    `PRECIO_PLACEHOLDER_MXN` y lee `cost_mxn` / `price_override_mxn ??
    price_mxn`. La flechita "›" junto al precio abre el desglose (material /
    luz / mano de obra / amortización + margen aplicado) con un campo para
    sobrescribir el precio de esa pieza.
+
+`bobinas.cost_mxn` es nullable (el alta de bobina no lo exige): `pricing.ts`
+no lo trata como 0 — cae a un valor de respaldo fijo ($250, el mismo default
+que traía el Apps Script de Salva) y marca `material_source: 'fallback'` en
+el desglose, con un aviso visible en el "›" para que Salva sepa que ese
+costo no es el real. No bloquea el rebanado: mejor un aviso a la vista que
+un rebanado detenido por un dato que falta.
 
 **Fuera de alcance de esta fase** (queda para después, no bloquea): subir
 foto de ticket/factura por bobina a R2 (mismo patrón que `custom_prints.r2_key`)
