@@ -9,7 +9,7 @@ import {
 import { useTallerCore } from '../coreData';
 import { useSession } from '../hooks/useSession';
 import { JOB_STATUS_LABEL, PART_LABEL } from '../pedidos/labels';
-import { colorLabel, colorSwatch } from '../ui/colores';
+import { colorLabel, colorSwatch, nearestColorName } from '../ui/colores';
 import { formatSync, shortId } from '../ui/format';
 import { PiezasClientes } from './PiezasClientes';
 
@@ -258,7 +258,7 @@ function BobinasAms({
           const hex = spool?.color_hex ?? null;
           const catalogId = spool?.color_id ?? null;
           const empty = !hex && !catalogId;
-          const nombre = empty ? 'vacía' : catalogId ? colorLabel(catalogId) : (hex ?? '');
+          const nombre = empty ? 'vacía' : catalogId ? colorLabel(catalogId) : nearestColorName(hex!);
           const swatch = hex ?? (catalogId ? colorSwatch(catalogId) : 'transparent');
           const pct = empty ? null : getPorcentaje(spool, bobinas);
           const bajo = pct != null && pct < 20;
@@ -270,7 +270,7 @@ function BobinasAms({
                   style={{ background: swatch }}
                 />
                 <span class="min-w-0 truncate text-sm">{nombre}</span>
-                {hex && catalogId && (
+                {hex && (
                   <span
                     class="text-[10px] text-[var(--text-faint)]"
                   >
