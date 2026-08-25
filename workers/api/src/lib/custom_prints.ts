@@ -28,6 +28,8 @@ export interface CustomPrintRow {
   file_name: string;
   r2_key: string;
   size_bytes: number;
+  // 1 cuando el STL y la vista previa ya se limpiaron de R2 (migración 0018).
+  files_deleted: number;
   material: string | null;
   color_id: string | null;
   color_hex: string | null;
@@ -114,6 +116,45 @@ export function previewKey(id: string): string {
   return `previews/${id}.png`;
 }
 
+// Scopes del tablero. Se resuelven en SQL —no filtrando en el cliente— porque
+// el listado va topado: con suficientes piezas terminadas, un filtro en el
+// navegador dejaría fuera piezas pendientes viejas y no habría forma de
+// cancelarlas ni borrarlas desde /taller.
+export const SCOPE_WHERE: Record<string, string> = {
+  pendientes: "cp.status NOT IN ('terminado', 'cancelado')",
+  historico: "cp.status = 'terminado'",
+};
+
+// Limpia de R2 el STL del cliente y su vista previa, y lo anota en la fila.
+// Idempotente (las claves son deterministas y borrar en R2 no falla si el
+// objeto ya no está), así que se puede reintentar cuantas veces haga falta.
+// Devuelve false si R2 falló: la fila se queda con files_deleted = 0 y el
+// listado del tablero vuelve a intentarlo. Nunca marca limpio lo que no lo
+// está — el archivo de un cliente no puede quedarse guardado en silencio.
+export async function purgeCustomPrintFiles(
+  bucket: R2Bucket,
+  db: D1Database,
+  id: string,
+  r2Key: string,
+): Promise<boolean> {
+  try {
+    await bucket.delete(r2Key);
+    await bucket.delete(previewKey(id));
+  } catch {
+    return false;
+  }
+  // `preview` vuelve a 0 en el mismo paso: su PNG ya no existe, así que la UI
+  // no debe pedirlo.
+  await db
+    .prepare(
+      `UPDATE custom_prints SET files_deleted = 1, preview = 0, updated_at = datetime('now')
+       WHERE id = ?`,
+    )
+    .bind(id)
+    .run();
+  return true;
+}
+
 // La clave de R2 y el claim son internos: el dashboard no los necesita.
 export function shapeCustomPrint(row: CustomPrintRow, progressPct: number | null = null) {
   return {
@@ -129,6 +170,7 @@ export function shapeCustomPrint(row: CustomPrintRow, progressPct: number | null
     est_seconds: row.est_seconds,
     est_grams: row.est_grams,
     preview: row.preview === 1,
+    files_deleted: row.files_deleted === 1,
     message: row.message,
     print_job_id: row.print_job_id,
     progress_pct: progressPct,

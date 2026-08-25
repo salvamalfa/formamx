@@ -103,13 +103,24 @@ async function mockApi(
     }
     return route.fallback();
   });
-  // Piezas STL de clientes (card de la sub-pestaña Impresora). Por defecto
-  // vacío; los specs que la ejercitan registran rutas más nuevas que ganan.
-  await page.route('**/api/admin/custom-prints', (route) => {
-    if (route.request().method() === 'GET') {
-      return route.fulfill({ json: { prints: opts.customPrints ?? [] } });
-    }
-    return route.fallback();
+  // Piezas STL de clientes (card de la sub-pestaña Impresora). El scope lo
+  // resuelve el worker, así que el mock lo imita: la pestaña pendientes pide
+  // ?scope=pendientes y el histórico ?scope=historico. Por defecto vacío; los
+  // specs que la ejercitan registran rutas más nuevas que ganan.
+  // Regex, no glob: `**` cruzaría las diagonales y se comería también
+  // /custom-prints/<id>/preview y demás sub-rutas.
+  await page.route(/\/api\/admin\/custom-prints(\?.*)?$/, (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const todas = opts.customPrints ?? [];
+    const scope = new URL(route.request().url()).searchParams.get('scope');
+    const pendientes = todas.filter(
+      (p) => p.status !== 'terminado' && p.status !== 'cancelado',
+    );
+    const historico = todas.filter((p) => p.status === 'terminado');
+    const prints = scope === 'historico' ? historico : scope === 'pendientes' ? pendientes : todas;
+    return route.fulfill({
+      json: { prints, counts: { pendientes: pendientes.length, historico: historico.length } },
+    });
   });
 }
 
@@ -1106,13 +1117,17 @@ test.describe('piezas de clientes', () => {
 
 test.describe('imprimir una pieza de cliente', () => {
   test('el botón manda la pieza a la cola', async ({ page }) => {
-    await mockApi(page, { customPrints: [PIEZA_LISTA] });
+    // El listado se relee tras la acción, así que el mock tiene que moverse
+    // como el worker real: después del POST la pieza ya está imprimiendo.
+    const piezas = [{ ...PIEZA_LISTA }];
+    await mockApi(page, { customPrints: piezas });
     let pedido = false;
     await page.route('**/api/admin/custom-prints/*/imprimir', (route) => {
       pedido = true;
-      return route.fulfill({
-        json: { ...PIEZA_LISTA, status: 'imprimiendo', print_job_id: 'job_1', progress_pct: 0 },
-      });
+      // progress_pct sigue nulo: el trabajo acaba de entrar a la cola y el
+      // agente todavía no reporta nada, igual que en el worker real.
+      Object.assign(piezas[0], { status: 'imprimiendo', print_job_id: 'job_1', progress_pct: null });
+      return route.fulfill({ json: piezas[0] });
     });
     await page.goto('/taller#proyectos/impresora');
     await entrar(page);

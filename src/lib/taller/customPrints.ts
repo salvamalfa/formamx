@@ -16,6 +16,16 @@ export type CustomPrintStatus =
   // Lápida del borrado: solo se ve si la limpieza del archivo quedó a medias.
   | 'borrado';
 
+// Las dos vistas del tablero. Se piden por separado al worker: el listado va
+// topado, así que filtrar en el navegador escondería piezas pendientes viejas
+// detrás de las terminadas.
+export type CustomPrintScope = 'pendientes' | 'historico';
+
+export interface CustomPrintCounts {
+  pendientes: number;
+  historico: number;
+}
+
 export interface CustomPrint {
   id: string;
   file_name: string;
@@ -60,10 +70,16 @@ const normalize = (p: CustomPrint): CustomPrint => ({
   progress_pct: p.progress_pct ?? null,
 });
 
-export const getCustomPrints = (token: string) =>
-  call<{ prints: CustomPrint[] }>(token, '/custom-prints').then((r) =>
-    (r.prints ?? []).map(normalize),
-  );
+export const getCustomPrints = (token: string, scope?: CustomPrintScope) =>
+  call<{ prints: CustomPrint[]; counts?: CustomPrintCounts }>(
+    token,
+    scope ? `/custom-prints?scope=${scope}` : '/custom-prints',
+  ).then((r) => ({
+    prints: (r.prints ?? []).map(normalize),
+    // Un worker anterior a los conteos no los manda; entonces las pestañas se
+    // quedan sin cifra en vez de inventar una a partir de la página recortada.
+    counts: r.counts ?? null,
+  }));
 
 export const rebanarPrint = (token: string, id: string, opciones: OpcionesRebanado) =>
   call<CustomPrint>(token, `/custom-prints/${id}/rebanar`, {

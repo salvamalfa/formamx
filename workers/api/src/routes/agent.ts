@@ -4,6 +4,7 @@ import { bearer } from '../lib/auth';
 import { isSpoolMaterial, nearestCatalogColor } from '../lib/catalog';
 import {
   previewKey,
+  purgeCustomPrintFiles,
   shapeCustomPrint,
   SLICE_STALE_MINUTES,
   type CustomPrintRow,
@@ -168,24 +169,18 @@ agent.post('/jobs/:id/status', async (c) => {
         .first<{ r2_key: string }>();
       // Terminada la pieza, el STL del cliente y su vista previa ya cumplieron
       // su propósito: se limpian de R2 y solo queda el metadato para el
-      // histórico. Best effort (no bloquea la respuesta al agente); si falla,
-      // el botón Borrar del histórico reintenta la limpieza más tarde.
+      // histórico. No bloquea la respuesta al agente, y si R2 falla la fila se
+      // queda con files_deleted = 0: el listado del tablero lo reintenta, así
+      // que un fallo transitorio no deja el archivo del cliente guardado para
+      // siempre en silencio.
       if (marcada) {
-        const customPrintId = job.custom_print_id;
         c.executionCtx.waitUntil(
-          (async () => {
-            try {
-              await c.env.STL_BUCKET.delete(marcada.r2_key);
-              await c.env.STL_BUCKET.delete(previewKey(customPrintId));
-              await c.env.DB.prepare(
-                "UPDATE custom_prints SET preview = 0 WHERE id = ?",
-              )
-                .bind(customPrintId)
-                .run();
-            } catch {
-              /* limpieza best effort; el borrado manual reintenta */
-            }
-          })(),
+          purgeCustomPrintFiles(
+            c.env.STL_BUCKET,
+            c.env.DB,
+            job.custom_print_id,
+            marcada.r2_key,
+          ).then(() => {}),
         );
       }
       c.executionCtx.waitUntil(

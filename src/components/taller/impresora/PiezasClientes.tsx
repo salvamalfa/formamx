@@ -9,6 +9,7 @@ import {
   rebanarPrint,
   uploadCustomPrint,
   type CustomPrint,
+  type CustomPrintCounts,
   type CustomPrintStatus,
   type Spool,
 } from '../../../lib/taller';
@@ -70,6 +71,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
   const [subiendo, setSubiendo] = useState<number | null>(null);
   const [abierta, setAbierta] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('pendientes');
+  const [counts, setCounts] = useState<CustomPrintCounts | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   const activo = piezas.some((p) => EN_PROCESO.includes(p.status));
@@ -80,14 +82,19 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
   const invalidateRef = useRef(invalidate);
   invalidateRef.current = invalidate;
 
+  // El scope lo resuelve el worker: el listado va topado, así que filtrar las
+  // dos pestañas en el navegador escondería piezas pendientes viejas detrás de
+  // las terminadas (y entonces no habría cómo cancelarlas ni borrarlas).
   useEffect(() => {
     if (!token) return;
     let vivo = true;
+    setCargando(true);
     const cargar = () =>
-      getCustomPrints(token)
-        .then((ps) => {
+      getCustomPrints(token, tab)
+        .then((r) => {
           if (!vivo) return;
-          setPiezas(ps);
+          setPiezas(r.prints);
+          setCounts(r.counts);
           setError(null);
         })
         .catch((err: Error) => {
@@ -102,7 +109,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
       vivo = false;
       clearInterval(id);
     };
-  }, [token, activo]);
+  }, [token, activo, tab]);
 
   async function subir(file: File) {
     if (!token) return;
@@ -110,9 +117,11 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
     setSubiendo(0);
     try {
       const nueva = await uploadCustomPrint(token, file, setSubiendo);
+      // Una pieza recién subida siempre es pendiente: si Salva estaba viendo
+      // el histórico, la pestaña se mueve con ella.
+      setTab('pendientes');
       setPiezas((ps) => [nueva, ...ps]);
       setAbierta(nueva.id);
-      setTab('pendientes');
     } catch (err) {
       const msg = (err as Error).message;
       if (msg === 'no_autorizado') invalidate('Token inválido.');
@@ -132,7 +141,11 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
     setPiezas((ps) => ps.map((p) => (p.id === id ? { ...p, ...optimista } : p)));
     try {
       await fn();
-      if (token) setPiezas(await getCustomPrints(token));
+      if (token) {
+        const r = await getCustomPrints(token, tab);
+        setPiezas(r.prints);
+        setCounts(r.counts);
+      }
     } catch (err) {
       setPiezas(previas);
       const msg = (err as Error).message;
@@ -141,10 +154,6 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
       else setError('No pude hacer ese cambio.');
     }
   }
-
-  const pendientes = piezas.filter((p) => p.status !== 'terminado');
-  const historico = piezas.filter((p) => p.status === 'terminado');
-  const visibles = tab === 'pendientes' ? pendientes : historico;
 
   return (
     <div class="rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]">
@@ -179,14 +188,14 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
           class={`chip-claro ${tab === 'pendientes' ? 'activo' : ''}`}
           onClick={() => setTab('pendientes')}
         >
-          Pendientes{pendientes.length ? ` (${pendientes.length})` : ''}
+          Pendientes{counts?.pendientes ? ` (${counts.pendientes})` : ''}
         </button>
         <button
           type="button"
           class={`chip-claro ${tab === 'historico' ? 'activo' : ''}`}
           onClick={() => setTab('historico')}
         >
-          Histórico{historico.length ? ` (${historico.length})` : ''}
+          Histórico{counts?.historico ? ` (${counts.historico})` : ''}
         </button>
       </div>
 
@@ -203,7 +212,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
 
       {cargando ? (
         <p class="m-0 text-sm text-[var(--text-muted)]">Cargando…</p>
-      ) : visibles.length === 0 ? (
+      ) : piezas.length === 0 ? (
         <p class="m-0 text-sm text-[var(--text-muted)]">
           {tab === 'pendientes'
             ? 'Nada por aquí. Importa el STL que te mandó un cliente y el agente lo rebana.'
@@ -211,7 +220,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
         </p>
       ) : (
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visibles.map((pieza) => (
+          {piezas.map((pieza) => (
             <PiezaCard
               key={pieza.id}
               pieza={pieza}
