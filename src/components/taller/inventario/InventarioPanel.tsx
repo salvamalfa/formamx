@@ -288,7 +288,7 @@ function BobinaRow({
           Guardar
         </button>
       </span>
-      <span class="flex flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap">
+      <span class="flex flex-wrap items-center justify-end gap-1.5">
         {bajo && <BadgeBajo />}
         <span class="meta-caps shrink-0 text-[var(--text-muted)]">
           {BOBINA_STATUS_LABEL[bobina.status] ?? bobina.status}

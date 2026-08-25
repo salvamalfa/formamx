@@ -31,13 +31,13 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        class={`w-full ${wide ? 'max-w-xl' : 'max-w-sm'} rounded-[var(--radius-m)] bg-[var(--surface-card)] p-4 shadow-[var(--shadow-card)]`}
+        class={`flex w-full ${wide ? 'max-w-xl' : 'max-w-sm'} max-h-full flex-col rounded-[var(--radius-m)] bg-[var(--surface-card)] p-4 shadow-[var(--shadow-card)]`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
-        <div class="mb-3 flex items-center justify-between gap-3">
+        <div class="mb-3 flex shrink-0 items-center justify-between gap-3">
           <h3 class="m-0 text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
             {title}
           </h3>
@@ -50,7 +50,7 @@ export function Modal({
             ✕
           </button>
         </div>
-        {children}
+        <div class="min-h-0 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
