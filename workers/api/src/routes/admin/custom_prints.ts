@@ -8,7 +8,9 @@ import {
   isSupports,
   MAX_STL_BYTES,
   previewKey,
+  purgeCustomPrintFiles,
   REBANABLE_STATUSES,
+  SCOPE_WHERE,
   shapeCustomPrint,
   stlKey,
   type CustomPrintRow,
@@ -19,22 +21,53 @@ import {
 // (ver routes/agent.ts). Plan completo en docs/STL_CLIENTES.md.
 export const customPrints = new Hono<AppContext>();
 
-// Lista para el tablero. Por defecto lo vivo (sin las canceladas); el
-// progreso de impresión se toma del trabajo ligado, si existe.
+// Lista para el tablero. Por defecto lo vivo (sin las canceladas); con
+// ?scope=pendientes|historico se piden las dos pestañas por separado, que es
+// lo que evita que el tope del listado esconda una pieza pendiente vieja
+// detrás de cien terminadas. El progreso de impresión se toma del trabajo
+// ligado, si existe. Los conteos van completos (sin tope) para que las
+// pestañas digan la verdad aunque la página venga recortada.
 customPrints.get('/', async (c) => {
   const status = c.req.query('status');
+  const scope = c.req.query('scope');
   const limit = Math.min(Number(c.req.query('limit')) || 100, 200);
-  const where = status ? 'cp.status = ?' : "cp.status != 'cancelado'";
+  const where = status
+    ? 'cp.status = ?'
+    : (SCOPE_WHERE[scope ?? ''] ?? "cp.status != 'cancelado'");
   const stmt = c.env.DB.prepare(
     `SELECT cp.*, pj.progress_pct AS job_progress FROM custom_prints cp
      LEFT JOIN print_jobs pj ON pj.id = cp.print_job_id
      WHERE ${where} ORDER BY cp.created_at DESC LIMIT ?`,
   );
-  const { results } = await (status ? stmt.bind(status, limit) : stmt.bind(limit)).all<
-    CustomPrintRow & { job_progress: number | null }
-  >();
+  const [{ results }, counts] = await Promise.all([
+    (status ? stmt.bind(status, limit) : stmt.bind(limit)).all<
+      CustomPrintRow & { job_progress: number | null }
+    >(),
+    c.env.DB.prepare(
+      `SELECT
+         SUM(CASE WHEN ${SCOPE_WHERE.pendientes} THEN 1 ELSE 0 END) AS pendientes,
+         SUM(CASE WHEN ${SCOPE_WHERE.historico} THEN 1 ELSE 0 END) AS historico
+       FROM custom_prints cp`,
+    ).first<{ pendientes: number | null; historico: number | null }>(),
+  ]);
+
+  // Limpieza pendiente: si al terminar una impresión R2 falló, los archivos
+  // del cliente siguen guardados. Se reintenta aquí (fuera de la respuesta)
+  // porque es el punto que se visita solo, sin cron ni cola aparte.
+  const sucias = results.filter((row) => row.status === 'terminado' && !row.files_deleted);
+  if (sucias.length) {
+    c.executionCtx.waitUntil(
+      Promise.all(
+        sucias.map((row) =>
+          purgeCustomPrintFiles(c.env.STL_BUCKET, c.env.DB, row.id, row.r2_key),
+        ),
+      ).then(() => {}),
+    );
+  }
+
   return c.json({
     prints: results.map((row) => shapeCustomPrint(row, row.job_progress)),
+    counts: { pendientes: counts?.pendientes ?? 0, historico: counts?.historico ?? 0 },
   });
 });
 
