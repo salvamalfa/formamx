@@ -14,10 +14,9 @@ import {
   type CustomPrintStatus,
   type Spool,
 } from '../../../lib/taller';
-import { navigate } from '../router';
 import { useSession } from '../hooks/useSession';
 import { colorLabel, colorSwatch } from '../ui/colores';
-import { IconAjustes, IconBorrar, IconRebanar, IconUpload } from '../ui/icons';
+import { IconBorrar, IconRebanar, IconUpload } from '../ui/icons';
 
 // Card "Piezas de clientes": subir un STL, pedir su rebanado con el material y
 // color que hay cargados en el AMS, y revisar el estimado antes de imprimir.
@@ -399,13 +398,7 @@ function PiezaCard({
               <span class="text-[var(--text-faint)]">Precio —</span>
             )}
           </div>
-          {calculadora && pieza.cost_breakdown && (
-            <Desglose
-              pieza={pieza}
-              onPrecio={onPrecio}
-              onAbrirConfig={() => navigate({ vista: 'proyectos', sub: 'inventario' })}
-            />
-          )}
+          {calculadora && pieza.cost_breakdown && <Desglose pieza={pieza} onPrecio={onPrecio} />}
         </div>
       )}
 
@@ -452,17 +445,16 @@ function PiezaCard({
 
 // Desglose de costo (material/luz/mano de obra/amortización) + edición del
 // precio de esta pieza. El costo no se edita aquí: es lo que de verdad costó
-// producirla, según pricing.ts; lo único que Salva decide es el precio. El
-// ícono de ajustes no abre nada aquí mismo — lleva a Inventario, donde vive
-// la config real de la calculadora (costo kWh, mano de obra, etc.).
+// producirla, según pricing.ts; lo único que Salva decide es el precio. La
+// config de la calculadora (costo kWh, mano de obra, etc.) vive en su propio
+// popup — el ícono de ajustes junto a las pestañas de Proyectos, visible
+// solo en Impresora — no aquí, para no depender de tener una pieza abierta.
 function Desglose({
   pieza,
   onPrecio,
-  onAbrirConfig,
 }: {
   pieza: CustomPrint;
   onPrecio: (valor: number | null) => void;
-  onAbrirConfig: () => void;
 }) {
   const b = pieza.cost_breakdown!;
   const [editando, setEditando] = useState(false);
@@ -479,18 +471,6 @@ function Desglose({
 
   return (
     <div class="mt-2 rounded-[var(--radius-s)] border border-[var(--border-soft)] bg-[var(--surface-sunken)] p-2.5 text-[12px]">
-      <div class="mb-1.5 flex items-center justify-between">
-        <span class="meta-caps text-[10px] text-[var(--text-faint)]">Calculadora de costo</span>
-        <button
-          type="button"
-          title="Configurar la calculadora (Inventario)"
-          aria-label="Configurar la calculadora (Inventario)"
-          class="text-[var(--text-faint)] hover:text-[var(--text-body)]"
-          onClick={onAbrirConfig}
-        >
-          <IconAjustes class="size-4" />
-        </button>
-      </div>
       <dl class="m-0 grid grid-cols-2 gap-y-1 text-[var(--text-muted)]">
         <dt>Material</dt>
         <dd class="m-0 text-right text-[var(--text-body)]">{formatMxn(b.material_mxn)}</dd>
