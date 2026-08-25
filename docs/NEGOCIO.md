@@ -303,6 +303,82 @@ bobinas (`docs/AGENTE_IA.md` fases futuras / `docs/ROADMAP_ARQUITECTURA.md`
 §7, `bobinas.cost_mxn`), el costo de filamento por trabajo saldrá solo; la
 tabla manual es el puente. Sin código en esta fase.
 
+### Fase 3e — calculadora de costo/precio automática (piezas de clientes)
+
+El enganche de 3d ya llegó: `bobinas` (Inventario) ya guarda `cost_mxn` y
+`weight_left_g` por bobina. Lo que falta no es el inventario — es conectarlo
+al AMS y al rebanado. Hoy `Costo $50 MXN` / `Precio $200 MXN` en la card de
+Piezas de clientes son **constantes fijas en el frontend**
+(`PiezasClientes.tsx`, con comentario propio marcándolas como placeholder).
+Reemplaza a mano la fórmula que Salva ya usa en un Apps Script de Sheets
+(`COSTO_IMPRESION`: material + luz + mano de obra + amortización, con margen
+aplicado aparte en Excel).
+
+Decisiones tomadas con Salva (agosto 2026):
+
+- **Amortización dinámica por uso real**, no un valor inventado de
+  horas/día. Se acumulan las horas reales de impresión
+  (`printer_flags.total_print_hours`, sumando la duración de cada
+  `print_job` desde que empieza a imprimir hasta done/failed) contra una
+  `vida_util_horas_estimada` configurable. Mientras no se cumplan esas horas,
+  el costo/hora es constante (`precio_impresora × (1 + rep%) / vida_util_horas_estimada`
+  — bajo depreciación lineal el costo/hora no cambia aunque se trackeen las
+  horas acumuladas, es álgebra); el valor de rastrear las horas es la
+  **alerta**: al superar `vida_util_horas_estimada`, la impresora ya se pagó
+  sola y /taller lo avisa (Salva decide entonces si sigue cobrando esa tarifa
+  como fondo de reemplazo o la baja a solo mantenimiento).
+- **Descuento de gramos automático, con corrección manual.** Al reportar
+  `done`/`failed` un `print_job`, se resta `est_grams` de
+  `bobinas.weight_left_g` de la bobina vinculada a la ranura usada. Esto
+  invierte la regla actual ("nunca se auto-agota sola", `inventario.ts:35`);
+  el peso a mano (`PATCH /api/admin/bobinas/:id`) se conserva como
+  corrección, no como única fuente.
+
+Pasos, cada uno desplegable por separado (numeración de migración real se
+asigna al mergear, ver nota de 3b):
+
+1. **`spool_slots.bobina_id`** — migración `ADD COLUMN` (ya prevista y
+   descrita como trivial en `ROADMAP_ARQUITECTURA.md` §6 y en el header de
+   `0012_inventario.sql`). En /taller, montar una bobina pasa de heurística
+   de color a una elección explícita (dropdown de bobinas `nueva`/`en_uso`
+   que coincidan con lo que reportó el AMS). Esto además resuelve el "sin
+   datos" del panel Impresora: `getPorcentaje` deja de adivinar por
+   color+material y lee `bobina_id` directo.
+2. **`pricing_config`** — tabla de una fila (patrón `printer_flags`):
+   `costo_kwh_mxn, consumo_w, costo_hora_mano_obra_mxn,
+   minutos_mano_obra_default, precio_impresora_mxn, vida_util_horas_estimada,
+   rep_percent, margen_default_pct` (montos en centavos donde aplique, igual
+   que `bobinas.cost_mxn`). Editable desde /taller — nada de esto vuelve a
+   vivir hardcodeado en código.
+3. **`printer_flags.total_print_hours`** + `print_jobs.printing_started_at`
+   (se llena en la primera transición a `printing`, para medir duración real
+   sin depender de `claimed_at`). Cada `done`/`failed` de un job de
+   impresora (no de rebanado) suma su duración a `total_print_hours`.
+4. **Descuento de gramos** — al reportar `done`/`failed` un `print_job` con
+   `custom_print_id`, restar `est_grams` de la `bobina_id` vinculada a la
+   ranura que se usó (de `spool_slots` en el momento del claim). Sin
+   `bobina_id` vinculada, no se descuenta nada y queda log para revisar a
+   mano — nunca falla el job por esto.
+5. **`workers/api/src/lib/pricing.ts`** — función pura (mismo patrón que
+   `catalog.ts`): recibe `est_grams`, `est_seconds`, la bobina vinculada y
+   `pricing_config`; devuelve el desglose (material, luz, mano de obra,
+   amortización) y el costo total. Se calcula automáticamente cuando el
+   rebanado reporta resultado (`agent.post('/custom-prints/:id/slice-result')`,
+   que ya recibe `est_grams`/`est_seconds`). Nuevas columnas en
+   `custom_prints`: `cost_mxn` (calculado, centavos), `price_mxn` (costo ×
+   `margen_default_pct`), `price_override_mxn` (nullable; si Salva edita el
+   precio a mano, este manda sobre el calculado).
+6. **UI** — `PiezasClientes.tsx` deja de usar `COSTO_PLACEHOLDER_MXN` /
+   `PRECIO_PLACEHOLDER_MXN` y lee `cost_mxn` / `price_override_mxn ??
+   price_mxn`. La flechita "›" junto al precio abre el desglose (material /
+   luz / mano de obra / amortización + margen aplicado) con un campo para
+   sobrescribir el precio de esa pieza.
+
+**Fuera de alcance de esta fase** (queda para después, no bloquea): subir
+foto de ticket/factura por bobina a R2 (mismo patrón que `custom_prints.r2_key`)
+para tener evidencia de compra — hoy `bobinas.cost_mxn` se captura a mano sin
+cruzarlo contra ningún comprobante.
+
 ---
 
 ## §4 — Post-venta y envíos
