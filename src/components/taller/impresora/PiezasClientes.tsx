@@ -330,7 +330,7 @@ function PiezaCard({
   const enProceso = EN_PROCESO.includes(pieza.status);
   const listo = pieza.status === 'listo';
   const tieneEstimado = pieza.est_seconds != null && pieza.est_grams != null;
-  const [desglose, setDesglose] = useState(false);
+  const [calculadora, setCalculadora] = useState(false);
 
   return (
     <div class="flex flex-col overflow-hidden rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-sunken)]">
@@ -386,21 +386,19 @@ function PiezaCard({
               <button
                 type="button"
                 class="inline-flex items-center gap-1 text-[var(--text-faint)] hover:text-[var(--text-body)]"
-                onClick={() => setDesglose((d) => !d)}
+                onClick={() => setCalculadora((v) => !v)}
               >
                 Precio{' '}
                 <strong class="font-semibold text-[var(--text-body)]">
                   {formatMxn(pieza.price_override_mxn ?? pieza.price_mxn!)}
                 </strong>
-                <span aria-hidden="true">{desglose ? '⌄' : '›'}</span>
+                <span aria-hidden="true">{calculadora ? '⌄' : '›'}</span>
               </button>
             ) : (
               <span class="text-[var(--text-faint)]">Precio —</span>
             )}
           </div>
-          {desglose && pieza.cost_breakdown && (
-            <Desglose pieza={pieza} onPrecio={onPrecio} />
-          )}
+          {calculadora && pieza.cost_breakdown && <Desglose pieza={pieza} onPrecio={onPrecio} />}
         </div>
       )}
 
@@ -447,7 +445,10 @@ function PiezaCard({
 
 // Desglose de costo (material/luz/mano de obra/amortización) + edición del
 // precio de esta pieza. El costo no se edita aquí: es lo que de verdad costó
-// producirla, según pricing.ts; lo único que Salva decide es el precio.
+// producirla, según pricing.ts; lo único que Salva decide es el precio. La
+// config de la calculadora (costo kWh, mano de obra, etc.) vive en su propio
+// popup — el ícono de ajustes junto a las pestañas de Proyectos, visible
+// solo en Impresora — no aquí, para no depender de tener una pieza abierta.
 function Desglose({
   pieza,
   onPrecio,

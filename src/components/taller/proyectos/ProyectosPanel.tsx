@@ -1,8 +1,11 @@
+import { useState } from 'preact/hooks';
 import { EnviosPanel } from '../envios/EnviosPanel';
+import { ConfiguracionImpresora } from '../impresora/ConfiguracionImpresora';
 import { ImpresoraPanel } from '../impresora/ImpresoraPanel';
 import { InventarioPanel } from '../inventario/InventarioPanel';
 import { PedidosPanel } from '../pedidos/PedidosPanel';
 import { navigate, type ProyectosSub } from '../router';
+import { IconAjustes } from '../ui/icons';
 
 // Vista "Proyectos": la producción del taller bajo un solo techo, con
 // sub-pestañas que hospedan los paneles existentes. Cada panel conserva su
@@ -15,6 +18,7 @@ const SUBS: { id: ProyectosSub; label: string }[] = [
 ];
 
 export function ProyectosPanel({ sub }: { sub: ProyectosSub }) {
+  const [config, setConfig] = useState(false);
   return (
     <div>
       <h1
@@ -24,7 +28,7 @@ export function ProyectosPanel({ sub }: { sub: ProyectosSub }) {
         Proyectos
       </h1>
 
-      <div class="mt-4 flex flex-wrap gap-2">
+      <div class="mt-4 flex flex-wrap items-center gap-2">
         {SUBS.map((s) => (
           <button
             key={s.id}
@@ -35,6 +39,17 @@ export function ProyectosPanel({ sub }: { sub: ProyectosSub }) {
             {s.label}
           </button>
         ))}
+        {sub === 'impresora' && (
+          <button
+            type="button"
+            title="Configuración de Impresora"
+            aria-label="Configuración de Impresora"
+            class="ml-auto text-[var(--text-faint)] hover:text-[var(--text-body)]"
+            onClick={() => setConfig(true)}
+          >
+            <IconAjustes class="size-5" />
+          </button>
+        )}
       </div>
 
       <div class="mt-2">
@@ -43,6 +58,8 @@ export function ProyectosPanel({ sub }: { sub: ProyectosSub }) {
         {sub === 'inventario' && <InventarioPanel />}
         {sub === 'envios' && <EnviosPanel />}
       </div>
+
+      {config && <ConfiguracionImpresora onClose={() => setConfig(false)} />}
     </div>
   );
 }

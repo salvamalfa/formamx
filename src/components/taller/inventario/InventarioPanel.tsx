@@ -5,14 +5,11 @@ import {
   createPieza,
   getBobinas,
   getPiezas,
-  getPricingConfig,
   MATERIAL_BAJO_G,
   patchBobina,
   patchPieza,
-  patchPricingConfig,
   type Bobina,
   type Pieza,
-  type PricingConfig,
 } from '../../../lib/taller';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useSession } from '../hooks/useSession';
@@ -77,13 +74,16 @@ export function InventarioPanel() {
 // ---- Bobinas ---------------------------------------------------------------
 
 // El botón primario del siguiente paso por estado; agotarla siempre es
-// explícito (el worker no auto-agota al llegar a 0 g).
+// explícito (el worker no auto-agota al llegar a 0 g). El texto es un verbo
+// ("Marcar…"), no el nombre del estado destino: si el botón dice lo mismo
+// que el badge al que se convierte, parece que el botón "renombra" el badge
+// en vez de avanzar la bobina.
 const NEXT_STEP_BOBINA: Record<string, { status: string; label: string }> = {
-  nueva: { status: 'en_uso', label: 'En uso' },
-  en_uso: { status: 'agotada', label: 'Agotada' },
+  nueva: { status: 'en_uso', label: 'Marcar en uso' },
+  en_uso: { status: 'agotada', label: 'Marcar agotada' },
 };
 
-const BOBINAS_COLS = '1.5fr 90px 110px 190px 1.2fr';
+const BOBINAS_COLS = '1.5fr 90px 110px 230px 1.2fr';
 
 function Bobinas() {
   const { token } = useSession();
@@ -233,116 +233,7 @@ function Bobinas() {
         </div>
       )}
 
-      <ConfigCostos />
     </>
-  );
-}
-
-// Config de costos de la calculadora de precio (Fase 3e): los valores que
-// antes vivían fijos en el Apps Script de Salva, ahora editables aquí. Cada
-// campo se guarda solo (blur), sin botón único de "guardar todo" — así un
-// cambio no se pierde si se edita otro campo antes de confirmar el primero.
-function ConfigCostos() {
-  const { token } = useSession();
-  const [config, setConfig] = useState<PricingConfig | null>(null);
-  const [guardando, setGuardando] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!token) return;
-    getPricingConfig(token)
-      .then(setConfig)
-      .catch(() => {
-        /* sin config todavía (worker viejo): el formulario no aparece */
-      });
-  }, [token]);
-
-  if (!config) return null;
-
-  const CAMPOS: Array<{
-    key: keyof Omit<PricingConfig, 'updated_at'>;
-    label: string;
-    unidad: string;
-    // Los montos de dinero se muestran/editan en pesos; se guardan en centavos.
-    pesos?: boolean;
-  }> = [
-    { key: 'costo_kwh_mxn', label: 'Costo kWh', unidad: '$/kWh', pesos: true },
-    { key: 'consumo_w', label: 'Consumo de la impresora', unidad: 'W' },
-    { key: 'costo_hora_mano_obra_mxn', label: 'Mano de obra', unidad: '$/h', pesos: true },
-    { key: 'minutos_mano_obra_default', label: 'Mano de obra por pieza', unidad: 'min' },
-    { key: 'precio_impresora_mxn', label: 'Costo de la impresora', unidad: '$', pesos: true },
-    { key: 'vida_util_horas_estimada', label: 'Vida útil estimada', unidad: 'h' },
-    { key: 'rep_percent', label: 'Mantenimiento/reparación', unidad: '%' },
-    { key: 'margen_default_pct', label: 'Margen sobre costo', unidad: '%' },
-  ];
-
-  async function guardar(key: keyof Omit<PricingConfig, 'updated_at'>, valorMostrado: number, pesos?: boolean) {
-    if (!token || !Number.isFinite(valorMostrado) || valorMostrado < 0) return;
-    const valor = Math.round(pesos ? valorMostrado * 100 : valorMostrado);
-    setGuardando(key);
-    try {
-      const actualizado = await patchPricingConfig(token, { [key]: valor });
-      setConfig(actualizado);
-    } catch {
-      /* el campo vuelve a su valor guardado en el próximo render */
-    } finally {
-      setGuardando(null);
-    }
-  }
-
-  return (
-    <div class={`${FORM_CARD} mt-4`}>
-      <h3 class="m-0 mb-1 text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-        Costos de la calculadora
-      </h3>
-      <p class="m-0 mb-3 text-[12px] text-[var(--text-muted)]">
-        Usados para el costo/precio automático de piezas de clientes (desglose "›" en Impresora).
-      </p>
-      <div class="grid gap-3 sm:grid-cols-2">
-        {CAMPOS.map(({ key, label, unidad, pesos }) => (
-          <CampoCosto
-            key={key}
-            label={label}
-            unidad={unidad}
-            valor={pesos ? config[key] / 100 : config[key]}
-            guardando={guardando === key}
-            onGuardar={(v) => void guardar(key, v, pesos)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CampoCosto({
-  label,
-  unidad,
-  valor,
-  guardando,
-  onGuardar,
-}: {
-  label: string;
-  unidad: string;
-  valor: number;
-  guardando: boolean;
-  onGuardar: (v: number) => void;
-}) {
-  const [texto, setTexto] = useState(String(valor));
-  return (
-    <label class="flex flex-col gap-1">
-      <span class="text-[12px] text-[var(--text-muted)]">{label}</span>
-      <span class="flex items-center gap-1.5">
-        <input
-          type="number"
-          min="0"
-          class="input-brand w-24"
-          value={texto}
-          disabled={guardando}
-          onInput={(e) => setTexto((e.target as HTMLInputElement).value)}
-          onBlur={() => onGuardar(Number(texto))}
-        />
-        <span class="text-[11px] text-[var(--text-faint)]">{unidad}</span>
-      </span>
-    </label>
   );
 }
 
@@ -377,41 +268,47 @@ function BobinaRow({
         {bobina.material}
       </span>
       <span class="truncate text-sm text-[var(--text-muted)]">{bobina.brand ?? '—'}</span>
-      <span class="flex flex-wrap items-center gap-2">
+      <span class="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
         <input
           type="number"
-          class="input-brand w-20"
+          class="w-16 shrink-0 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-sm"
           aria-label="Peso restante en gramos"
           min="0"
           step="1"
           value={peso}
           onInput={(e) => setPeso((e.target as HTMLInputElement).value)}
         />
-        <span class="text-[11px] text-[var(--text-faint)]">
-          / {bobina.weight_g} g
-        </span>
+        <span class="shrink-0 text-[11px] text-[var(--text-faint)]">/ {bobina.weight_g} g</span>
         <button
           type="button"
-          class="btn btn-ghost-claro btn-sm disabled:cursor-default disabled:opacity-60"
+          class="btn btn-ghost-claro btn-sm shrink-0 disabled:cursor-default disabled:opacity-60"
           disabled={!pesoValido || pesoNum === bobina.weight_left_g}
           onClick={() => pesoValido && onGuardarPeso(pesoNum)}
         >
           Guardar
         </button>
       </span>
-      <span class="flex flex-wrap items-center justify-end gap-2">
+      <span class="flex flex-wrap items-center justify-end gap-1.5">
         {bajo && <BadgeBajo />}
-        <span class="meta-caps text-[var(--text-muted)]">
+        <span class="meta-caps shrink-0 text-[var(--text-muted)]">
           {BOBINA_STATUS_LABEL[bobina.status] ?? bobina.status}
         </span>
         {siguiente && (
-          <button type="button" class="btn btn-primary btn-sm" onClick={() => onAvanzar(siguiente.status)}>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm shrink-0"
+            onClick={() => onAvanzar(siguiente.status)}
+          >
             {siguiente.label}
           </button>
         )}
         {bobina.status === 'nueva' && (
-          <button type="button" class="btn btn-ghost-claro btn-sm" onClick={() => onAvanzar('agotada')}>
-            Agotada
+          <button
+            type="button"
+            class="btn btn-ghost-claro btn-sm shrink-0"
+            onClick={() => onAvanzar('agotada')}
+          >
+            Marcar agotada
           </button>
         )}
       </span>
@@ -464,7 +361,7 @@ function BobinaCard({
       <div class="mt-1 flex flex-wrap items-center gap-2">
         <input
           type="number"
-          class="input-brand w-28"
+          class="w-20 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1 text-sm"
           aria-label="Peso restante en gramos"
           min="0"
           step="1"
@@ -486,7 +383,7 @@ function BobinaCard({
         )}
         {bobina.status === 'nueva' && (
           <button type="button" class="btn btn-ghost" onClick={() => onAvanzar('agotada')}>
-            Agotada
+            Marcar agotada
           </button>
         )}
       </div>
@@ -573,24 +470,36 @@ function NuevaBobina({
           value={marca}
           onInput={(e) => setMarca((e.target as HTMLInputElement).value)}
         />
-        <input
-          type="number"
-          class="input-brand"
-          placeholder="Peso en gramos"
-          aria-label="Peso en gramos"
-          min="1"
-          step="1"
-          value={pesoG}
-          onInput={(e) => setPesoG((e.target as HTMLInputElement).value)}
-        />
-        <input
-          type="number"
-          class="input-brand"
-          placeholder="Costo en pesos (opcional)"
-          min="0"
-          value={costo}
-          onInput={(e) => setCosto((e.target as HTMLInputElement).value)}
-        />
+        <label class="flex flex-col gap-1">
+          <span class="text-[12px] text-[var(--text-muted)]">Peso de la bobina</span>
+          <span class="flex items-center gap-1.5">
+            <input
+              type="number"
+              class="input-brand"
+              aria-label="Peso en gramos"
+              min="1"
+              step="1"
+              value={pesoG}
+              onInput={(e) => setPesoG((e.target as HTMLInputElement).value)}
+            />
+            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">g</span>
+          </span>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-[12px] text-[var(--text-muted)]">Costo (opcional)</span>
+          <span class="flex items-center gap-1.5">
+            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">$</span>
+            <input
+              type="number"
+              class="input-brand"
+              aria-label="Costo en pesos"
+              min="0"
+              value={costo}
+              onInput={(e) => setCosto((e.target as HTMLInputElement).value)}
+            />
+            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">MXN</span>
+          </span>
+        </label>
         <div class="flex flex-wrap items-center gap-3">
           <button
             type="button"
