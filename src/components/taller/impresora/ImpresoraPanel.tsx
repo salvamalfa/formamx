@@ -262,12 +262,20 @@ function BobinasAms({
           const swatch = hex ?? (catalogId ? colorSwatch(catalogId) : 'transparent');
           const pct = empty ? null : getPorcentaje(spool);
           const bajo = pct != null && pct < 20;
-          // Candidatas: bobinas vivas del mismo material (o cualquiera si la
-          // ranura no reporta material todavía). No se filtra por color: el
-          // AMS a veces reporta un hex que no calza exacto con la bobina real.
-          const candidatas = bobinas.filter(
-            (b) => b.status !== 'agotada' && (!spool?.material || b.material === spool.material),
-          );
+          // Candidatas: TODAS las bobinas vivas, con las del mismo material
+          // primero — pero nunca se esconden las demás. Filtrar en vez de
+          // ordenar dejaba la ranura sin ninguna opción vinculable con solo
+          // que el material no calzara exacto (mayúsculas, "PLA" vs "PLA+",
+          // etc.), lo que se veía igual que un bug ("no puedo vincular").
+          // El color tampoco filtra: el AMS a veces reporta un hex que no
+          // calza exacto con la bobina real.
+          const candidatas = [...bobinas]
+            .filter((b) => b.status !== 'agotada')
+            .sort((a, b) => {
+              const am = spool?.material && a.material === spool.material ? 0 : 1;
+              const bm = spool?.material && b.material === spool.material ? 0 : 1;
+              return am - bm;
+            });
           return (
             <div key={slot}>
               <div class="mb-2 flex items-center gap-2">
@@ -301,21 +309,24 @@ function BobinasAms({
                 )}
               </div>
               {!empty && (
-                <select
-                  class="mt-1.5 w-full rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-[11px] text-[var(--text-muted)]"
-                  value={spool?.bobina_id ?? ''}
-                  onChange={(e) => {
-                    const v = (e.currentTarget as HTMLSelectElement).value;
-                    void onVincular(slot, v || null);
-                  }}
-                >
-                  <option value="">Sin bobina vinculada</option>
-                  {candidatas.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {colorLabel(b.color_id)} · {b.material} · {b.weight_left_g} g
-                    </option>
-                  ))}
-                </select>
+                <label class="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--text-faint)]">
+                  <span class="shrink-0">Bobina del almacén:</span>
+                  <select
+                    class="w-full rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-[11px] text-[var(--text-muted)]"
+                    value={spool?.bobina_id ?? ''}
+                    onChange={(e) => {
+                      const v = (e.currentTarget as HTMLSelectElement).value;
+                      void onVincular(slot, v || null);
+                    }}
+                  >
+                    <option value="">Sin vincular</option>
+                    {candidatas.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {colorLabel(b.color_id)} · {b.material} · {b.weight_left_g} g
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
             </div>
           );

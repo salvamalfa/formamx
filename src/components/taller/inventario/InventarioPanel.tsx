@@ -77,13 +77,16 @@ export function InventarioPanel() {
 // ---- Bobinas ---------------------------------------------------------------
 
 // El botón primario del siguiente paso por estado; agotarla siempre es
-// explícito (el worker no auto-agota al llegar a 0 g).
+// explícito (el worker no auto-agota al llegar a 0 g). El texto es un verbo
+// ("Marcar…"), no el nombre del estado destino: si el botón dice lo mismo
+// que el badge al que se convierte, parece que el botón "renombra" el badge
+// en vez de avanzar la bobina.
 const NEXT_STEP_BOBINA: Record<string, { status: string; label: string }> = {
-  nueva: { status: 'en_uso', label: 'En uso' },
-  en_uso: { status: 'agotada', label: 'Agotada' },
+  nueva: { status: 'en_uso', label: 'Marcar en uso' },
+  en_uso: { status: 'agotada', label: 'Marcar agotada' },
 };
 
-const BOBINAS_COLS = '1.5fr 90px 110px 190px 1.2fr';
+const BOBINAS_COLS = '1.5fr 90px 110px 230px 1.2fr';
 
 function Bobinas() {
   const { token } = useSession();
@@ -334,7 +337,7 @@ function CampoCosto({
         <input
           type="number"
           min="0"
-          class="input-brand w-24"
+          class="w-24 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1.5 text-sm disabled:opacity-60"
           value={texto}
           disabled={guardando}
           onInput={(e) => setTexto((e.target as HTMLInputElement).value)}
@@ -377,41 +380,47 @@ function BobinaRow({
         {bobina.material}
       </span>
       <span class="truncate text-sm text-[var(--text-muted)]">{bobina.brand ?? '—'}</span>
-      <span class="flex flex-wrap items-center gap-2">
+      <span class="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
         <input
           type="number"
-          class="input-brand w-20"
+          class="w-16 shrink-0 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-sm"
           aria-label="Peso restante en gramos"
           min="0"
           step="1"
           value={peso}
           onInput={(e) => setPeso((e.target as HTMLInputElement).value)}
         />
-        <span class="text-[11px] text-[var(--text-faint)]">
-          / {bobina.weight_g} g
-        </span>
+        <span class="shrink-0 text-[11px] text-[var(--text-faint)]">/ {bobina.weight_g} g</span>
         <button
           type="button"
-          class="btn btn-ghost-claro btn-sm disabled:cursor-default disabled:opacity-60"
+          class="btn btn-ghost-claro btn-sm shrink-0 disabled:cursor-default disabled:opacity-60"
           disabled={!pesoValido || pesoNum === bobina.weight_left_g}
           onClick={() => pesoValido && onGuardarPeso(pesoNum)}
         >
           Guardar
         </button>
       </span>
-      <span class="flex flex-wrap items-center justify-end gap-2">
+      <span class="flex flex-nowrap items-center justify-end gap-1.5 whitespace-nowrap">
         {bajo && <BadgeBajo />}
-        <span class="meta-caps text-[var(--text-muted)]">
+        <span class="meta-caps shrink-0 text-[var(--text-muted)]">
           {BOBINA_STATUS_LABEL[bobina.status] ?? bobina.status}
         </span>
         {siguiente && (
-          <button type="button" class="btn btn-primary btn-sm" onClick={() => onAvanzar(siguiente.status)}>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm shrink-0"
+            onClick={() => onAvanzar(siguiente.status)}
+          >
             {siguiente.label}
           </button>
         )}
         {bobina.status === 'nueva' && (
-          <button type="button" class="btn btn-ghost-claro btn-sm" onClick={() => onAvanzar('agotada')}>
-            Agotada
+          <button
+            type="button"
+            class="btn btn-ghost-claro btn-sm shrink-0"
+            onClick={() => onAvanzar('agotada')}
+          >
+            Marcar agotada
           </button>
         )}
       </span>
@@ -464,7 +473,7 @@ function BobinaCard({
       <div class="mt-1 flex flex-wrap items-center gap-2">
         <input
           type="number"
-          class="input-brand w-28"
+          class="w-20 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1 text-sm"
           aria-label="Peso restante en gramos"
           min="0"
           step="1"
@@ -486,7 +495,7 @@ function BobinaCard({
         )}
         {bobina.status === 'nueva' && (
           <button type="button" class="btn btn-ghost" onClick={() => onAvanzar('agotada')}>
-            Agotada
+            Marcar agotada
           </button>
         )}
       </div>
@@ -573,24 +582,36 @@ function NuevaBobina({
           value={marca}
           onInput={(e) => setMarca((e.target as HTMLInputElement).value)}
         />
-        <input
-          type="number"
-          class="input-brand"
-          placeholder="Peso en gramos"
-          aria-label="Peso en gramos"
-          min="1"
-          step="1"
-          value={pesoG}
-          onInput={(e) => setPesoG((e.target as HTMLInputElement).value)}
-        />
-        <input
-          type="number"
-          class="input-brand"
-          placeholder="Costo en pesos (opcional)"
-          min="0"
-          value={costo}
-          onInput={(e) => setCosto((e.target as HTMLInputElement).value)}
-        />
+        <label class="flex flex-col gap-1">
+          <span class="text-[12px] text-[var(--text-muted)]">Peso de la bobina</span>
+          <span class="flex items-center gap-1.5">
+            <input
+              type="number"
+              class="input-brand"
+              aria-label="Peso en gramos"
+              min="1"
+              step="1"
+              value={pesoG}
+              onInput={(e) => setPesoG((e.target as HTMLInputElement).value)}
+            />
+            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">g</span>
+          </span>
+        </label>
+        <label class="flex flex-col gap-1">
+          <span class="text-[12px] text-[var(--text-muted)]">Costo (opcional)</span>
+          <span class="flex items-center gap-1.5">
+            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">$</span>
+            <input
+              type="number"
+              class="input-brand"
+              aria-label="Costo en pesos"
+              min="0"
+              value={costo}
+              onInput={(e) => setCosto((e.target as HTMLInputElement).value)}
+            />
+            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">MXN</span>
+          </span>
+        </label>
         <div class="flex flex-wrap items-center gap-3">
           <button
             type="button"
