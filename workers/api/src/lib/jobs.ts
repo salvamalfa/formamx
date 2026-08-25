@@ -11,6 +11,7 @@ export interface PrintJobRow {
   progress_pct: number | null;
   message: string | null;
   claimed_at: string | null;
+  printing_started_at: string | null;
   created_at: string;
   updated_at: string;
 }

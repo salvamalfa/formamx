@@ -171,6 +171,29 @@ customPrints.post('/:id/rebanar', async (c) => {
   return c.json(shapeCustomPrint(updated));
 });
 
+// Sobrescribe el precio sugerido de una pieza (desglose "›" en /taller).
+// `price_override_mxn: null` limpia la sobrescritura y vuelve a mostrar el
+// price_mxn calculado. No toca cost_mxn: el costo es un hecho (lo que costó
+// producirla), el override es una decisión de negocio sobre el precio.
+customPrints.patch('/:id/precio', async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req
+    .json<{ price_override_mxn?: number | null }>()
+    .catch(() => ({}) as { price_override_mxn?: number | null });
+  const value = body.price_override_mxn ?? null;
+  if (value !== null && (!Number.isInteger(value) || value < 0)) {
+    return c.json({ error: 'precio_invalido' }, 400);
+  }
+
+  const updated = await c.env.DB.prepare(
+    'UPDATE custom_prints SET price_override_mxn = ? WHERE id = ? RETURNING *',
+  )
+    .bind(value, id)
+    .first<CustomPrintRow>();
+  if (!updated) return c.json({ error: 'no_existe' }, 404);
+  return c.json(shapeCustomPrint(updated));
+});
+
 customPrints.post('/:id/cancelar', async (c) => {
   const id = c.req.param('id');
   const row = await c.env.DB.prepare('SELECT * FROM custom_prints WHERE id = ?')

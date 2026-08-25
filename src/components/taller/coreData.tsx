@@ -6,6 +6,7 @@ import {
   getOrders,
   getPrinter,
   getSpools,
+  linkSpoolBobina,
   patchOrder,
   requeueJob,
   type Order,
@@ -29,6 +30,7 @@ export interface TallerCore {
   dispatch(order: Order): Promise<void>;
   retry(job: PrintJob): Promise<void>;
   bedCleared(): Promise<void>;
+  linkBobina(slot: number, bobinaId: string | null): Promise<void>;
 }
 
 const Ctx = createContext<TallerCore | null>(null);
@@ -134,6 +136,21 @@ export function TallerCoreProvider({
     }
   }
 
+  // Vincula (o desvincula) una ranura del AMS a una bobina del almacén
+  // (0019). Optimista en bobina_id; el peso real llega con el próximo
+  // refresco periódico (30 s) — vale la pena no bloquear el clic por eso.
+  async function linkBobina(slot: number, bobinaId: string | null) {
+    const prev = spools;
+    setSpools((ss) => ss.map((s) => (s.slot === slot ? { ...s, bobina_id: bobinaId } : s)));
+    try {
+      await linkSpoolBobina(token, slot, bobinaId);
+      void load();
+    } catch {
+      setSpools(prev);
+      setError('No se pudo vincular la bobina.');
+    }
+  }
+
   const core: TallerCore = {
     orders,
     spools,
@@ -145,6 +162,7 @@ export function TallerCoreProvider({
     dispatch,
     retry,
     bedCleared,
+    linkBobina,
   };
 
   return <Ctx.Provider value={core}>{children}</Ctx.Provider>;

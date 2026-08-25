@@ -100,7 +100,12 @@ export function ImpresoraPanel() {
           <TrabajoActual actual={actual} amsSyncedAt={core.amsSyncedAt} />
           <EnCola jobs={enCola} />
         </div>
-        <BobinasAms spools={core.spools} bobinas={bobinas} amsSyncedAt={core.amsSyncedAt} />
+        <BobinasAms
+          spools={core.spools}
+          bobinas={bobinas}
+          amsSyncedAt={core.amsSyncedAt}
+          onVincular={core.linkBobina}
+        />
       </div>
 
       <PiezasClientes spools={core.spools} />
@@ -208,29 +213,24 @@ function EnCola({ jobs }: { jobs: QueueJob[] }) {
   );
 }
 
-// Card "Bobinas AMS": una fila por ranura física (0-3), con la barra de
-// % restante calculada por heurística (ver getPorcentaje) — nunca inventa un
-// número sin una bobina `en_uso` que haga match.
-function getPorcentaje(
-  spool: Spool | undefined,
-  bobinas: Bobina[],
-): number | null {
-  if (!spool?.color_id) return null;
-  const match = bobinas.find(
-    (b) => b.status === 'en_uso' && b.color_id === spool.color_id && b.material === spool.material,
-  );
-  if (!match || match.weight_g <= 0) return null;
-  return Math.round((match.weight_left_g / match.weight_g) * 100);
+// Card "Bobinas AMS": una fila por ranura física (0-3). El % restante sale
+// directo de la bobina vinculada a la ranura (spool_slots.bobina_id, 0019);
+// sin vincular, se muestra "sin datos" — nunca se adivina por color.
+function getPorcentaje(spool: Spool | undefined): number | null {
+  if (!spool?.bobina_id || !spool.bobina_weight_g || spool.bobina_weight_g <= 0) return null;
+  return Math.round(((spool.bobina_weight_left_g ?? 0) / spool.bobina_weight_g) * 100);
 }
 
 function BobinasAms({
   spools,
   bobinas,
   amsSyncedAt,
+  onVincular,
 }: {
   spools: Spool[];
   bobinas: Bobina[];
   amsSyncedAt: string | null;
+  onVincular: (slot: number, bobinaId: string | null) => Promise<void>;
 }) {
   return (
     <div class="rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]">
@@ -260,8 +260,14 @@ function BobinasAms({
           const empty = !hex && !catalogId;
           const nombre = empty ? 'vacía' : catalogId ? colorLabel(catalogId) : nearestColorName(hex!);
           const swatch = hex ?? (catalogId ? colorSwatch(catalogId) : 'transparent');
-          const pct = empty ? null : getPorcentaje(spool, bobinas);
+          const pct = empty ? null : getPorcentaje(spool);
           const bajo = pct != null && pct < 20;
+          // Candidatas: bobinas vivas del mismo material (o cualquiera si la
+          // ranura no reporta material todavía). No se filtra por color: el
+          // AMS a veces reporta un hex que no calza exacto con la bobina real.
+          const candidatas = bobinas.filter(
+            (b) => b.status !== 'agotada' && (!spool?.material || b.material === spool.material),
+          );
           return (
             <div key={slot}>
               <div class="mb-2 flex items-center gap-2">
@@ -294,6 +300,23 @@ function BobinasAms({
                   />
                 )}
               </div>
+              {!empty && (
+                <select
+                  class="mt-1.5 w-full rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-[11px] text-[var(--text-muted)]"
+                  value={spool?.bobina_id ?? ''}
+                  onChange={(e) => {
+                    const v = (e.currentTarget as HTMLSelectElement).value;
+                    void onVincular(slot, v || null);
+                  }}
+                >
+                  <option value="">Sin bobina vinculada</option>
+                  {candidatas.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {colorLabel(b.color_id)} · {b.material} · {b.weight_left_g} g
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           );
         })}

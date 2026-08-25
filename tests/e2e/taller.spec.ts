@@ -144,6 +144,18 @@ const PIEZA_LISTA = {
   status: 'listo',
   est_seconds: 12_240,
   est_grams: 87.5,
+  cost_mxn: 5000,
+  price_mxn: 20000,
+  price_override_mxn: null,
+  cost_breakdown: {
+    material_mxn: 2188,
+    luz_mxn: 34,
+    mano_obra_mxn: 3333,
+    amortizacion_mxn: 445,
+    total_mxn: 5000,
+    material_source: 'bobina',
+    amortizada: false,
+  },
   preview: false,
   message: null,
   print_job_id: null,
@@ -533,6 +545,29 @@ test('la sub-pestaña Impresora muestra el trabajo en curso, la cola y el % de b
       },
     }),
   );
+  // Registrado DESPUÉS de mockApi (gana): el % del AMS ya no es heurística
+  // por color+material, sale de spool_slots.bobina_id vinculado a mano
+  // (0019) — aquí simula que el slot 0 ya está vinculado a bob_ams.
+  await page.route('**/api/admin/spools', (route) =>
+    route.fulfill({
+      json: {
+        slots: [
+          {
+            slot: 0,
+            color_id: 'azul',
+            material: 'PLA',
+            color_hex: '#F4F4F2',
+            bobina_id: 'bob_ams',
+            bobina_weight_g: 1000,
+            bobina_weight_left_g: 120,
+          },
+          { slot: 1, color_id: null, material: null, color_hex: null, bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+          { slot: 2, color_id: null, material: null, color_hex: null, bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+          { slot: 3, color_id: null, material: null, color_hex: null, bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+        ],
+      },
+    }),
+  );
   await page.goto('/taller#impresora');
   await page.getByPlaceholder('token').fill('t');
   await page.getByRole('button', { name: 'Entrar' }).click();
@@ -546,7 +581,7 @@ test('la sub-pestaña Impresora muestra el trabajo en curso, la cola y el % de b
   await expect(main.getByText('Tapa · queued')).toBeVisible();
   // Lo que faltaba: la pieza de cliente también se enlista, con su nombre.
   await expect(main.getByText('soporte-cliente.stl')).toBeVisible();
-  // Bobina en uso con el mismo color+material del slot 0: 120/1000 = 12%, bajo 20%.
+  // Slot 0 vinculado a bob_ams: 120/1000 = 12%, bajo 20%.
   await expect(main.getByText('12%')).toBeVisible();
 });
 
@@ -999,7 +1034,7 @@ test.describe('piezas de clientes', () => {
     await expect(main.getByText('Azul', { exact: true })).toBeVisible();
     await expect(main.getByText('con soportes')).toBeVisible();
     await expect(main.getByText('2.3 MB')).toBeVisible();
-    // Placeholder de costo/precio: falta el modelo de costos real.
+    // Costo/precio calculados por pricing.ts al rebanar (Fase 3e).
     await expect(main.getByText('$50 MXN')).toBeVisible();
     await expect(main.getByText('$200 MXN')).toBeVisible();
   });

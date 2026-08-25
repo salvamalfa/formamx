@@ -38,6 +38,13 @@ export interface CustomPrint {
   status: CustomPrintStatus;
   est_seconds: number | null;
   est_grams: number | null;
+  // Costo/precio calculados al rebanar (Fase 3e); NULL hasta el primer
+  // rebanado exitoso. price_override_mxn manda sobre price_mxn cuando Salva
+  // edita el precio a mano desde el desglose.
+  cost_mxn: number | null;
+  price_mxn: number | null;
+  price_override_mxn: number | null;
+  cost_breakdown: CostBreakdown | null;
   preview: boolean;
   message: string | null;
   print_job_id: string | null;
@@ -49,6 +56,16 @@ export interface CustomPrint {
   job_status: 'queued' | 'claimed' | 'printing' | 'done' | 'failed' | 'canceled' | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CostBreakdown {
+  material_mxn: number;
+  luz_mxn: number;
+  mano_obra_mxn: number;
+  amortizacion_mxn: number;
+  total_mxn: number;
+  material_source: 'bobina' | 'fallback';
+  amortizada: boolean;
 }
 
 export interface OpcionesRebanado {
@@ -69,6 +86,10 @@ const normalize = (p: CustomPrint): CustomPrint => ({
   orient: p.orient ?? null,
   est_seconds: p.est_seconds ?? null,
   est_grams: p.est_grams ?? null,
+  cost_mxn: p.cost_mxn ?? null,
+  price_mxn: p.price_mxn ?? null,
+  price_override_mxn: p.price_override_mxn ?? null,
+  cost_breakdown: p.cost_breakdown ?? null,
   preview: p.preview ?? false,
   message: p.message ?? null,
   print_job_id: p.print_job_id ?? null,
@@ -98,6 +119,14 @@ export const imprimirPrint = (token: string, id: string) =>
 
 export const cancelarPrint = (token: string, id: string) =>
   call<CustomPrint>(token, `/custom-prints/${id}/cancelar`, { method: 'POST' }).then(normalize);
+
+// Sobrescribe el precio de la pieza (desglose "›" en la tarjeta).
+// `undefined`/`null` limpia la sobrescritura y vuelve a mostrar price_mxn.
+export const patchPrintPrecio = (token: string, id: string, price_override_mxn: number | null) =>
+  call<CustomPrint>(token, `/custom-prints/${id}/precio`, {
+    method: 'PATCH',
+    body: JSON.stringify({ price_override_mxn }),
+  }).then(normalize);
 
 export const borrarPrint = (token: string, id: string) =>
   call<{ ok: boolean }>(token, `/custom-prints/${id}`, { method: 'DELETE' });
