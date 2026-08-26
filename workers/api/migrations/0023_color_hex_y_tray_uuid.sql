@@ -1,3 +1,4 @@
+-- Migration number: 0023 	 tono real de la bobina + identidad RFID de la ranura
 -- Tono real de la bobina y identidad física de la ranura del AMS.
 --
 -- Hasta aquí una bobina del almacén solo guardaba un color_id del catálogo de

@@ -122,6 +122,42 @@ test('normalizeUuid descarta lo que no identifica a nadie', () => {
   assert.equal(normalizeUuid('  AAAA1111  '), 'aaaa1111');
 });
 
+test('la primera lectura con RFID no suelta vínculos que no se movieron', () => {
+  // Hallazgo de Codex: al actualizar el agente, las ranuras guardadas traen
+  // tray_uuid NULL y el reporte ya trae uuid. Con dos bobinas idénticas eso
+  // hacía que ninguna pasara por "no cambió" y ambas se soltaran por
+  // ambigüedad, sin que nadie las hubiera tocado.
+  const previas = [
+    previa(0, 'PLA', '#FFFFFF', 'bob_a'),
+    previa(1, 'PLA', '#FFFFFF', 'bob_b'),
+    previa(2, null, null, null),
+    previa(3, null, null, null),
+  ];
+  const leidas = [
+    leida(0, 'PLA', '#FFFFFF', 'aaaa1111'),
+    leida(1, 'PLA', '#FFFFFF', 'bbbb2222'),
+    vacia(2),
+    vacia(3),
+  ];
+  const r = remapBobinas(previas, leidas);
+  assert.equal(r.get(0), 'bob_a');
+  assert.equal(r.get(1), 'bob_b');
+});
+
+test('perder el RFID (ilegible o agente viejo) tampoco suelta el vínculo', () => {
+  const previas = [previa(0, 'PLA', '#FFFFFF', 'bob_a', 'aaaa1111')];
+  const leidas = [leida(0, 'PLA', '#FFFFFF', null)];
+  assert.equal(remapBobinas(previas, leidas).get(0), 'bob_a');
+});
+
+test('dos uuid distintos en la misma ranura SÍ sueltan el vínculo', () => {
+  // Misma ranura, mismo material y tono, pero otra bobina física: cambiaron
+  // una bobina Bambu por otra igualita. El RFID es lo único que lo delata.
+  const previas = [previa(0, 'PLA', '#FFFFFF', 'bob_a', 'aaaa1111')];
+  const leidas = [leida(0, 'PLA', '#FFFFFF', 'cccc3333')];
+  assert.equal(remapBobinas(previas, leidas).get(0), null);
+});
+
 test('un uuid de ceros no empareja nada: cae a la firma', () => {
   const ceros = '00000000000000000000000000000000';
   const previas = [

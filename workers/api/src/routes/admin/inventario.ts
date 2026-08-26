@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../../env';
-import { familiaDeHex, normalizeHex } from '../../lib/catalog';
+import { familiaDeBobina, normalizeHex } from '../../lib/catalog';
 import {
   BOBINA_STATUSES,
   canTransitionBobina,
@@ -51,13 +51,17 @@ inventario.post('/bobinas', async (c) => {
     return c.json({ error: 'peso_invalido' }, 400);
   }
 
-  // El hex manda: si viene un tono y no un color_id, la familia se deriva del
-  // tono en vez de obligar a Salva a clasificarlo a mano (y a equivocarse).
+  // El TONO manda sobre la familia, siempre. El formulario manda las dos cosas
+  // y pueden discrepar: eliges "Blanco" y luego arrastras el selector de tono
+  // hasta un azul. Guardar el color_id tal cual dejaba una bobina etiquetada
+  // "Blanco" que el desplegable del AMS agrupaba con los azules, porque
+  // familiaDeBobina lee el hex primero. Se deriva la familia con esa misma
+  // función para que lo guardado y lo que empareja no puedan separarse.
   const hex = body.color_hex === undefined ? null : normalizeHex(body.color_hex);
   if (body.color_hex !== undefined && hex === null) {
     return c.json({ error: 'color_hex_invalido' }, 400);
   }
-  const colorId = body.color_id ?? familiaDeHex(hex);
+  const colorId = familiaDeBobina({ color_hex: hex, color_id: body.color_id ?? null });
 
   const row = await c.env.DB.prepare(
     `INSERT INTO bobinas (id, color_id, color_hex, material, brand, weight_g, weight_left_g, cost_mxn)
@@ -134,12 +138,10 @@ inventario.patch('/bobinas/:id', async (c) => {
     // en dos requests dejaría un estado intermedio con familia y tono en
     // desacuerdo.
     const nuevoHex = body.color_hex !== undefined ? hex : row.color_hex;
-    const nuevoColorId =
-      body.color_id !== undefined
-        ? body.color_id
-        : body.color_hex !== undefined
-          ? (familiaDeHex(nuevoHex) ?? row.color_id)
-          : row.color_id;
+    const nuevoColorId = familiaDeBobina({
+      color_hex: nuevoHex,
+      color_id: body.color_id !== undefined ? body.color_id : row.color_id,
+    });
     const updated = await c.env.DB.prepare(
       `UPDATE bobinas SET weight_left_g = COALESCE(?, weight_left_g),
          color_id = ?, color_hex = ?, updated_at = datetime('now')

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "preact/hooks";
-import { COLORS, DEFAULTS, MODELS } from "../../../config/lamps";
+import { useEffect, useState } from 'preact/hooks';
+import { COLORS, DEFAULTS, MODELS } from '../../../config/lamps';
 import {
   createBobina,
   createPieza,
@@ -10,24 +10,24 @@ import {
   patchPieza,
   type Bobina,
   type Pieza,
-} from "../../../lib/taller";
-import { useMediaQuery } from "../hooks/useMediaQuery";
-import { useSession } from "../hooks/useSession";
-import { colorLabel, colorSwatch, SPOOL_COLORS } from "../ui/colores";
-import { formatSync } from "../ui/format";
+} from '../../../lib/taller';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { useSession } from '../hooks/useSession';
+import { colorLabel, colorSwatch, familiaDeHex, SPOOL_COLORS } from '../ui/colores';
+import { formatSync } from '../ui/format';
 import {
   BOBINA_STATUS_LABEL,
   MATERIALS,
   PIEZA_STATUS_LABEL,
   PRODUCT_LABEL,
   QC_LABEL,
-} from "./labels";
+} from './labels';
 
 const FORM_CARD =
-  "rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]";
+  'rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]';
 
 const TABLE_CARD =
-  "rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-2 shadow-[var(--shadow-card)] sm:p-4";
+  'rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-2 shadow-[var(--shadow-card)] sm:p-4';
 
 // Badge pill "bajo": mismo par de tokens en toda la vista Proyectos
 // (inventario aquí, el Resumen futuro lo reusará para su KPI).
@@ -45,31 +45,28 @@ function BadgeBajo() {
 // el error genérico y no rompe nada. El AMS físico vive en Impresora: aquí
 // solo está lo que hay en la repisa.
 export function InventarioPanel() {
-  const [seccion, setSeccion] = useState<"bobinas" | "piezas">("bobinas");
+  const [seccion, setSeccion] = useState<'bobinas' | 'piezas'>('bobinas');
 
   return (
     <section class="mt-12">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2
-          class="m-0 text-lg font-bold"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
+        <h2 class="m-0 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
           Inventario
         </h2>
         <div class="flex gap-2">
-          {(["bobinas", "piezas"] as const).map((s) => (
+          {(['bobinas', 'piezas'] as const).map((s) => (
             <button
               key={s}
               type="button"
-              class={`chip ${seccion === s ? "activo" : ""}`}
+              class={`chip ${seccion === s ? 'activo' : ''}`}
               onClick={() => setSeccion(s)}
             >
-              {s === "bobinas" ? "Bobinas" : "Piezas"}
+              {s === 'bobinas' ? 'Bobinas' : 'Piezas'}
             </button>
           ))}
         </div>
       </div>
-      {seccion === "bobinas" ? <Bobinas /> : <Piezas />}
+      {seccion === 'bobinas' ? <Bobinas /> : <Piezas />}
     </section>
   );
 }
@@ -82,15 +79,15 @@ export function InventarioPanel() {
 // que el badge al que se convierte, parece que el botón "renombra" el badge
 // en vez de avanzar la bobina.
 const NEXT_STEP_BOBINA: Record<string, { status: string; label: string }> = {
-  nueva: { status: "en_uso", label: "Marcar en uso" },
-  en_uso: { status: "agotada", label: "Marcar agotada" },
+  nueva: { status: 'en_uso', label: 'Marcar en uso' },
+  en_uso: { status: 'agotada', label: 'Marcar agotada' },
 };
 
-const BOBINAS_COLS = "1.5fr 90px 110px 230px 1.2fr";
+const BOBINAS_COLS = '1.5fr 90px 110px 230px 1.2fr';
 
 function Bobinas() {
   const { token } = useSession();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   const [bobinas, setBobinas] = useState<Bobina[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +100,7 @@ function Bobinas() {
       setBobinas(await getBobinas(t));
       setError(null);
     } catch {
-      setError("No se pudo cargar. Reintenta.");
+      setError('No se pudo cargar. Reintenta.');
     } finally {
       setLoading(false);
     }
@@ -123,20 +120,18 @@ function Bobinas() {
     const previas = bobinas;
     setAviso(null);
     setBobinas((prev) =>
-      status === "agotada"
+      status === 'agotada'
         ? prev.filter((b) => b.id !== bobina.id)
         : prev.map((b) => (b.id === bobina.id ? { ...b, status } : b)),
     );
     try {
       const actualizada = await patchBobina(token, bobina.id, { status });
-      if (status !== "agotada") {
-        setBobinas((prev) =>
-          prev.map((b) => (b.id === bobina.id ? actualizada : b)),
-        );
+      if (status !== 'agotada') {
+        setBobinas((prev) => prev.map((b) => (b.id === bobina.id ? actualizada : b)));
       }
     } catch {
       setBobinas(previas);
-      setAviso("No se pudo actualizar la bobina.");
+      setAviso('No se pudo actualizar la bobina.');
     }
   }
 
@@ -145,19 +140,13 @@ function Bobinas() {
     if (!token) return;
     const previas = bobinas;
     setAviso(null);
-    setBobinas((prev) =>
-      prev.map((b) => (b.id === bobina.id ? { ...b, weight_left_g } : b)),
-    );
+    setBobinas((prev) => prev.map((b) => (b.id === bobina.id ? { ...b, weight_left_g } : b)));
     try {
-      const actualizada = await patchBobina(token, bobina.id, {
-        weight_left_g,
-      });
-      setBobinas((prev) =>
-        prev.map((b) => (b.id === bobina.id ? actualizada : b)),
-      );
+      const actualizada = await patchBobina(token, bobina.id, { weight_left_g });
+      setBobinas((prev) => prev.map((b) => (b.id === bobina.id ? actualizada : b)));
     } catch {
       setBobinas(previas);
-      setAviso("No se pudo guardar el peso.");
+      setAviso('No se pudo guardar el peso.');
     }
   }
 
@@ -165,9 +154,7 @@ function Bobinas() {
     <>
       <div class="mt-3 flex flex-wrap items-baseline justify-between gap-2">
         <p class="meta-caps m-0 text-[var(--text-faint)]">
-          {loading && bobinas.length === 0
-            ? "cargando…"
-            : `${bobinas.length} en el almacén`}
+          {loading && bobinas.length === 0 ? 'cargando…' : `${bobinas.length} en el almacén`}
         </p>
         <div class="flex gap-2">
           <button
@@ -206,8 +193,7 @@ function Bobinas() {
 
       {!loading && !error && bobinas.length === 0 && (
         <p class="mt-4 text-sm text-[var(--text-muted)]">
-          Aún no hay bobinas registradas. Da de alta las que tengas en la
-          repisa.
+          Aún no hay bobinas registradas. Da de alta las que tengas en la repisa.
         </p>
       )}
 
@@ -246,6 +232,7 @@ function Bobinas() {
           </div>
         </div>
       )}
+
     </>
   );
 }
@@ -273,22 +260,14 @@ function BobinaRow({
       <span class="flex min-w-0 items-center gap-2">
         <span
           class="size-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.18)]"
-          style={{
-            background:
-              bobina.color_hex ??
-              (bobina.color_id ? colorSwatch(bobina.color_id) : "#ccc"),
-          }}
+          style={{ background: bobina.color_hex ?? (bobina.color_id ? colorSwatch(bobina.color_id) : '#ccc') }}
         />
-        <span class="truncate text-sm font-semibold">
-          {colorLabel(bobina.color_id)}
-        </span>
+        <span class="truncate text-sm font-semibold">{colorLabel(bobina.color_id)}</span>
       </span>
       <span class="text-[12px] text-[var(--text-muted)]">
         {bobina.material}
       </span>
-      <span class="truncate text-sm text-[var(--text-muted)]">
-        {bobina.brand ?? "—"}
-      </span>
+      <span class="truncate text-sm text-[var(--text-muted)]">{bobina.brand ?? '—'}</span>
       <span class="flex flex-nowrap items-center gap-1.5 whitespace-nowrap">
         <input
           type="number"
@@ -299,9 +278,7 @@ function BobinaRow({
           value={peso}
           onInput={(e) => setPeso((e.target as HTMLInputElement).value)}
         />
-        <span class="shrink-0 text-[11px] text-[var(--text-faint)]">
-          / {bobina.weight_g} g
-        </span>
+        <span class="shrink-0 text-[11px] text-[var(--text-faint)]">/ {bobina.weight_g} g</span>
         <button
           type="button"
           class="btn btn-ghost-claro btn-sm shrink-0 disabled:cursor-default disabled:opacity-60"
@@ -325,11 +302,11 @@ function BobinaRow({
             {siguiente.label}
           </button>
         )}
-        {bobina.status === "nueva" && (
+        {bobina.status === 'nueva' && (
           <button
             type="button"
             class="btn btn-ghost-claro btn-sm shrink-0"
-            onClick={() => onAvanzar("agotada")}
+            onClick={() => onAvanzar('agotada')}
           >
             Marcar agotada
           </button>
@@ -363,11 +340,7 @@ function BobinaCard({
         <div class="flex items-center gap-2">
           <span
             class="size-5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.18)]"
-            style={{
-              background:
-                bobina.color_hex ??
-                (bobina.color_id ? colorSwatch(bobina.color_id) : "#ccc"),
-            }}
+            style={{ background: bobina.color_hex ?? (bobina.color_id ? colorSwatch(bobina.color_id) : '#ccc') }}
           />
           <p class="m-0 text-sm font-semibold">{colorLabel(bobina.color_id)}</p>
         </div>
@@ -379,7 +352,7 @@ function BobinaCard({
         </div>
       </div>
       <p class="meta-caps m-0 text-[var(--text-faint)]">
-        {bobina.brand ? `${bobina.brand} · ` : ""}
+        {bobina.brand ? `${bobina.brand} · ` : ''}
         {bobina.material} · {formatSync(bobina.created_at)}
       </p>
       <p class="m-0 text-sm">
@@ -404,20 +377,12 @@ function BobinaCard({
           Guardar
         </button>
         {siguiente && (
-          <button
-            type="button"
-            class="btn btn-primary"
-            onClick={() => onAvanzar(siguiente.status)}
-          >
+          <button type="button" class="btn btn-primary" onClick={() => onAvanzar(siguiente.status)}>
             {siguiente.label}
           </button>
         )}
-        {bobina.status === "nueva" && (
-          <button
-            type="button"
-            class="btn btn-ghost"
-            onClick={() => onAvanzar("agotada")}
-          >
+        {bobina.status === 'nueva' && (
+          <button type="button" class="btn btn-ghost" onClick={() => onAvanzar('agotada')}>
             Marcar agotada
           </button>
         )}
@@ -434,15 +399,15 @@ function NuevaBobina({
   onCreada: (b: Bobina) => void;
 }) {
   // El color va en dos piezas: la familia (para agrupar y etiquetar) y el tono
-  // exacto (lo que de verdad empareja con lo que reporta el AMS). Elegir la
-  // familia siembra el tono con su swatch, y de ahí Salva puede afinarlo al
-  // color real del filamento que tiene en la mano.
-  const [colorId, setColorId] = useState("");
-  const [colorHex, setColorHex] = useState("");
-  const [material, setMaterial] = useState("PLA");
-  const [marca, setMarca] = useState("");
-  const [pesoG, setPesoG] = useState("1000");
-  const [costo, setCosto] = useState("");
+  // exacto, que es lo que de verdad empareja con lo que reporta el AMS. Elegir
+  // la familia siembra el tono con su swatch, y de ahí se afina al color real
+  // del filamento que Salva tiene en la mano.
+  const [colorId, setColorId] = useState('');
+  const [colorHex, setColorHex] = useState('');
+  const [material, setMaterial] = useState('PLA');
+  const [marca, setMarca] = useState('');
+  const [pesoG, setPesoG] = useState('1000');
+  const [costo, setCosto] = useState('');
   const [creando, setCreando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -468,7 +433,7 @@ function NuevaBobina({
       });
       onCreada(bobina);
     } catch {
-      setAviso("No se pudo registrar la bobina.");
+      setAviso('No se pudo registrar la bobina.');
     } finally {
       setCreando(false);
     }
@@ -486,7 +451,7 @@ function NuevaBobina({
             onChange={(e) => {
               const id = (e.target as HTMLSelectElement).value;
               setColorId(id);
-              setColorHex(id ? colorSwatch(id).toUpperCase() : "");
+              setColorHex(id ? colorSwatch(id).toUpperCase() : '');
             }}
           >
             <option value="">Elige el color</option>
@@ -502,10 +467,16 @@ function NuevaBobina({
             title="Tono exacto del filamento"
             class="size-9 shrink-0 cursor-pointer rounded border border-[var(--border-soft)] bg-[var(--surface-card)] p-0.5 disabled:cursor-default disabled:opacity-50"
             disabled={!colorId}
-            value={colorHex || "#FFFFFF"}
-            onInput={(e) =>
-              setColorHex((e.target as HTMLInputElement).value.toUpperCase())
-            }
+            value={colorHex || '#FFFFFF'}
+            onInput={(e) => {
+              // El tono manda: si Salva lo arrastra hasta otra familia, el
+              // select la sigue. El worker deriva la familia del hex de todas
+              // formas, así que dejarlos discrepar solo mentiría en pantalla.
+              const v = (e.target as HTMLInputElement).value.toUpperCase();
+              setColorHex(v);
+              const familia = familiaDeHex(v);
+              if (familia) setColorId(familia);
+            }}
           />
         </div>
         <input
@@ -529,9 +500,7 @@ function NuevaBobina({
           onInput={(e) => setMarca((e.target as HTMLInputElement).value)}
         />
         <label class="flex flex-col gap-1">
-          <span class="text-[12px] text-[var(--text-muted)]">
-            Peso de la bobina
-          </span>
+          <span class="text-[12px] text-[var(--text-muted)]">Peso de la bobina</span>
           <span class="flex items-center gap-1.5">
             <input
               type="number"
@@ -546,9 +515,7 @@ function NuevaBobina({
           </span>
         </label>
         <label class="flex flex-col gap-1">
-          <span class="text-[12px] text-[var(--text-muted)]">
-            Costo (opcional)
-          </span>
+          <span class="text-[12px] text-[var(--text-muted)]">Costo (opcional)</span>
           <span class="flex items-center gap-1.5">
             <span class="shrink-0 text-[12px] text-[var(--text-faint)]">$</span>
             <input
@@ -559,9 +526,7 @@ function NuevaBobina({
               value={costo}
               onInput={(e) => setCosto((e.target as HTMLInputElement).value)}
             />
-            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">
-              MXN
-            </span>
+            <span class="shrink-0 text-[12px] text-[var(--text-faint)]">MXN</span>
           </span>
         </label>
         <div class="flex flex-wrap items-center gap-3">
@@ -583,27 +548,24 @@ function NuevaBobina({
 // ---- Piezas ----------------------------------------------------------------
 
 // Acciones por estado; vendida y merma sacan la pieza de la lista.
-const PIEZA_ACCIONES: Record<
-  string,
-  { status: string; label: string; primary?: boolean }[]
-> = {
+const PIEZA_ACCIONES: Record<string, { status: string; label: string; primary?: boolean }[]> = {
   en_stock: [
-    { status: "reservada", label: "Reservar", primary: true },
-    { status: "vendida", label: "Vendida" },
-    { status: "merma", label: "Merma" },
+    { status: 'reservada', label: 'Reservar', primary: true },
+    { status: 'vendida', label: 'Vendida' },
+    { status: 'merma', label: 'Merma' },
   ],
   reservada: [
-    { status: "vendida", label: "Vendida", primary: true },
-    { status: "en_stock", label: "A stock" },
-    { status: "merma", label: "Merma" },
+    { status: 'vendida', label: 'Vendida', primary: true },
+    { status: 'en_stock', label: 'A stock' },
+    { status: 'merma', label: 'Merma' },
   ],
 };
 
-const PIEZAS_COLS = "1.6fr 110px 100px 160px 1.3fr";
+const PIEZAS_COLS = '1.6fr 110px 100px 160px 1.3fr';
 
 function Piezas() {
   const { token } = useSession();
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery('(min-width: 768px)');
   const [piezas, setPiezas] = useState<Pieza[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -616,7 +578,7 @@ function Piezas() {
       setPiezas(await getPiezas(t));
       setError(null);
     } catch {
-      setError("No se pudo cargar. Reintenta.");
+      setError('No se pudo cargar. Reintenta.');
     } finally {
       setLoading(false);
     }
@@ -634,7 +596,7 @@ function Piezas() {
   async function avanzar(pieza: Pieza, status: string) {
     if (!token) return;
     const previas = piezas;
-    const sale = status === "vendida" || status === "merma";
+    const sale = status === 'vendida' || status === 'merma';
     setAviso(null);
     setPiezas((prev) =>
       sale
@@ -644,13 +606,11 @@ function Piezas() {
     try {
       const actualizada = await patchPieza(token, pieza.id, { status });
       if (!sale) {
-        setPiezas((prev) =>
-          prev.map((p) => (p.id === pieza.id ? actualizada : p)),
-        );
+        setPiezas((prev) => prev.map((p) => (p.id === pieza.id ? actualizada : p)));
       }
     } catch {
       setPiezas(previas);
-      setAviso("No se pudo actualizar la pieza.");
+      setAviso('No se pudo actualizar la pieza.');
     }
   }
 
@@ -660,18 +620,14 @@ function Piezas() {
     const previas = piezas;
     setAviso(null);
     setPiezas((prev) =>
-      prev.map((p) =>
-        p.id === pieza.id ? { ...p, location: location.trim() || null } : p,
-      ),
+      prev.map((p) => (p.id === pieza.id ? { ...p, location: location.trim() || null } : p)),
     );
     try {
       const actualizada = await patchPieza(token, pieza.id, { location });
-      setPiezas((prev) =>
-        prev.map((p) => (p.id === pieza.id ? actualizada : p)),
-      );
+      setPiezas((prev) => prev.map((p) => (p.id === pieza.id ? actualizada : p)));
     } catch {
       setPiezas(previas);
-      setAviso("No se pudo guardar la ubicación.");
+      setAviso('No se pudo guardar la ubicación.');
     }
   }
 
@@ -679,9 +635,7 @@ function Piezas() {
     <>
       <div class="mt-3 flex flex-wrap items-baseline justify-between gap-2">
         <p class="meta-caps m-0 text-[var(--text-faint)]">
-          {loading && piezas.length === 0
-            ? "cargando…"
-            : `${piezas.length} en el taller`}
+          {loading && piezas.length === 0 ? 'cargando…' : `${piezas.length} en el taller`}
         </p>
         <div class="flex gap-2">
           <button
@@ -745,18 +699,14 @@ function Piezas() {
                   key={p.id}
                   pieza={p}
                   onAvanzar={(status) => void avanzar(p, status)}
-                  onGuardarUbicacion={(location) =>
-                    void guardarUbicacion(p, location)
-                  }
+                  onGuardarUbicacion={(location) => void guardarUbicacion(p, location)}
                 />
               ) : (
                 <PiezaCard
                   key={p.id}
                   pieza={p}
                   onAvanzar={(status) => void avanzar(p, status)}
-                  onGuardarUbicacion={(location) =>
-                    void guardarUbicacion(p, location)
-                  }
+                  onGuardarUbicacion={(location) => void guardarUbicacion(p, location)}
                 />
               ),
             )}
@@ -770,8 +720,7 @@ function Piezas() {
 function describePieza(p: Pieza): string {
   const base = PRODUCT_LABEL[p.product_id] ?? p.product_id;
   if (!p.config) return base;
-  const modelo =
-    MODELS.find((m) => m.id === p.config!.model)?.label ?? p.config.model;
+  const modelo = MODELS.find((m) => m.id === p.config!.model)?.label ?? p.config.model;
   return `${base} ${modelo}`;
 }
 
@@ -784,7 +733,7 @@ function PiezaRow({
   onAvanzar: (status: string) => void;
   onGuardarUbicacion: (location: string) => void;
 }) {
-  const [ubicacion, setUbicacion] = useState(pieza.location ?? "");
+  const [ubicacion, setUbicacion] = useState(pieza.location ?? '');
   const acciones = PIEZA_ACCIONES[pieza.status] ?? [];
 
   return (
@@ -793,13 +742,12 @@ function PiezaRow({
       style={{ gridTemplateColumns: PIEZAS_COLS }}
     >
       <span class="min-w-0">
-        <span class="block truncate text-sm font-semibold">
-          {describePieza(pieza)}
-        </span>
+        <span class="block truncate text-sm font-semibold">{describePieza(pieza)}</span>
         {pieza.config && (
-          <span class="mt-0.5 block truncate text-[11px] text-[var(--text-faint)]">
-            pantalla {colorLabel(pieza.config.pantalla)} · tapa{" "}
-            {colorLabel(pieza.config.tapa)}
+          <span
+            class="mt-0.5 block truncate text-[11px] text-[var(--text-faint)]"
+          >
+            pantalla {colorLabel(pieza.config.pantalla)} · tapa {colorLabel(pieza.config.tapa)}
           </span>
         )}
       </span>
@@ -807,7 +755,7 @@ function PiezaRow({
         {PIEZA_STATUS_LABEL[pieza.status] ?? pieza.status}
       </span>
       <span class="meta-caps text-[var(--text-muted)]">
-        {pieza.qc_status ? (QC_LABEL[pieza.qc_status] ?? pieza.qc_status) : "—"}
+        {pieza.qc_status ? (QC_LABEL[pieza.qc_status] ?? pieza.qc_status) : '—'}
       </span>
       <span class="flex items-center gap-2">
         <input
@@ -821,7 +769,7 @@ function PiezaRow({
         <button
           type="button"
           class="btn btn-ghost-claro btn-sm disabled:cursor-default disabled:opacity-60"
-          disabled={ubicacion.trim() === (pieza.location ?? "")}
+          disabled={ubicacion.trim() === (pieza.location ?? '')}
           onClick={() => onGuardarUbicacion(ubicacion)}
         >
           Guardar
@@ -832,7 +780,7 @@ function PiezaRow({
           <button
             key={a.status}
             type="button"
-            class={`btn btn-sm ${a.primary ? "btn-primary" : "btn-ghost-claro"}`}
+            class={`btn btn-sm ${a.primary ? 'btn-primary' : 'btn-ghost-claro'}`}
             onClick={() => onAvanzar(a.status)}
           >
             {a.label}
@@ -853,7 +801,7 @@ function PiezaCard({
   onAvanzar: (status: string) => void;
   onGuardarUbicacion: (location: string) => void;
 }) {
-  const [ubicacion, setUbicacion] = useState(pieza.location ?? "");
+  const [ubicacion, setUbicacion] = useState(pieza.location ?? '');
   const acciones = PIEZA_ACCIONES[pieza.status] ?? [];
 
   return (
@@ -874,7 +822,7 @@ function PiezaCard({
       <p class="meta-caps m-0 text-[var(--text-faint)]">
         {pieza.config
           ? `pantalla ${colorLabel(pieza.config.pantalla)} · tapa ${colorLabel(pieza.config.tapa)} · `
-          : ""}
+          : ''}
         {formatSync(pieza.created_at)}
       </p>
       <div class="mt-1 flex flex-wrap items-center gap-2">
@@ -889,7 +837,7 @@ function PiezaCard({
         <button
           type="button"
           class="btn btn-ghost disabled:cursor-default disabled:opacity-60"
-          disabled={ubicacion.trim() === (pieza.location ?? "")}
+          disabled={ubicacion.trim() === (pieza.location ?? '')}
           onClick={() => onGuardarUbicacion(ubicacion)}
         >
           Guardar
@@ -901,7 +849,7 @@ function PiezaCard({
             <button
               key={a.status}
               type="button"
-              class={`btn ${a.primary ? "btn-primary" : "btn-ghost"}`}
+              class={`btn ${a.primary ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => onAvanzar(a.status)}
             >
               {a.label}
@@ -920,11 +868,11 @@ function NuevaPieza({
   token: string;
   onCreada: (p: Pieza) => void;
 }) {
-  const [productId, setProductId] = useState("lampara");
+  const [productId, setProductId] = useState('lampara');
   const [modelId, setModelId] = useState(DEFAULTS.modelId);
   const [pantalla, setPantalla] = useState(DEFAULTS.pantallaColorId);
   const [tapa, setTapa] = useState(DEFAULTS.tapaColorId);
-  const [ubicacion, setUbicacion] = useState("");
+  const [ubicacion, setUbicacion] = useState('');
   const [creando, setCreando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
 
@@ -934,14 +882,14 @@ function NuevaPieza({
     try {
       const pieza = await createPieza(token, {
         product_id: productId,
-        ...(productId === "lampara"
+        ...(productId === 'lampara'
           ? { config: { model: modelId, pantalla, tapa } }
           : {}),
         ...(ubicacion.trim() ? { location: ubicacion.trim() } : {}),
       });
       onCreada(pieza);
     } catch {
-      setAviso("No se pudo registrar la pieza.");
+      setAviso('No se pudo registrar la pieza.');
     } finally {
       setCreando(false);
     }
@@ -963,15 +911,13 @@ function NuevaPieza({
             </option>
           ))}
         </select>
-        {productId === "lampara" && (
+        {productId === 'lampara' && (
           <>
             <select
               class="input-brand"
               aria-label="Modelo"
               value={modelId}
-              onChange={(e) =>
-                setModelId((e.target as HTMLSelectElement).value)
-              }
+              onChange={(e) => setModelId((e.target as HTMLSelectElement).value)}
             >
               {MODELS.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -983,9 +929,7 @@ function NuevaPieza({
               class="input-brand"
               aria-label="Color de pantalla"
               value={pantalla}
-              onChange={(e) =>
-                setPantalla((e.target as HTMLSelectElement).value)
-              }
+              onChange={(e) => setPantalla((e.target as HTMLSelectElement).value)}
             >
               {COLORS.map((c) => (
                 <option key={c.id} value={c.id}>

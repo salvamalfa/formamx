@@ -1,5 +1,5 @@
-import { call } from "./http";
-import type { Order } from "./pedidos";
+import { call } from './http';
+import type { Order } from './pedidos';
 
 // Umbral de "material bajo": una bobina con menos de esto se marca para
 // reponer (badge "bajo" en la tabla de inventario). Espejo del comentario en
@@ -28,7 +28,7 @@ export interface Pieza {
   id: string;
   product_id: string;
   // Lámpara: {model, pantalla, tapa}; banca u otros: null.
-  config: Order["config"];
+  config: Order['config'];
   print_job_id: string | null;
   order_id: string | null;
   qc_status: string | null;
@@ -42,7 +42,7 @@ const normalizeBobina = (b: Bobina): Bobina => ({
   ...b,
   color_id: b.color_id ?? null,
   color_hex: b.color_hex ?? null,
-  material: b.material ?? "PLA",
+  material: b.material ?? 'PLA',
   brand: b.brand ?? null,
   weight_g: b.weight_g ?? 1000,
   weight_left_g: b.weight_left_g ?? 0,
@@ -59,7 +59,7 @@ const normalizePieza = (p: Pieza): Pieza => ({
 });
 
 export const getBobinas = (token: string) =>
-  call<{ bobinas: Bobina[] }>(token, "/inventario/bobinas").then((r) =>
+  call<{ bobinas: Bobina[] }>(token, '/inventario/bobinas').then((r) =>
     (r.bobinas ?? []).map(normalizeBobina),
   );
 
@@ -74,28 +74,23 @@ export const createBobina = (
     cost_mxn?: number;
   },
 ) =>
-  call<Bobina>(token, "/inventario/bobinas", {
-    method: "POST",
+  call<Bobina>(token, '/inventario/bobinas', {
+    method: 'POST',
     body: JSON.stringify(data),
   }).then(normalizeBobina);
 
 export const patchBobina = (
   token: string,
   id: string,
-  data: {
-    weight_left_g?: number;
-    status?: string;
-    color_id?: string;
-    color_hex?: string;
-  },
+  data: { weight_left_g?: number; status?: string; color_id?: string; color_hex?: string },
 ) =>
   call<Bobina>(token, `/inventario/bobinas/${id}`, {
-    method: "PATCH",
+    method: 'PATCH',
     body: JSON.stringify(data),
   }).then(normalizeBobina);
 
 export const getPiezas = (token: string) =>
-  call<{ piezas: Pieza[] }>(token, "/inventario/piezas").then((r) =>
+  call<{ piezas: Pieza[] }>(token, '/inventario/piezas').then((r) =>
     (r.piezas ?? []).map(normalizePieza),
   );
 
@@ -103,13 +98,13 @@ export const createPieza = (
   token: string,
   data: {
     product_id: string;
-    config?: NonNullable<Order["config"]>;
+    config?: NonNullable<Order['config']>;
     location?: string;
     order_id?: string;
   },
 ) =>
-  call<Pieza>(token, "/inventario/piezas", {
-    method: "POST",
+  call<Pieza>(token, '/inventario/piezas', {
+    method: 'POST',
     body: JSON.stringify(data),
   }).then(normalizePieza);
 
@@ -119,6 +114,6 @@ export const patchPieza = (
   data: { status?: string; location?: string; qc_status?: string },
 ) =>
   call<Pieza>(token, `/inventario/piezas/${id}`, {
-    method: "PATCH",
+    method: 'PATCH',
     body: JSON.stringify(data),
   }).then(normalizePieza);
