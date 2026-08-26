@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../../env';
+import { familiaDeHex, normalizeHex } from '../../lib/catalog';
 import {
   BOBINA_STATUSES,
   canTransitionBobina,
@@ -37,6 +38,7 @@ inventario.get('/bobinas', async (c) => {
 inventario.post('/bobinas', async (c) => {
   type Body = {
     color_id?: string;
+    color_hex?: string;
     material?: string;
     brand?: string;
     weight_g?: number;
@@ -49,13 +51,22 @@ inventario.post('/bobinas', async (c) => {
     return c.json({ error: 'peso_invalido' }, 400);
   }
 
+  // El hex manda: si viene un tono y no un color_id, la familia se deriva del
+  // tono en vez de obligar a Salva a clasificarlo a mano (y a equivocarse).
+  const hex = body.color_hex === undefined ? null : normalizeHex(body.color_hex);
+  if (body.color_hex !== undefined && hex === null) {
+    return c.json({ error: 'color_hex_invalido' }, 400);
+  }
+  const colorId = body.color_id ?? familiaDeHex(hex);
+
   const row = await c.env.DB.prepare(
-    `INSERT INTO bobinas (id, color_id, material, brand, weight_g, weight_left_g, cost_mxn)
-     VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING *`,
+    `INSERT INTO bobinas (id, color_id, color_hex, material, brand, weight_g, weight_left_g, cost_mxn)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING *`,
   )
     .bind(
       'bob_' + crypto.randomUUID(),
-      body.color_id ?? null,
+      colorId,
+      hex,
       body.material ?? 'PLA',
       body.brand ?? null,
       weight,
@@ -67,12 +78,19 @@ inventario.post('/bobinas', async (c) => {
   return c.json(shapeBobina(row!));
 });
 
-// Actualiza el peso restante (edición manual tras pesarla) y/o avanza el
-// estado siguiendo el grafo. Llegar a 0 g no agota nada por sí solo.
+// Actualiza el peso restante (edición manual tras pesarla), el color y/o
+// avanza el estado siguiendo el grafo. Llegar a 0 g no agota nada por sí solo.
 inventario.patch('/bobinas/:id', async (c) => {
   const id = c.req.param('id');
-  type Body = { weight_left_g?: unknown; status?: string };
+  type Body = { weight_left_g?: unknown; status?: string; color_id?: string; color_hex?: string };
   const body = await c.req.json<Body>().catch(() => ({}) as Body);
+
+  const conColor = body.color_id !== undefined || body.color_hex !== undefined;
+  let hex: string | null = null;
+  if (body.color_hex !== undefined) {
+    hex = normalizeHex(body.color_hex);
+    if (hex === null) return c.json({ error: 'color_hex_invalido' }, 400);
+  }
 
   const peso = body.weight_left_g;
   const conPeso = peso !== undefined;
@@ -110,12 +128,24 @@ inventario.patch('/bobinas/:id', async (c) => {
     return c.json(shapeBobina(updated));
   }
 
-  if (conPeso) {
+  if (conPeso || conColor) {
+    // El color viaja junto al peso en un solo UPDATE: corregir el tono de una
+    // bobina es lo que la vuelve emparejable con su ranura del AMS, y partirlo
+    // en dos requests dejaría un estado intermedio con familia y tono en
+    // desacuerdo.
+    const nuevoHex = body.color_hex !== undefined ? hex : row.color_hex;
+    const nuevoColorId =
+      body.color_id !== undefined
+        ? body.color_id
+        : body.color_hex !== undefined
+          ? (familiaDeHex(nuevoHex) ?? row.color_id)
+          : row.color_id;
     const updated = await c.env.DB.prepare(
-      `UPDATE bobinas SET weight_left_g = ?, updated_at = datetime('now')
+      `UPDATE bobinas SET weight_left_g = COALESCE(?, weight_left_g),
+         color_id = ?, color_hex = ?, updated_at = datetime('now')
        WHERE id = ? RETURNING *`,
     )
-      .bind(peso as number, id)
+      .bind(conPeso ? (peso as number) : null, nuevoColorId, nuevoHex, id)
       .first<BobinaRow>();
     return c.json(shapeBobina(updated!));
   }

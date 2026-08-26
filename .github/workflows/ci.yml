@@ -27,7 +27,7 @@ jobs:
       - run: npm run build
 
   worker:
-    name: Worker / typecheck
+    name: Worker / typecheck and tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,6 +41,7 @@ jobs:
           cache-dependency-path: workers/api/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm test
 
   agent:
     name: Agent / tests

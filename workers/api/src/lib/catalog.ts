@@ -1,6 +1,7 @@
 // El configurador (src/config/lamps.ts) es la única fuente de verdad de
 // modelos y colores; el bundler de wrangler lo incluye desde fuera del worker.
-import { BLANCO, COLORS, MODELS } from '../../../../src/config/lamps';
+import { COLORS, MODELS } from '../../../../src/config/lamps';
+import { FAMILIAS, familiaDeHex } from '../../../../src/config/colores';
 
 export interface LampConfig {
   model: string;
@@ -10,11 +11,12 @@ export interface LampConfig {
 
 const MODEL_IDS = new Set(MODELS.map((m) => m.id));
 const COLOR_IDS = new Set(COLORS.map((c) => c.id));
-// El cuerpo de la lámpara siempre es blanco: es un color válido de bobina
-// aunque no sea seleccionable en el configurador.
-const SPOOL_COLOR_IDS = new Set([...COLOR_IDS, 'blanco']);
+// Un filamento no está limitado a los colores del configurador: el cuerpo de
+// la lámpara es blanco, y en la repisa hay gris y negro que ninguna lámpara
+// usa. Las 9 familias viven en src/config/colores.ts.
+const SPOOL_COLOR_IDS = new Set(FAMILIAS.map((c) => c.id));
 
-// Color que puede cargarse en una ranura del AMS ('blanco' + los 6 del catálogo).
+// Color que puede cargarse en una ranura del AMS (las 9 familias de bobina).
 export function isSpoolColor(id: unknown): id is string {
   return typeof id === 'string' && SPOOL_COLOR_IDS.has(id);
 }
@@ -27,48 +29,21 @@ export function isSpoolMaterial(m: unknown): m is string {
   return typeof m === 'string' && SPOOL_MATERIALS.has(m);
 }
 
-// Empareja el color hex que reporta la impresora (tray_color, RGBA) con el
-// color del catálogo más cercano. Devuelve null si no se parece a ninguno
-// (p. ej. un filamento negro): esa ranura se corrige a mano en /taller.
-const SWATCHES: Array<{ id: string; rgb: [number, number, number] }> = [
-  { id: BLANCO.id, rgb: hexToRgb(BLANCO.swatch) },
-  ...COLORS.map((c) => ({ id: c.id, rgb: hexToRgb(c.swatch) })),
-];
-
-const MATCH_THRESHOLD = 170;
-
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '');
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
+// Empareja el color hex que reporta la impresora (tray_color, RGBA) con la
+// familia de color más cercana. Devuelve null si no se parece a ninguna: esa
+// ranura se corrige a mano en /taller. La lógica vive en src/config/colores.ts
+// para que el sitio y el worker decidan exactamente lo mismo — el vínculo
+// AMS↔almacén depende de que ambos lados coincidan.
+export {
+  familiaDeBobina,
+  familiaDeHex,
+  familiaDeRanura,
+  mismaFamilia,
+  normalizeHex,
+} from '../../../../src/config/colores';
 
 export function nearestCatalogColor(trayColorHex: unknown): string | null {
-  if (typeof trayColorHex !== 'string') return null;
-  const h = trayColorHex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6,8}$/.test(h)) return null;
-  const [r, g, b] = hexToRgb(h);
-
-  // Los neutros (gris, negro, blanco) casi no tienen croma y la distancia RGB
-  // pura los empareja mal con colores saturados (un gris medio "queda cerca"
-  // del morado). Un neutro solo puede ser blanco si es claro; si no, queda
-  // fuera de catálogo.
-  const chroma = Math.max(r, g, b) - Math.min(r, g, b);
-  if (chroma < 40) {
-    const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
-    return lightness > 225 ? 'blanco' : null;
-  }
-
-  let best: string | null = null;
-  let bestDist = Infinity;
-  for (const s of SWATCHES) {
-    if (s.id === 'blanco') continue; // blanco solo por la rama de neutros
-    const d = Math.hypot(r - s.rgb[0], g - s.rgb[1], b - s.rgb[2]);
-    if (d < bestDist) {
-      bestDist = d;
-      best = s.id;
-    }
-  }
-  return bestDist <= MATCH_THRESHOLD ? best : null;
+  return familiaDeHex(trayColorHex);
 }
 
 export function validateLampConfig(raw: unknown): LampConfig | null {

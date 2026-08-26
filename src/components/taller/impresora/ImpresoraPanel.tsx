@@ -1,23 +1,30 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useState } from "preact/hooks";
 import {
   getBobinas,
   getQueue,
   type Bobina,
   type QueueJob,
   type Spool,
-} from '../../../lib/taller';
-import { useTallerCore } from '../coreData';
-import { useSession } from '../hooks/useSession';
-import { JOB_STATUS_LABEL, PART_LABEL } from '../pedidos/labels';
-import { colorLabel, colorSwatch, nearestColorName } from '../ui/colores';
-import { formatSync, shortId } from '../ui/format';
-import { PiezasClientes } from './PiezasClientes';
+} from "../../../lib/taller";
+import { useTallerCore } from "../coreData";
+import { useSession } from "../hooks/useSession";
+import { JOB_STATUS_LABEL, PART_LABEL } from "../pedidos/labels";
+import {
+  colorLabel,
+  colorSwatch,
+  familiaDeBobina,
+  familiaDeRanura,
+  mismaFamilia,
+  nearestColorName,
+} from "../ui/colores";
+import { formatSync, shortId } from "../ui/format";
+import { PiezasClientes } from "./PiezasClientes";
 
 // Nombre visible de un trabajo en la cola, venga de donde venga: una pieza de
 // cliente se llama como su STL; una de lámpara, por su parte y su pedido.
 function tituloJob(job: QueueJob): string {
-  if (job.custom_print_id) return job.custom_file_name ?? 'Pieza de cliente';
-  return `${PART_LABEL[job.part]}${job.order_id ? ` · ${shortId(job.order_id)}` : ''}`;
+  if (job.custom_print_id) return job.custom_file_name ?? "Pieza de cliente";
+  return `${PART_LABEL[job.part]}${job.order_id ? ` · ${shortId(job.order_id)}` : ""}`;
 }
 
 // La cola física de la impresora se refresca sola; más seguido mientras haya
@@ -53,8 +60,10 @@ export function ImpresoraPanel() {
 
   // La cola sale del endpoint propio, no de los pedidos: una pieza de cliente
   // no cuelga de ningún pedido y así también aparece aquí.
-  const actual = cola.find((job) => job.status === 'printing');
-  const enCola = cola.filter((job) => job.status === 'queued' || job.status === 'claimed');
+  const actual = cola.find((job) => job.status === "printing");
+  const enCola = cola.filter(
+    (job) => job.status === "queued" || job.status === "claimed",
+  );
   const hayTrabajo = cola.length > 0;
 
   useEffect(() => {
@@ -69,7 +78,10 @@ export function ImpresoraPanel() {
           /* sin cola: las cards de arriba se quedan en su estado vacío */
         });
     void cargar();
-    const id = setInterval(cargar, hayTrabajo ? COLA_ACTIVA_MS : COLA_TRANQUILA_MS);
+    const id = setInterval(
+      cargar,
+      hayTrabajo ? COLA_ACTIVA_MS : COLA_TRANQUILA_MS,
+    );
     return () => {
       vivo = false;
       clearInterval(id);
@@ -81,13 +93,13 @@ export function ImpresoraPanel() {
       {!core.bedClear && (
         <div class="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-m)] bg-[var(--azul-claro)] px-5 py-4">
           <p class="m-0 text-sm text-[var(--tinta)]">
-            <strong>La cama no está despejada.</strong> Retira la última pieza para que el
-            agente siga mandando trabajos.
+            <strong>La cama no está despejada.</strong> Retira la última pieza
+            para que el agente siga mandando trabajos.
           </p>
           <button
             type="button"
             class="btn btn-sm shrink-0"
-            style={{ background: 'var(--azul)', color: 'var(--tinta)' }}
+            style={{ background: "var(--azul)", color: "var(--tinta)" }}
             onClick={() => void core.bedCleared()}
           >
             Ya la despejé
@@ -124,7 +136,10 @@ function TrabajoActual({
 }) {
   return (
     <div class="rounded-[var(--radius-m)] bg-[var(--surface-inverse)] p-5 text-[var(--blanco)] shadow-[var(--shadow-card)]">
-      <div class="meta-caps mb-3 text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
+      <div
+        class="meta-caps mb-3 text-[10px]"
+        style={{ color: "rgba(255,255,255,0.5)" }}
+      >
         Imprimiendo ahora
       </div>
       {actual ? (
@@ -132,32 +147,36 @@ function TrabajoActual({
           <div class="flex items-baseline justify-between gap-3">
             <div
               class="min-w-0 truncate text-[26px] font-bold"
-              style={{ fontFamily: 'var(--font-display)' }}
+              style={{ fontFamily: "var(--font-display)" }}
               title={tituloJob(actual)}
             >
               {tituloJob(actual)}
             </div>
             <div
               class="shrink-0 text-[26px] font-bold text-[var(--azul)]"
-              style={{ fontFamily: 'var(--font-display)' }}
+              style={{ fontFamily: "var(--font-display)" }}
             >
               {actual.progress_pct ?? 0}%
             </div>
           </div>
           <div
             class="my-4 h-2.5 overflow-hidden rounded-[var(--radius-pill)]"
-            style={{ background: 'rgba(255,255,255,0.15)' }}
+            style={{ background: "rgba(255,255,255,0.15)" }}
           >
             <div
               class="h-full rounded-[var(--radius-pill)] bg-[var(--naranja)]"
               style={{
                 width: `${actual.progress_pct ?? 0}%`,
-                transition: 'width var(--duration-slow) var(--ease-out)',
+                transition: "width var(--duration-slow) var(--ease-out)",
               }}
             />
           </div>
-          <div class="meta-caps text-[11px]" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            filamento {actual.colors.map((c) => colorLabel(c)).join(', ') || '—'}
+          <div
+            class="meta-caps text-[11px]"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
+            filamento{" "}
+            {actual.colors.map((c) => colorLabel(c)).join(", ") || "—"}
           </div>
         </>
       ) : (
@@ -166,8 +185,13 @@ function TrabajoActual({
           {/* Nota corta, con otro texto que el aviso de la card de bobinas
               (más abajo) para no duplicar el mismo mensaje dos veces en la
               misma pantalla. */}
-          <p class="meta-caps mt-2 text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            {amsSyncedAt ? `AMS sincronizado ${formatSync(amsSyncedAt)}` : 'AMS sin sincronizar'}
+          <p
+            class="meta-caps mt-2 text-[11px]"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+          >
+            {amsSyncedAt
+              ? `AMS sincronizado ${formatSync(amsSyncedAt)}`
+              : "AMS sin sincronizar"}
           </p>
         </>
       )}
@@ -175,7 +199,7 @@ function TrabajoActual({
   );
 }
 
-const COLA_COLS = '1fr auto auto';
+const COLA_COLS = "1fr auto auto";
 
 // Card "En cola": todo lo pendiente de imprimir (queued/claimed) en el orden
 // en que entró, sea de un pedido de lámpara o una pieza que subió un cliente.
@@ -183,7 +207,10 @@ const COLA_COLS = '1fr auto auto';
 function EnCola({ jobs }: { jobs: QueueJob[] }) {
   return (
     <div class="rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]">
-      <h2 class="m-0 mb-3 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+      <h2
+        class="m-0 mb-3 text-lg font-bold"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
         En cola
       </h2>
       {jobs.length === 0 ? (
@@ -200,11 +227,13 @@ function EnCola({ jobs }: { jobs: QueueJob[] }) {
                 {tituloJob(job)}
               </span>
               <span class="shrink-0 text-[11px] text-[var(--text-muted)]">
-                {job.colors.map((c) => colorLabel(c)).join(', ') || '—'}
+                {job.colors.map((c) => colorLabel(c)).join(", ") || "—"}
               </span>
               {/* 'preparando' (claimed) es la ventana en que el agente ya se
                   llevó el trabajo pero la impresora todavía no arranca. */}
-              <span class="tag tag-neutral shrink-0">{JOB_STATUS_LABEL[job.status]}</span>
+              <span class="tag tag-neutral shrink-0">
+                {JOB_STATUS_LABEL[job.status]}
+              </span>
             </div>
           ))}
         </div>
@@ -217,8 +246,11 @@ function EnCola({ jobs }: { jobs: QueueJob[] }) {
 // directo de la bobina vinculada a la ranura (spool_slots.bobina_id, 0019);
 // sin vincular, se muestra "sin datos" — nunca se adivina por color.
 function getPorcentaje(spool: Spool | undefined): number | null {
-  if (!spool?.bobina_id || !spool.bobina_weight_g || spool.bobina_weight_g <= 0) return null;
-  return Math.round(((spool.bobina_weight_left_g ?? 0) / spool.bobina_weight_g) * 100);
+  if (!spool?.bobina_id || !spool.bobina_weight_g || spool.bobina_weight_g <= 0)
+    return null;
+  return Math.round(
+    ((spool.bobina_weight_left_g ?? 0) / spool.bobina_weight_g) * 100,
+  );
 }
 
 function BobinasAms({
@@ -235,19 +267,18 @@ function BobinasAms({
   return (
     <div class="rounded-[var(--radius-m)] border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[var(--shadow-card)]">
       <div class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 class="m-0 text-lg font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+        <h2
+          class="m-0 text-lg font-bold"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
           Bobinas AMS
         </h2>
         {amsSyncedAt ? (
-          <span
-            class="text-[10px] text-[var(--text-faint)]"
-          >
+          <span class="text-[10px] text-[var(--text-faint)]">
             leído de la impresora: {formatSync(amsSyncedAt)}
           </span>
         ) : (
-          <span
-            class="text-[10px] text-[var(--naranja-oscuro)]"
-          >
+          <span class="text-[10px] text-[var(--naranja-oscuro)]">
             sin lectura de la impresora — arranca el agente
           </span>
         )}
@@ -258,24 +289,39 @@ function BobinasAms({
           const hex = spool?.color_hex ?? null;
           const catalogId = spool?.color_id ?? null;
           const empty = !hex && !catalogId;
-          const nombre = empty ? 'vacía' : catalogId ? colorLabel(catalogId) : nearestColorName(hex!);
-          const swatch = hex ?? (catalogId ? colorSwatch(catalogId) : 'transparent');
+          const nombre = empty
+            ? "vacía"
+            : catalogId
+              ? colorLabel(catalogId)
+              : nearestColorName(hex!);
+          const swatch =
+            hex ?? (catalogId ? colorSwatch(catalogId) : "transparent");
           const pct = empty ? null : getPorcentaje(spool);
           const bajo = pct != null && pct < 20;
-          // Candidatas: TODAS las bobinas vivas, con las del mismo material
-          // primero — pero nunca se esconden las demás. Filtrar en vez de
-          // ordenar dejaba la ranura sin ninguna opción vinculable con solo
-          // que el material no calzara exacto (mayúsculas, "PLA" vs "PLA+",
-          // etc.), lo que se veía igual que un bug ("no puedo vincular").
-          // El color tampoco filtra: el AMS a veces reporta un hex que no
-          // calza exacto con la bobina real.
-          const candidatas = [...bobinas]
-            .filter((b) => b.status !== 'agotada')
-            .sort((a, b) => {
-              const am = spool?.material && a.material === spool.material ? 0 : 1;
-              const bm = spool?.material && b.material === spool.material ? 0 : 1;
-              return am - bm;
-            });
+          // Candidatas en DOS grupos, nunca un filtro duro. Arriba las que
+          // hacen juego: misma familia de color y mismo material. Abajo el
+          // resto, porque esconderlas ya se vio como un bug ("no puedo
+          // vincular") cuando el material no calzaba exacto — "PLA" vs "PLA+",
+          // mayúsculas — o cuando el AMS reportaba un hex raro.
+          //
+          // La familia tolera tonos: un blanco #F4F4F2 de la repisa empareja
+          // con la ranura que la impresora reporta como #FFFFFF, y ambos son
+          // 'blanco'. Comparar hex exactos no serviría de nada.
+          const familiaRanura = familiaDeRanura({
+            color_hex: spool?.color_hex ?? null,
+            color_id: catalogId,
+          });
+          const vivas = bobinas.filter((b) => b.status !== "agotada");
+          const hacenJuego = vivas.filter(
+            (b) =>
+              mismaFamilia(familiaRanura, familiaDeBobina(b)) &&
+              (!spool?.material ||
+                b.material.toLowerCase() === spool.material.toLowerCase()),
+          );
+          const juegoIds = new Set(hacenJuego.map((b) => b.id));
+          const resto = vivas.filter((b) => !juegoIds.has(b.id));
+          const etiqueta = (b: Bobina) =>
+            `${colorLabel(b.color_id)} · ${b.material} · ${b.weight_left_g} g`;
           return (
             <div key={slot}>
               <div class="mb-2 flex items-center gap-2">
@@ -285,26 +331,27 @@ function BobinasAms({
                 />
                 <span class="min-w-0 truncate text-sm">{nombre}</span>
                 {hex && (
-                  <span
-                    class="text-[10px] text-[var(--text-faint)]"
-                  >
+                  <span class="text-[10px] text-[var(--text-faint)]">
                     {hex}
                   </span>
                 )}
                 <span
                   class="ml-auto shrink-0 text-[11px]"
                   style={{
-                    color: bajo ? 'var(--naranja-oscuro)' : 'var(--text-faint)',
+                    color: bajo ? "var(--naranja-oscuro)" : "var(--text-faint)",
                   }}
                 >
-                  {empty ? '—' : pct == null ? 'sin datos' : `${pct}%`}
+                  {empty ? "—" : pct == null ? "sin datos" : `${pct}%`}
                 </span>
               </div>
               <div class="h-1.5 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--borde)]">
                 {pct != null && (
                   <div
                     class="h-full rounded-[var(--radius-pill)]"
-                    style={{ width: `${pct}%`, background: bajo ? 'var(--naranja)' : 'var(--bosque)' }}
+                    style={{
+                      width: `${pct}%`,
+                      background: bajo ? "var(--naranja)" : "var(--bosque)",
+                    }}
                   />
                 )}
               </div>
@@ -313,18 +360,35 @@ function BobinasAms({
                   <span class="shrink-0">Bobina del almacén:</span>
                   <select
                     class="w-full rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-[11px] text-[var(--text-muted)]"
-                    value={spool?.bobina_id ?? ''}
+                    value={spool?.bobina_id ?? ""}
                     onChange={(e) => {
                       const v = (e.currentTarget as HTMLSelectElement).value;
                       void onVincular(slot, v || null);
                     }}
                   >
                     <option value="">Sin vincular</option>
-                    {candidatas.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {colorLabel(b.color_id)} · {b.material} · {b.weight_left_g} g
-                      </option>
-                    ))}
+                    {hacenJuego.length > 0 && (
+                      <optgroup label="Del mismo color">
+                        {hacenJuego.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {etiqueta(b)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {resto.length > 0 && (
+                      <optgroup
+                        label={
+                          hacenJuego.length > 0 ? "Otros" : "Ninguna hace juego"
+                        }
+                      >
+                        {resto.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {etiqueta(b)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </label>
               )}
@@ -350,10 +414,14 @@ export function BedAlert() {
       role="alert"
     >
       <p class="m-0 text-sm">
-        <span class="font-bold">Hay una pieza en la cama.</span> La impresora no recibirá el
-        siguiente trabajo hasta que la retires.
+        <span class="font-bold">Hay una pieza en la cama.</span> La impresora no
+        recibirá el siguiente trabajo hasta que la retires.
       </p>
-      <button type="button" class="btn btn-sm btn-primary shrink-0" onClick={() => void bedCleared()}>
+      <button
+        type="button"
+        class="btn btn-sm btn-primary shrink-0"
+        onClick={() => void bedCleared()}
+      >
         Cama despejada
       </button>
     </div>

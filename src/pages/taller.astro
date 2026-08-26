@@ -10,7 +10,9 @@ import { buildLampImageManifest } from '../lib/lampImages';
 const manifest = await buildLampImageManifest();
 ---
 
-<BaseLayout title="Taller" description="Cola de pedidos del taller.">
+<!-- themeColor pinta el <body>; sin él queda blanco puro contra el --hueso
+     de la página y se ve una franja clara en el overscroll. -->
+<BaseLayout title="Taller" description="Cola de pedidos del taller." themeColor="#f7f7f5">
   <Fragment slot="head">
     <meta name="robots" content="noindex, nofollow" />
   </Fragment>

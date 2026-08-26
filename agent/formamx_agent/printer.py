@@ -160,6 +160,11 @@ class BambuPrinter:
                     'slot': int(tray.get('id', 0)),
                     'material': tray_type,
                     'color_hex': tray.get('tray_color') or None if tray_type else None,
+                    # Identidad del RFID: solo la traen las bobinas Bambu; el
+                    # filamento genérico manda ceros. El worker la usa para que
+                    # el vínculo con el almacén siga a la bobina cuando cambia
+                    # de ranura, y descarta los ceros por su cuenta.
+                    'tray_uuid': tray.get('tray_uuid') or None if tray_type else None,
                 })
             state['trays'] = trays
             got.set()

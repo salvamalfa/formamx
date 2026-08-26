@@ -69,10 +69,15 @@ export function Sidebar({ route, onLogout }: { route: TallerRoute; onLogout: () 
     },
   ];
 
+  // En escritorio el riel es sticky + `self-start`. El `self-start` es lo que
+  // hace que `h-dvh` sirva de algo: sin él el aside es un item de flex
+  // estirado por el contenedor, la altura explícita pelea con el stretch y el
+  // negro se corta a media página en cuanto el contenido es más largo que la
+  // ventana (o se encoge solo al achicar la ventana). Con self-start el riel
+  // mide exactamente una ventana y sticky lo mantiene a la vista al hacer
+  // scroll, en vez de irse con la página como cuando era `lg:static`.
   return (
-    <aside
-      class="sticky top-0 z-40 flex items-center gap-3 bg-[var(--tinta)] px-4 py-3 lg:static lg:z-auto lg:h-dvh lg:w-[216px] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-0 lg:px-4 lg:py-6"
-    >
+    <aside class="sticky top-0 z-40 flex items-center gap-3 bg-[var(--tinta)] px-4 py-3 lg:h-dvh lg:w-[216px] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-0 lg:self-start lg:overflow-y-auto lg:px-4 lg:py-6">
       <img
         src={logoBlanco.src}
         alt="forma"

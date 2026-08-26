@@ -10,6 +10,10 @@ export type PiezaStatus = 'en_stock' | 'reservada' | 'vendida' | 'merma';
 export interface BobinaRow {
   id: string;
   color_id: string | null;
+  // Tono real del filamento ('#RRGGBB', 0023). El color_id dice de qué familia
+  // es; el hex dice cuál de sus tonos, que es lo que permite empatar dos
+  // blancos distintos con la misma ranura del AMS.
+  color_hex: string | null;
   material: string;
   brand: string | null;
   weight_g: number;
@@ -68,6 +72,7 @@ export function shapeBobina(row: BobinaRow) {
   return {
     id: row.id,
     color_id: row.color_id,
+    color_hex: row.color_hex,
     material: row.material,
     brand: row.brand,
     weight_g: row.weight_g,

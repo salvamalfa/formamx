@@ -8,7 +8,10 @@
     "strict": true,
     "noEmit": true,
     "isolatedModules": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    // Los tests corren con `node --test --experimental-strip-types`, que no
+    // resuelve imports sin extensión: por eso ams.test.ts importa './ams.ts'.
+    "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "../../src/config/lamps.ts"]
+  "include": ["src/**/*.ts", "../../src/config/lamps.ts", "../../src/config/colores.ts"]
 }

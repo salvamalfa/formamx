@@ -118,12 +118,17 @@ Telegram ◄──────────────────────�
   usar empiezan siendo sólo de lectura contra `/api/ai/*`. Ninguna acción
   que escriba en el negocio (pedidos, pagos, impresión) se le da al agente
   sin una fase separada, validaciones explícitas y bitácora.
-- **Aislamiento estructural:** Hermes Agent corre bajo el usuario dedicado
-  `formamx-ai`, sin acceso a los secretos del Worker/Stripe/impresora más
-  allá del token de sólo lectura `AI_TOKEN`, y sin exponer su daemon o
-  WebSocket fuera de `localhost`/Tailscale. No se le da acceso a shell del
-  sistema ni a navegador salvo que una fase futura lo justifique y evalúe el
-  riesgo explícitamente.
+- **Aislamiento estructural:** dos usuarios de servicio distintos, no uno.
+  Hermes Agent corre bajo `formamx-ai` y el agente de impresión bajo
+  `formamx-agent`, cada uno dueño de su propia configuración y sin permiso de
+  lectura sobre la del otro. La razón es concreta: `agent/config.toml` guarda
+  `AGENT_TOKEN` (escribe en el negocio) y el access code de la impresora, así
+  que compartir UID anularía el aislamiento — un Hermes comprometido leería
+  ambos y controlaría producción aunque sus skills sean de sólo lectura.
+  Hermes no ve más secreto que su token de sólo lectura `AI_TOKEN`, y no
+  expone su daemon ni su WebSocket fuera de `localhost`/Tailscale. No se le da
+  acceso a shell del sistema ni a navegador salvo que una fase futura lo
+  justifique y evalúe el riesgo explícitamente.
 - **Por qué Hermes Agent y no OpenClaw:** ambos son frameworks de agente
   personal autohospedado con memoria, cron y conectores de mensajería.
   OpenClaw acumula varios CVE serios en 2026 (inyección de comandos, SSRF,
@@ -194,28 +199,36 @@ requiere ni debe asumir autenticación.
 **Corre en: Mac + una transición supervisada desde Windows.** Objetivo: un
 solo equipo encendido para IA y producción, recuperable y administrable.
 
-- Crear usuario dedicado `formamx-ai`, configurar actualizaciones de
-  seguridad y registrar inventario/receta de instalación en
-  `docs/mac-mini.md`. Decidir FileVault conscientemente: protege el disco,
-  pero un arranque en frío requiere que Salva lo desbloquee físicamente
-  antes de que inicien los servicios.
+- Crear DOS usuarios de servicio, sin privilegios de administrador y sin
+  pertenecer a un grupo común: `formamx-agent` para el agente de impresión y
+  `formamx-ai` para Hermes/Ollama. Registrar inventario y receta de
+  instalación en `docs/mac-mini.md` y configurar actualizaciones de seguridad.
+  Decidir FileVault conscientemente: protege el disco, pero un arranque en
+  frío requiere que Salva lo desbloquee físicamente antes de que inicien los
+  servicios.
 - Instalar Tailscale sólo para administración remota, sin abrir puertos en
   el router. Ollama y el daemon de Hermes Agent permanecen ligados a
   localhost.
 - Instalar runtime de Python/Node según lo pida Hermes Agent, Ollama y
   supervisión como servicios que reinicien automáticamente (`launchd`).
-- Guardar configuración y tokens fuera del repo, con permisos sólo para el
-  usuario de servicio. Respaldar únicamente configuración; los modelos se
-  pueden volver a descargar.
+- Guardar configuración y tokens fuera del repo, cada archivo con dueño y
+  permisos del usuario que lo usa y de nadie más: `agent/config.toml`
+  (`AGENT_TOKEN` + access code de la impresora) queda en
+  `formamx-agent:staff 0600`, y la config de Hermes con su `AI_TOKEN` en
+  `formamx-ai:staff 0600`. Verificar con `sudo -u formamx-ai cat` sobre el
+  config del agente: debe dar "Permission denied". Respaldar únicamente
+  configuración; los modelos se pueden volver a descargar.
 - Registrar espacio libre, memoria, temperatura, salud de servicios, tiempos
   de inferencia y tamaño de las colas. Alertar por Telegram si un servicio
   falla.
-- Ejecutar el `agent/` existente en macOS: su código es portable; las rutas
-  de Windows y el Programador de tareas se sustituyen por rutas POSIX y un
-  servicio `launchd`. No reescribir FTPS/MQTT sin que una prueba lo
-  justifique.
+- Ejecutar el `agent/` existente en macOS bajo `formamx-agent`: su código es
+  portable; las rutas de Windows y el Programador de tareas se sustituyen por
+  rutas POSIX y un servicio `launchd` con `UserName` = `formamx-agent`. El de
+  Hermes/Ollama usa `UserName` = `formamx-ai`. No reescribir FTPS/MQTT sin que
+  una prueba lo justifique.
 - Mover los 3MF a una carpeta fuera del repo en la Mac, por ejemplo
-  `/Users/formamx-ai/formamx/3mf/`, compartida sólo en la LAN/Tailscale.
+  `/Users/formamx-agent/formamx/3mf/` (los usa el agente de impresión),
+  compartida sólo en la LAN/Tailscale.
 - Antes del corte, añadir y probar recuperación de trabajo activo tras
   reinicio: persistir localmente el `job_id` en curso, consultar el estado
   de la A1 y reconciliar `printing → done/failed` sin duplicar una
@@ -231,8 +244,9 @@ solo equipo encendido para IA y producción, recuperable y administrable.
   concurrencia/memoria del servidor de modelos si compiten.
 
 **Verifica:** reiniciar la Mac, confirmar que los servicios vuelven solos,
-que la inferencia responde por localhost, que nada escucha públicamente y
-que el agente se reconcilia con una impresión en curso. La migración sólo
+que la inferencia responde por localhost, que nada escucha públicamente,
+que `formamx-ai` no puede leer la config del agente de impresión (ni al
+revés) y que el agente se reconcilia con una impresión en curso. La migración sólo
 se considera terminada después de una impresión real completa y un reinicio
 controlado. Un UPS es altamente recomendable antes de dejar la Mac como
 único ejecutor.

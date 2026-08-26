@@ -49,9 +49,24 @@ este documento cubre SOLO este proyecto.)
   rhombus, torsion) se agregan cuando Salva los rebane.
 - **El AMS de la impresora dicta el estado**: el agente lo lee cada 5 min
   (también en dry_run) y el panel de /taller es SOLO lectura — muestra hex
-  crudo, color de catálogo emparejado y material. El match de color trata
-  los neutros por croma (gris/negro quedan sin asignar; solo un neutro
-  claro es blanco).
+  crudo, familia de color emparejada y material.
+- **Familias de color** (`src/config/colores.ts`, importado por el sitio Y por
+  el worker): las 7 del configurador más gris y negro, que existen como
+  filamento aunque ninguna lámpara los use. Los neutros se resuelven por croma
+  y luminosidad; el resto por distancia RGB con umbral. Es la única fuente:
+  antes había dos matchers que se contradecían y el vínculo AMS↔almacén
+  necesita que ambos lados decidan igual.
+- **Vínculo ranura↔bobina** (`spool_slots.bobina_id`): lo pone Salva a mano en
+  "Bobina del almacén" y de ahí sale el peso restante real. El desplegable
+  agrupa por familia (arriba las que hacen juego, abajo el resto — nunca se
+  esconde una opción), y tolera tonos: un blanco hueso de la repisa empareja
+  con la ranura que la impresora reporta como #FFFFFF porque `bobinas.color_hex`
+  (0023) guarda el tono real, no solo la familia.
+- **El vínculo sigue a la bobina, no a la ranura** (`workers/api/src/lib/ams.ts`):
+  en cada lectura del AMS se recalcula a dónde va cada `bobina_id`. Primero el
+  `tray_uuid` del RFID (solo filamento Bambu), luego la firma material+tono
+  cuando NO hay ambigüedad, y si nada resuelve se suelta el vínculo. Soltarlo
+  cuesta un clic; mantenerlo mal descuenta gramos de la bobina equivocada.
 - **ams_mapping**: índice = número de filamento del 3MF (0-based), valor =
   ranura 0-3 del AMS. Se calcula en el claim con las bobinas frescas; si
   falta un color, el trabajo falla ANTES de tocar la impresora.
@@ -81,7 +96,9 @@ cadena; es LAN propia).
 4. MQTT (:8883): comando `project_file` con `url: file:///sdcard/model.3mf`
    y `ams_mapping`; monitoreo por `mc_percent` (progreso, reportar throttled
    cada ≥5%) y `gcode_state` (FINISH/FAILED). `pushall` para leer estado y
-   AMS (`print.ams.ams[0].tray[]`: `tray_type`, `tray_color` RGBA).
+   AMS (`print.ams.ams[0].tray[]`: `tray_type`, `tray_color` RGBA y
+   `tray_uuid`, que solo traen las bobinas Bambu con RFID — el genérico manda
+   ceros y el worker los descarta).
 5. El agente no reclama si `gcode_state == RUNNING` (algo lanzado a mano).
 
 ## Config del agente (PC de Salva, nunca al repo)
@@ -95,6 +112,8 @@ real — sirve para probar el circuito completo sin filamento. Log en
 ## Verificación al tocar este proyecto
 
 - `cd agent && python3 -m pytest tests/` (mapping + regresiones del FTPS).
+- `cd workers/api && npm test` (re-mapeo del vínculo AMS↔bobina, `lib/ams.ts`;
+  corre con el runner de Node, sin dependencias nuevas).
 - Playwright de /taller con API mockeada (`tests/e2e/taller.spec.ts`).
 - Worker contra `wrangler dev` + `migrate:local` (claim atómico, dispatch,
   candado de cama, sync del AMS con hex).

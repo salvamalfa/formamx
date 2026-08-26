@@ -435,6 +435,54 @@ test('la card de bobinas AMS muestra el hex de la impresora y un selector de bob
   await expect(page.getByText('vacía')).toBeVisible();
 });
 
+test('el selector de bobina agrupa por familia de color y tolera tonos distintos', async ({
+  page,
+}) => {
+  await mockApi(page, { syncedAt: '2026-07-11 15:30:00' });
+  await page.route('**/api/admin/spools', (route) =>
+    route.fulfill({
+      json: {
+        slots: [
+          // La impresora reporta blanco puro; la bobina de la repisa es un
+          // blanco hueso. Distinto hex, misma familia: tiene que hacer juego.
+          { slot: 0, color_id: 'blanco', material: 'PLA', color_hex: '#FFFFFF', bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+          { slot: 1, color_id: null, material: null, color_hex: null, bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+          { slot: 2, color_id: null, material: null, color_hex: null, bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+          { slot: 3, color_id: null, material: null, color_hex: null, bobina_id: null, bobina_weight_g: null, bobina_weight_left_g: null },
+        ],
+      },
+    }),
+  );
+  await page.route('**/api/admin/inventario/bobinas**', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({
+      json: {
+        bobinas: [
+          { id: 'bob_hueso', color_id: 'blanco', color_hex: '#F4F4F2', material: 'PLA', brand: null, weight_g: 1000, weight_left_g: 800, cost_mxn: null, status: 'nueva', created_at: '2026-07-01 00:00:00', updated_at: '2026-07-01 00:00:00' },
+          { id: 'bob_azul', color_id: 'azul', color_hex: '#2F5FD6', material: 'PLA', brand: null, weight_g: 1000, weight_left_g: 900, cost_mxn: null, status: 'nueva', created_at: '2026-07-01 00:00:00', updated_at: '2026-07-01 00:00:00' },
+          // Mismo color que la ranura pero otro material: no hace juego.
+          { id: 'bob_petg', color_id: 'blanco', color_hex: '#FFFFFF', material: 'PETG', brand: null, weight_g: 1000, weight_left_g: 700, cost_mxn: null, status: 'nueva', created_at: '2026-07-01 00:00:00', updated_at: '2026-07-01 00:00:00' },
+        ],
+      },
+    });
+  });
+  await page.goto('/taller#impresora');
+  await page.getByPlaceholder('token').fill('t');
+  await page.getByRole('button', { name: 'Entrar' }).click();
+
+  const select = page.locator('main select').first();
+  await expect(select).toBeVisible();
+  // El blanco hueso (#F4F4F2) empareja con la ranura #FFFFFF pese al tono.
+  await expect(
+    select.locator('optgroup[label="Del mismo color"] option'),
+  ).toHaveText(['Blanco · PLA · 800 g']);
+  // La azul y la PETG siguen ahí, pero abajo: nunca se esconde una opción.
+  await expect(select.locator('optgroup[label="Otros"] option')).toHaveText([
+    'Azul · PLA · 900 g',
+    'Blanco · PETG · 700 g',
+  ]);
+});
+
 test('sin sincronización del AMS aparece el aviso de arrancar el agente', async ({ page }) => {
   await mockApi(page, { syncedAt: null });
   await page.goto('/taller#impresora');

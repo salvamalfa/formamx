@@ -155,9 +155,15 @@ export function ClientesPanel({ persona }: { persona?: string }) {
       </div>
     );
 
+  // La vista de tres columnas quiere ocupar lo que queda de ventana. El alto
+  // se calcula restando SOLO el padding del contenedor de /taller (py-8, py-10
+  // en lg), que es una constante real; el alto del header lo resuelve el flex.
+  // Antes se restaba un 240px fijo que asumía un header de altura constante,
+  // pero los chips de ciudad ganan renglones al angostar la ventana y la
+  // cuenta quedaba mal justo al redimensionar.
   return (
-    <div>
-      <header class="mb-4">
+    <div class="flex h-[calc(100dvh-4rem)] min-h-[520px] flex-col lg:h-[calc(100dvh-5rem)]">
+      <header class="mb-4 shrink-0">
         <div class="flex items-baseline justify-between gap-4">
           <h1
             class="m-0 text-[32px] font-bold"
@@ -215,7 +221,7 @@ export function ClientesPanel({ persona }: { persona?: string }) {
 
       {esDesktop ? (
         <div
-          class="grid h-[calc(100dvh-240px)] min-h-[460px] gap-4"
+          class="grid min-h-0 flex-1 gap-4"
           style={{
             gridTemplateColumns: 'minmax(150px,230px) minmax(240px,1fr) minmax(170px,250px)',
           }}
@@ -225,7 +231,7 @@ export function ClientesPanel({ persona }: { persona?: string }) {
           {ficha}
         </div>
       ) : (
-        <div class="h-[calc(100dvh-230px)] min-h-[420px]">
+        <div class="min-h-0 flex-1">
           {movil === 'lista' && lista}
           {movil === 'chat' && chat}
           {movil === 'ficha' && ficha}
