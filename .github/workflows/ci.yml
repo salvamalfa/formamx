@@ -27,7 +27,7 @@ jobs:
       - run: npm run build
 
   worker:
-    name: Worker / typecheck and tests
+    name: Worker / typecheck
     runs-on: ubuntu-latest
     defaults:
       run:
