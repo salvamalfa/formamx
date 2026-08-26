@@ -465,7 +465,7 @@ comprobando que hay filas en `orders`.
 
 ### Fase 5b — 3MF + perfiles de Bambu Studio (PC de Salva)
 
-Viven SOLO en `C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\` y en los
+Viven SOLO en `C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\` y en los
 presets de Bambu Studio. Pasos
 PowerShell (Salva los pega una vez):
 
@@ -474,7 +474,7 @@ PowerShell (Salva los pega una vez):
 # externo si se prefiere).
 $dest = "$env:OneDrive\formamx-respaldo"
 $action = New-ScheduledTaskAction -Execute "robocopy.exe" `
-  -Argument "C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf $dest\3mf /MIR /R:2 /W:5 /LOG:$dest\3mf.log"
+  -Argument "C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf $dest\3mf /MIR /R:2 /W:5 /LOG:$dest\3mf.log"
 $trigger = New-ScheduledTaskTrigger -Daily -At 21:00
 Register-ScheduledTask -TaskName "formamx respaldo 3mf" -Action $action -Trigger $trigger
 
