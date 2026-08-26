@@ -10,6 +10,10 @@ export const MATERIAL_BAJO_G = 200;
 export interface Bobina {
   id: string;
   color_id: string | null;
+  // Tono real del filamento ('#RRGGBB', 0023). color_id dice de qué familia es;
+  // color_hex dice cuál de sus tonos — dos blancos distintos siguen siendo
+  // blancos para el desplegable del AMS, pero se ven y se distinguen.
+  color_hex: string | null;
   material: string;
   brand: string | null;
   weight_g: number;
@@ -37,6 +41,7 @@ export interface Pieza {
 const normalizeBobina = (b: Bobina): Bobina => ({
   ...b,
   color_id: b.color_id ?? null,
+  color_hex: b.color_hex ?? null,
   material: b.material ?? 'PLA',
   brand: b.brand ?? null,
   weight_g: b.weight_g ?? 1000,
@@ -62,6 +67,7 @@ export const createBobina = (
   token: string,
   data: {
     color_id?: string;
+    color_hex?: string;
     material?: string;
     brand?: string;
     weight_g?: number;
@@ -76,7 +82,7 @@ export const createBobina = (
 export const patchBobina = (
   token: string,
   id: string,
-  data: { weight_left_g?: number; status?: string },
+  data: { weight_left_g?: number; status?: string; color_id?: string; color_hex?: string },
 ) =>
   call<Bobina>(token, `/inventario/bobinas/${id}`, {
     method: 'PATCH',

@@ -52,6 +52,7 @@ muestran "En progreso" y nunca pasan por la impresora.
 npm run dev / build                 # sitio (raíz)
 npx astro check                     # typecheck sitio
 cd workers/api && npm run typecheck # typecheck worker
+cd workers/api && npm test          # tests del worker (node --test, sin deps)
 cd workers/api && npm run dev       # worker local (D1 local + .dev.vars)
 cd workers/api && npm run migrate:local|migrate:remote
 cd agent && python3 -m pytest tests/

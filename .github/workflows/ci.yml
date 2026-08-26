@@ -41,6 +41,7 @@ jobs:
           cache-dependency-path: workers/api/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm test
 
   agent:
     name: Agent / tests

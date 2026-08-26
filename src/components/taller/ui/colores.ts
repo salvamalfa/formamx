@@ -1,45 +1,20 @@
-import { BLANCO, COLORS } from '../../../config/lamps';
+import { familiaDeHex, familiaLabel, familiaSwatch, FAMILIAS } from '../../../config/colores';
 
-// Colores que puede traer una bobina: blanco (cuerpo) + los 6 del catálogo.
-export const SPOOL_COLORS = [BLANCO, ...COLORS];
+// Colores que puede elegir una bobina del almacén: las 9 familias de
+// src/config/colores.ts (blanco + los 6 del catálogo + gris + negro). El gris
+// y el negro no son configurables en una lámpara pero sí existen como
+// filamento, y sin ellos una ranura gris del AMS no podía emparejar con nada.
+export const SPOOL_COLORS = FAMILIAS;
 
-export const colorLabel = (id: string | null) =>
-  id ? (SPOOL_COLORS.find((c) => c.id === id)?.label ?? id) : 'vacío';
+export const colorLabel = familiaLabel;
+export const colorSwatch = (id: string) => familiaSwatch(id);
 
-export const colorSwatch = (id: string) =>
-  SPOOL_COLORS.find((c) => c.id === id)?.swatch ?? '#ccc';
-
-function hexToRgb(hex: string): [number, number, number] | null {
-  const h = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6,8}$/.test(h)) return null;
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-
-// Nombre común para un hex de bobina que no empató con ningún color del
-// catálogo (p. ej. el AMS reporta un gris que no es exactamente el blanco del
-// catálogo). No intenta precisión: un gris claro, medio u oscuro dicen todos
-// "Gris" — el matiz exacto ya está a la vista en el hex de al lado.
+// Nombre común para un hex de bobina. No intenta precisión: un gris claro,
+// medio u oscuro dicen todos 'Gris' — el matiz exacto ya está a la vista en el
+// hex de al lado. Si no cae en ninguna familia se muestra el hex tal cual.
 export function nearestColorName(hex: string): string {
-  const rgb = hexToRgb(hex);
-  if (!rgb) return hex;
-  const [r, g, b] = rgb;
-  const chroma = Math.max(r, g, b) - Math.min(r, g, b);
-  const lightness = (Math.max(r, g, b) + Math.min(r, g, b)) / 2;
-  if (chroma < 40) {
-    if (lightness > 225) return 'Blanco';
-    if (lightness < 40) return 'Negro';
-    return 'Gris';
-  }
-  let best = SPOOL_COLORS[0];
-  let bestDist = Infinity;
-  for (const c of SPOOL_COLORS) {
-    const crgb = hexToRgb(c.swatch);
-    if (!crgb) continue;
-    const d = Math.hypot(r - crgb[0], g - crgb[1], b - crgb[2]);
-    if (d < bestDist) {
-      bestDist = d;
-      best = c;
-    }
-  }
-  return best.label;
+  const familia = familiaDeHex(hex);
+  return familia ? familiaLabel(familia) : hex;
 }
+
+export { familiaDeBobina, familiaDeHex, familiaDeRanura, mismaFamilia } from '../../../config/colores';

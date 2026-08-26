@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../env';
+import { normalizeUuid, remapBobinas, type RanuraPrevia } from '../lib/ams';
 import { bearer } from '../lib/auth';
-import { isSpoolMaterial, nearestCatalogColor } from '../lib/catalog';
+import { isSpoolMaterial, nearestCatalogColor, normalizeHex } from '../lib/catalog';
 import {
   previewKey,
   purgeCustomPrintFiles,
@@ -129,21 +130,25 @@ async function failStalePrintingJobs(db: D1Database): Promise<void> {
   ]);
 }
 
-// El hex viene de la impresora como RGBA (8 dígitos) o RGB (6); se normaliza
-// a '#RRGGBB' para mostrarlo tal cual en el panel.
-function normalizeHex(raw: unknown): string | null {
-  if (typeof raw !== 'string') return null;
-  const h = raw.replace('#', '');
-  if (!/^[0-9a-fA-F]{6,8}$/.test(h)) return null;
-  return `#${h.slice(0, 6).toUpperCase()}`;
-}
-
 // El agente reporta lo que la impresora dice tener cargado en el AMS
-// (tray_type y tray_color de cada ranura). El color hex se empareja con el
-// catálogo; si no se parece a ninguno queda sin asignar y se corrige a mano.
+// (tray_type, tray_color y, si la bobina trae RFID, tray_uuid de cada ranura).
+// El color hex se empareja con una familia del catálogo; si no se parece a
+// ninguna queda sin asignar y se corrige a mano.
+//
+// Además de refrescar el contenido, esta lectura MUEVE el vínculo con el
+// almacén: si Salva cambió una bobina de ranura, bobina_id se va con ella en
+// vez de quedarse pegado al número de ranura descontando gramos de la bobina
+// equivocada (ver lib/ams.ts para las reglas y sus casos ambiguos).
 agent.post('/ams', async (c) => {
   const body = await c.req
-    .json<{ slots?: Array<{ slot: number; material?: string | null; color_hex?: string | null }> }>()
+    .json<{
+      slots?: Array<{
+        slot: number;
+        material?: string | null;
+        color_hex?: string | null;
+        tray_uuid?: string | null;
+      }>;
+    }>()
     .catch(() => ({}) as { slots?: [] });
   if (!Array.isArray(body.slots)) return c.json({ error: 'slots_requerido' }, 400);
 
@@ -154,20 +159,43 @@ agent.post('/ams', async (c) => {
       color_id: nearestCatalogColor(s.color_hex),
       color_hex: normalizeHex(s.color_hex),
       material: isSpoolMaterial(s.material) ? s.material : null,
+      tray_uuid: normalizeUuid(s.tray_uuid),
     }));
+
+  // Solo se leen las ranuras que este reporte va a tocar: una lectura parcial
+  // no debe soltar el vínculo de una ranura de la que no se dijo nada.
+  const slots = updates.map((s) => s.slot);
+  const { results: previas } = await c.env.DB.prepare(
+    `SELECT slot, material, color_hex, tray_uuid, bobina_id
+       FROM spool_slots WHERE slot IN (${slots.map(() => '?').join(',') || 'NULL'})`,
+  )
+    .bind(...slots)
+    .all<RanuraPrevia>();
+
+  const destino = remapBobinas(previas, updates);
 
   await c.env.DB.batch([
     ...updates.map((s) =>
       c.env.DB.prepare(
-        "UPDATE spool_slots SET color_id = ?, color_hex = ?, material = ?, updated_at = datetime('now') WHERE slot = ?",
-      ).bind(s.color_id, s.color_hex, s.material, s.slot),
+        `UPDATE spool_slots
+            SET color_id = ?, color_hex = ?, material = ?, tray_uuid = ?, bobina_id = ?,
+                updated_at = datetime('now')
+          WHERE slot = ?`,
+      ).bind(
+        s.color_id,
+        s.color_hex,
+        s.material,
+        s.tray_uuid,
+        destino.get(s.slot) ?? null,
+        s.slot,
+      ),
     ),
-    c.env.DB.prepare(
-      "UPDATE printer_flags SET ams_synced_at = datetime('now') WHERE id = 1",
-    ),
+    c.env.DB.prepare("UPDATE printer_flags SET ams_synced_at = datetime('now') WHERE id = 1"),
   ]);
 
-  return c.json({ slots: updates });
+  return c.json({
+    slots: updates.map((s) => ({ ...s, bobina_id: destino.get(s.slot) ?? null })),
+  });
 });
 
 // Transiciones que puede reportar el agente. `printing` repetido actualiza

@@ -13,7 +13,7 @@ import {
 } from '../../../lib/taller';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useSession } from '../hooks/useSession';
-import { colorLabel, colorSwatch, SPOOL_COLORS } from '../ui/colores';
+import { colorLabel, colorSwatch, familiaDeHex, SPOOL_COLORS } from '../ui/colores';
 import { formatSync } from '../ui/format';
 import {
   BOBINA_STATUS_LABEL,
@@ -260,7 +260,7 @@ function BobinaRow({
       <span class="flex min-w-0 items-center gap-2">
         <span
           class="size-4 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.18)]"
-          style={{ background: bobina.color_id ? colorSwatch(bobina.color_id) : '#ccc' }}
+          style={{ background: bobina.color_hex ?? (bobina.color_id ? colorSwatch(bobina.color_id) : '#ccc') }}
         />
         <span class="truncate text-sm font-semibold">{colorLabel(bobina.color_id)}</span>
       </span>
@@ -340,7 +340,7 @@ function BobinaCard({
         <div class="flex items-center gap-2">
           <span
             class="size-5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgba(0,0,0,0.18)]"
-            style={{ background: bobina.color_id ? colorSwatch(bobina.color_id) : '#ccc' }}
+            style={{ background: bobina.color_hex ?? (bobina.color_id ? colorSwatch(bobina.color_id) : '#ccc') }}
           />
           <p class="m-0 text-sm font-semibold">{colorLabel(bobina.color_id)}</p>
         </div>
@@ -398,7 +398,12 @@ function NuevaBobina({
   token: string;
   onCreada: (b: Bobina) => void;
 }) {
+  // El color va en dos piezas: la familia (para agrupar y etiquetar) y el tono
+  // exacto, que es lo que de verdad empareja con lo que reporta el AMS. Elegir
+  // la familia siembra el tono con su swatch, y de ahí se afina al color real
+  // del filamento que Salva tiene en la mano.
   const [colorId, setColorId] = useState('');
+  const [colorHex, setColorHex] = useState('');
   const [material, setMaterial] = useState('PLA');
   const [marca, setMarca] = useState('');
   const [pesoG, setPesoG] = useState('1000');
@@ -417,6 +422,7 @@ function NuevaBobina({
     try {
       const bobina = await createBobina(token, {
         ...(colorId ? { color_id: colorId } : {}),
+        ...(colorHex ? { color_hex: colorHex } : {}),
         ...(material.trim() ? { material: material.trim() } : {}),
         ...(marca.trim() ? { brand: marca.trim() } : {}),
         weight_g: pesoNum,
@@ -437,19 +443,42 @@ function NuevaBobina({
     <div class={`${FORM_CARD} mt-4`}>
       <h3 class="meta-caps m-0 text-[var(--text-muted)]">Nueva bobina</h3>
       <div class="mt-3 flex flex-col gap-3">
-        <select
-          class="input-brand"
-          aria-label="Color"
-          value={colorId}
-          onChange={(e) => setColorId((e.target as HTMLSelectElement).value)}
-        >
-          <option value="">Elige el color</option>
-          {SPOOL_COLORS.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+        <div class="flex items-center gap-2">
+          <select
+            class="input-brand min-w-0 flex-1"
+            aria-label="Color"
+            value={colorId}
+            onChange={(e) => {
+              const id = (e.target as HTMLSelectElement).value;
+              setColorId(id);
+              setColorHex(id ? colorSwatch(id).toUpperCase() : '');
+            }}
+          >
+            <option value="">Elige el color</option>
+            {SPOOL_COLORS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="color"
+            aria-label="Tono exacto"
+            title="Tono exacto del filamento"
+            class="size-9 shrink-0 cursor-pointer rounded border border-[var(--border-soft)] bg-[var(--surface-card)] p-0.5 disabled:cursor-default disabled:opacity-50"
+            disabled={!colorId}
+            value={colorHex || '#FFFFFF'}
+            onInput={(e) => {
+              // El tono manda: si Salva lo arrastra hasta otra familia, el
+              // select la sigue. El worker deriva la familia del hex de todas
+              // formas, así que dejarlos discrepar solo mentiría en pantalla.
+              const v = (e.target as HTMLInputElement).value.toUpperCase();
+              setColorHex(v);
+              const familia = familiaDeHex(v);
+              if (familia) setColorId(familia);
+            }}
+          />
+        </div>
         <input
           type="text"
           class="input-brand"

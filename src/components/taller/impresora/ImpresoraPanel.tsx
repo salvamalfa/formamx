@@ -9,7 +9,14 @@ import {
 import { useTallerCore } from '../coreData';
 import { useSession } from '../hooks/useSession';
 import { JOB_STATUS_LABEL, PART_LABEL } from '../pedidos/labels';
-import { colorLabel, colorSwatch, nearestColorName } from '../ui/colores';
+import {
+  colorLabel,
+  colorSwatch,
+  familiaDeBobina,
+  familiaDeRanura,
+  mismaFamilia,
+  nearestColorName,
+} from '../ui/colores';
 import { formatSync, shortId } from '../ui/format';
 import { PiezasClientes } from './PiezasClientes';
 
@@ -262,20 +269,25 @@ function BobinasAms({
           const swatch = hex ?? (catalogId ? colorSwatch(catalogId) : 'transparent');
           const pct = empty ? null : getPorcentaje(spool);
           const bajo = pct != null && pct < 20;
-          // Candidatas: TODAS las bobinas vivas, con las del mismo material
-          // primero — pero nunca se esconden las demás. Filtrar en vez de
-          // ordenar dejaba la ranura sin ninguna opción vinculable con solo
-          // que el material no calzara exacto (mayúsculas, "PLA" vs "PLA+",
-          // etc.), lo que se veía igual que un bug ("no puedo vincular").
-          // El color tampoco filtra: el AMS a veces reporta un hex que no
-          // calza exacto con la bobina real.
-          const candidatas = [...bobinas]
-            .filter((b) => b.status !== 'agotada')
-            .sort((a, b) => {
-              const am = spool?.material && a.material === spool.material ? 0 : 1;
-              const bm = spool?.material && b.material === spool.material ? 0 : 1;
-              return am - bm;
-            });
+          // Candidatas en DOS grupos, nunca un filtro duro. Arriba las que
+          // hacen juego: misma familia de color y mismo material. Abajo el
+          // resto, porque esconderlas ya se vio como un bug ("no puedo
+          // vincular") cuando el material no calzaba exacto ("PLA" vs "PLA+",
+          // mayúsculas) o cuando el AMS reportaba un hex raro.
+          // La familia tolera tonos: un blanco hueso #F4F4F2 de la repisa
+          // empareja con la ranura que la impresora reporta como #FFFFFF
+          // porque ambos son 'blanco'. Comparar hex exactos no serviría.
+          const familiaRanura = familiaDeRanura({ color_hex: hex, color_id: catalogId });
+          const vivas = bobinas.filter((b) => b.status !== 'agotada');
+          const hacenJuego = vivas.filter(
+            (b) =>
+              mismaFamilia(familiaRanura, familiaDeBobina(b)) &&
+              (!spool?.material || b.material.toLowerCase() === spool.material.toLowerCase()),
+          );
+          const juegoIds = new Set(hacenJuego.map((b) => b.id));
+          const resto = vivas.filter((b) => !juegoIds.has(b.id));
+          const etiqueta = (b: Bobina) =>
+            `${colorLabel(b.color_id)} · ${b.material} · ${b.weight_left_g} g`;
           return (
             <div key={slot}>
               <div class="mb-2 flex items-center gap-2">
@@ -320,11 +332,24 @@ function BobinasAms({
                     }}
                   >
                     <option value="">Sin vincular</option>
-                    {candidatas.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {colorLabel(b.color_id)} · {b.material} · {b.weight_left_g} g
-                      </option>
-                    ))}
+                    {hacenJuego.length > 0 && (
+                      <optgroup label="Del mismo color">
+                        {hacenJuego.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {etiqueta(b)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {resto.length > 0 && (
+                      <optgroup label={hacenJuego.length > 0 ? 'Otros' : 'Ninguna hace juego'}>
+                        {resto.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {etiqueta(b)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </label>
               )}
