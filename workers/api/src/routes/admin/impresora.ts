@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../../env';
+import { activateBobina } from '../../lib/inventario';
 import { shapeJob, type PrintJobRow } from '../../lib/jobs';
 
 export const impresora = new Hono<AppContext>();
@@ -96,5 +97,8 @@ impresora.patch('/spools/:slot', async (c) => {
   )
     .bind(bobinaId, slot)
     .run();
+  // Vincularla a una ranura es lo que la pone "en uso" — no hay botón manual
+  // para eso (ver activateBobina).
+  if (bobinaId !== null) await activateBobina(c.env.DB, bobinaId);
   return c.json({ slot, bobina_id: bobinaId });
 });
