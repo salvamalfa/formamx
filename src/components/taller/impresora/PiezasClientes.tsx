@@ -402,25 +402,29 @@ function PiezaCard({
 
       {tieneEstimado && (
         <div class="relative z-10 -mt-3 mx-3 rounded-[var(--radius-s)] bg-[var(--surface-card)] p-3 text-[13px] shadow-[var(--shadow-card)]">
-          <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--text-muted)]">
-            <span>{formatDuracion(pieza.est_seconds!)}</span>
-            <span>{pieza.est_grams} g</span>
-            {pieza.material && <span>{pieza.material}</span>}
-            {pieza.color_id && <span>{colorLabel(pieza.color_id)}</span>}
-            <span>{pieza.supports === 'auto' ? 'con soportes' : 'sin soportes'}</span>
-          </div>
-          <div class="mt-2 flex items-center justify-end border-t border-[var(--border-soft)] pt-2">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex min-w-0 flex-col gap-0.5 text-[11px] text-[var(--text-muted)]">
+              <span class="flex flex-wrap items-center gap-x-1.5">
+                <span>{formatDuracion(pieza.est_seconds!)}</span>
+                <span>{pieza.est_grams} g</span>
+              </span>
+              <span class="flex flex-wrap items-center gap-x-1.5">
+                {pieza.material && <span>{pieza.material}</span>}
+                {pieza.color_id && <span>{colorLabel(pieza.color_id)}</span>}
+                <span>{pieza.supports === 'auto' ? 'con soportes' : 'sin soportes'}</span>
+              </span>
+            </div>
             {pieza.cost_breakdown ? (
               <button
                 type="button"
-                class="inline-flex cursor-pointer items-center gap-1 font-semibold text-[var(--text-body)] hover:text-[var(--azul-oscuro)]"
+                class="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[15px] font-semibold text-[var(--text-body)] hover:text-[var(--azul-oscuro)]"
                 onClick={() => setCalculadora((v) => !v)}
               >
                 {formatMxn(pieza.price_override_mxn ?? pieza.price_mxn!)}
                 <span aria-hidden="true">{calculadora ? '⌄' : '›'}</span>
               </button>
             ) : (
-              <span class="text-[var(--text-faint)]">—</span>
+              <span class="shrink-0 text-[var(--text-faint)]">—</span>
             )}
           </div>
           {calculadora && pieza.cost_breakdown && <Desglose pieza={pieza} onPrecio={onPrecio} />}
