@@ -7,6 +7,13 @@ updates:
     groups:
       site-dependencies:
         patterns: ['*']
+    ignore:
+      # @astrojs/check declara peer typescript@"^5.0.0 || ^6.0.0", asi que el
+      # major 7 rompe `npm ci` con ERESOLVE y bloquea todo el grupo. Se bloquea
+      # solo 7+, NO el major en general: TS 6 si entra dentro del rango que
+      # Astro acepta. Quitar cuando Astro soporte TS 7.
+      - dependency-name: typescript
+        versions: ['>= 7']
 
   - package-ecosystem: npm
     directory: /workers/api
@@ -15,6 +22,11 @@ updates:
     groups:
       worker-dependencies:
         patterns: ['*']
+    ignore:
+      # Mismo motivo que en la raiz: se mantienen los dos paquetes en la misma
+      # linea de TypeScript para no divergir entre sitio y worker.
+      - dependency-name: typescript
+        versions: ['>= 7']
 
   - package-ecosystem: pip
     directory: /agent
