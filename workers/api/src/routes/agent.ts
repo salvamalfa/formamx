@@ -3,7 +3,7 @@ import type { AppContext } from '../env';
 import { normalizeUuid, remapBobinas, type RanuraPrevia } from '../lib/ams';
 import { bearer } from '../lib/auth';
 import { isSpoolMaterial, nearestCatalogColor, normalizeHex } from '../lib/catalog';
-import { activateBobina } from '../lib/inventario';
+import { syncBobinaEstados } from '../lib/inventario';
 import {
   previewKey,
   purgeCustomPrintFiles,
@@ -194,10 +194,10 @@ agent.post('/ams', async (c) => {
     c.env.DB.prepare("UPDATE printer_flags SET ams_synced_at = datetime('now') WHERE id = 1"),
   ]);
 
-  // Toda bobina que queda vinculada a una ranura (ya lo estaba o se le
-  // acaba de mover el vínculo) pasa a en_uso; no-op si no estaba 'nueva'.
-  const bobinaIds = new Set([...destino.values()].filter((id): id is string => id !== null));
-  await Promise.all([...bobinaIds].map((id) => activateBobina(c.env.DB, id)));
+  // en_uso sigue al AMS: toda bobina que queda vinculada a una ranura pasa a
+  // en_uso, y la que se soltó (el AMS ya no la reporta en ningún lado) vuelve
+  // a nueva.
+  await syncBobinaEstados(c.env.DB);
 
   return c.json({
     slots: updates.map((s) => ({ ...s, bobina_id: destino.get(s.slot) ?? null })),
