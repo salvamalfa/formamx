@@ -63,6 +63,30 @@ Migraciones D1: numeración 4 dígitos, un tema por archivo, NUNCA editar una
 aplicada, enums sin CHECK. Orden de deploy: migración remota → worker →
 merge del sitio.
 
+### Quién despliega (aplica a Claude, local y nube)
+
+El sitio se despliega solo al mergear a `master`. El Worker **no**: es un
+paso aparte y es trabajo de Claude, no de Salva. Tras mergear algo de
+`workers/api`, desplegarlo con `npm run deploy`. Dos condiciones:
+
+1. **Decir siempre qué se desplegó.** Nunca en silencio.
+2. **Preguntar antes si el cambio toca cobros de verdad** — lógica de
+   Stripe, precios, webhook de pagos. Subir la versión de la librería de
+   Stripe no cuenta; cambiar cómo se cobra, sí.
+
+Auth de wrangler: `CLOUDFLARE_API_TOKEN` por variable de entorno. En las
+sesiones de nube ya está puesta con "Edit environment" de la app. En local
+es una variable de usuario de Windows; como los procesos ya arrancados no
+ven una variable recién creada, se lee del registro dentro del mismo
+comando, sin imprimirla:
+
+```powershell
+$env:CLOUDFLARE_API_TOKEN = [Environment]::GetEnvironmentVariable('CLOUDFLARE_API_TOKEN','User'); npm run deploy
+```
+
+El token JAMÁS va en `.claude/settings.json` — ese archivo sí se commitea
+(ver `.gitignore`). Tampoco en ningún otro archivo.
+
 ## Secretos y cuentas (nada de secretos ni STL/3MF en git)
 
 El repo es **privado** desde julio 2026 (fue público). Eso NO relaja las
