@@ -57,19 +57,41 @@ export function canTransitionBobina(from: string, to: string): boolean {
   return (BOBINA_TRANSITIONS[from as BobinaStatus] ?? []).includes(to as BobinaStatus);
 }
 
-// Vincular una bobina a una ranura del AMS es lo que de verdad la pone en
-// uso — no un botón aparte. Se llama tanto al vincular a mano (PATCH
-// /spools/:slot) como al re-mapear sola tras leer el AMS (POST /agent/ams);
-// no-op si ya estaba en_uso o agotada, así que es seguro llamarla siempre
-// que una ranura queda con bobina_id.
-export async function activateBobina(db: D1Database, bobinaId: string): Promise<void> {
-  await db
-    .prepare(
-      `UPDATE bobinas SET status = 'en_uso', updated_at = datetime('now')
-       WHERE id = ? AND status = 'nueva'`,
-    )
-    .bind(bobinaId)
-    .run();
+// en_uso sigue al AMS en tiempo real: no es un estado que se acumula, es
+// "esta bobina está vinculada a una ranura AHORA MISMO". Se recalcula desde
+// spool_slots.bobina_id tras cada vínculo/desvínculo, manual (PATCH
+// /spools/:slot) o automático (POST /agent/ams) — así una bobina que se
+// desvincula (a mano, o porque el AMS la movió de ranura) vuelve sola a
+// 'nueva' en vez de quedarse marcada "en uso" para siempre. agotada nunca se
+// toca aquí: agotarla sigue siendo decisión explícita de Salva.
+export async function syncBobinaEstados(db: D1Database): Promise<void> {
+  const { results } = await db
+    .prepare('SELECT DISTINCT bobina_id FROM spool_slots WHERE bobina_id IS NOT NULL')
+    .all<{ bobina_id: string }>();
+  const ids = results.map((r) => r.bobina_id);
+
+  if (ids.length === 0) {
+    await db
+      .prepare("UPDATE bobinas SET status = 'nueva', updated_at = datetime('now') WHERE status = 'en_uso'")
+      .run();
+    return;
+  }
+
+  const placeholders = ids.map(() => '?').join(',');
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE bobinas SET status = 'nueva', updated_at = datetime('now')
+         WHERE status = 'en_uso' AND id NOT IN (${placeholders})`,
+      )
+      .bind(...ids),
+    db
+      .prepare(
+        `UPDATE bobinas SET status = 'en_uso', updated_at = datetime('now')
+         WHERE status = 'nueva' AND id IN (${placeholders})`,
+      )
+      .bind(...ids),
+  ]);
 }
 
 export function canTransitionPieza(from: string, to: string): boolean {

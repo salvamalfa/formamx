@@ -1084,9 +1084,11 @@ test.describe('piezas de clientes', () => {
     await expect(main.getByText('Azul', { exact: true })).toBeVisible();
     await expect(main.getByText('con soportes')).toBeVisible();
     await expect(main.getByText('2.3 MB')).toBeVisible();
-    // Costo/precio calculados por pricing.ts al rebanar (Fase 3e).
-    await expect(main.getByText('$50 MXN')).toBeVisible();
+    // Precio calculado por pricing.ts al rebanar (Fase 3e); el costo vive
+    // dentro del desglose, colapsado por defecto.
     await expect(main.getByText('$200 MXN')).toBeVisible();
+    await main.getByRole('button', { name: /Precio/ }).click();
+    await expect(main.getByText('$50 MXN')).toBeVisible();
   });
 
   test('una pieza terminada aparece en Histórico, no en Pendientes', async ({ page }) => {
