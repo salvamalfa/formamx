@@ -66,8 +66,13 @@ merge del sitio.
 ### Quién despliega (aplica a Claude, local y nube)
 
 El sitio se despliega solo al mergear a `master`. El Worker **no**: es un
-paso aparte y es trabajo de Claude, no de Salva. Tras mergear algo de
-`workers/api`, desplegarlo con `npm run deploy`. Dos condiciones:
+paso aparte y es trabajo de Claude, no de Salva — y va **antes** del merge
+del sitio, nunca después (mismo orden de `docs/ROADMAP_ARQUITECTURA.md` §8:
+migración remota → deploy del worker → merge del sitio). Si un PR toca
+`workers/api`, desplegarlo con `cd workers/api && npm run deploy` desde la
+rama antes de dejar que el merge del sitio aterrice — el frontend nuevo
+nunca debe quedar en producción llamando a un worker que todavía no tiene
+esa ruta. Dos condiciones:
 
 1. **Decir siempre qué se desplegó.** Nunca en silencio.
 2. **Preguntar antes si el cambio toca cobros de verdad** — lógica de
@@ -81,7 +86,7 @@ ven una variable recién creada, se lee del registro dentro del mismo
 comando, sin imprimirla:
 
 ```powershell
-$env:CLOUDFLARE_API_TOKEN = [Environment]::GetEnvironmentVariable('CLOUDFLARE_API_TOKEN','User'); npm run deploy
+cd workers/api; $env:CLOUDFLARE_API_TOKEN = [Environment]::GetEnvironmentVariable('CLOUDFLARE_API_TOKEN','User'); npm run deploy
 ```
 
 El token JAMÁS va en `.claude/settings.json` — ese archivo sí se commitea
