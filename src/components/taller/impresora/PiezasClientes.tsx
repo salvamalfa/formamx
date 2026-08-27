@@ -372,28 +372,25 @@ function PiezaCard({
 
       {tieneEstimado && (
         <div class="relative z-10 -mt-3 mx-3 rounded-[var(--radius-s)] bg-[var(--surface-card)] p-3 text-[13px] shadow-[var(--shadow-card)]">
-          <div class="flex flex-nowrap items-center gap-x-2 overflow-x-auto text-[11px] whitespace-nowrap text-[var(--text-muted)]">
-            <span>{formatDuracion(pieza.est_seconds!)}</span>
-            <span>{pieza.est_grams} g</span>
-            {pieza.material && <span>{pieza.material}</span>}
-            {pieza.color_id && <span>{colorLabel(pieza.color_id)}</span>}
-            <span>{pieza.supports === 'auto' ? 'con soportes' : 'sin soportes'}</span>
-          </div>
-          <div class="mt-2 flex items-center justify-end border-t border-[var(--border-soft)] pt-2">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex flex-nowrap items-center gap-x-2 overflow-x-auto whitespace-nowrap text-[11px] text-[var(--text-muted)]">
+              <span>{formatDuracion(pieza.est_seconds!)}</span>
+              <span>{pieza.est_grams} g</span>
+              {pieza.material && <span>{pieza.material}</span>}
+              {pieza.color_id && <span>{colorLabel(pieza.color_id)}</span>}
+              <span>{pieza.supports === 'auto' ? 'con soportes' : 'sin soportes'}</span>
+            </div>
             {pieza.cost_breakdown ? (
               <button
                 type="button"
-                class="inline-flex cursor-pointer items-center gap-1 text-[var(--text-faint)] hover:text-[var(--text-body)]"
+                class="inline-flex shrink-0 cursor-pointer items-center gap-1 font-semibold text-[var(--text-body)] hover:text-[var(--action)]"
                 onClick={() => setCalculadora((v) => !v)}
               >
-                Precio{' '}
-                <strong class="font-semibold text-[var(--text-body)]">
-                  {formatMxn(pieza.price_override_mxn ?? pieza.price_mxn!)}
-                </strong>
+                {formatMxn(pieza.price_override_mxn ?? pieza.price_mxn!)}
                 <span aria-hidden="true">{calculadora ? '⌄' : '›'}</span>
               </button>
             ) : (
-              <span class="text-[var(--text-faint)]">Precio —</span>
+              <span class="shrink-0 text-[var(--text-faint)]">—</span>
             )}
           </div>
           {calculadora && pieza.cost_breakdown && <Desglose pieza={pieza} onPrecio={onPrecio} />}
@@ -464,21 +461,24 @@ function Desglose({
   const precioActual = pieza.price_override_mxn ?? pieza.price_mxn!;
   const margenActual = costo > 0 ? Math.round(((precioActual - costo) / costo) * 100) : 0;
 
-  const [editando, setEditando] = useState<'precio' | 'margen' | null>(null);
+  const [editando, setEditando] = useState(false);
   const [valorPrecio, setValorPrecio] = useState(() => String(Math.round(precioActual / 100)));
+  // El margen no tiene modo de edición ni botón Guardar: es un solo input
+  // siempre activo, y cada cambio (flechitas o tecleado) manda el precio
+  // resultante de inmediato — subir o bajar el número ES la acción.
   const [valorMargen, setValorMargen] = useState(() => String(margenActual));
 
   const guardarPrecio = () => {
     const pesos = Number(valorPrecio);
     if (!Number.isFinite(pesos) || pesos < 0) return;
     onPrecio(Math.round(pesos * 100));
-    setEditando(null);
+    setEditando(false);
   };
-  const guardarMargen = () => {
-    const pct = Number(valorMargen);
+  const cambiarMargen = (texto: string) => {
+    setValorMargen(texto);
+    const pct = Number(texto);
     if (!Number.isFinite(pct)) return;
     onPrecio(Math.round(costo * (1 + pct / 100)));
-    setEditando(null);
   };
 
   return (
@@ -512,36 +512,20 @@ function Desglose({
 
       <div class="mt-1 flex items-center justify-between">
         <span class="text-[var(--text-faint)]">Margen</span>
-        {editando === 'margen' ? (
-          <div class="flex items-center gap-1.5">
-            <input
-              type="number"
-              class="w-14 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-0.5 text-right"
-              value={valorMargen}
-              onInput={(e) => setValorMargen((e.currentTarget as HTMLInputElement).value)}
-            />
-            <span class="text-[var(--text-faint)]">%</span>
-            <button type="button" class="btn btn-sm btn-primary" onClick={guardarMargen}>
-              Guardar
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            class="cursor-pointer text-[var(--text-body)] hover:underline"
-            onClick={() => {
-              setValorMargen(String(margenActual));
-              setEditando('margen');
-            }}
-          >
-            {margenActual}%
-          </button>
-        )}
+        <div class="flex items-center gap-1.5">
+          <input
+            type="number"
+            class="w-14 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-0.5 text-right"
+            value={valorMargen}
+            onInput={(e) => cambiarMargen((e.currentTarget as HTMLInputElement).value)}
+          />
+          <span class="text-[var(--text-faint)]">%</span>
+        </div>
       </div>
 
       <div class="mt-2 flex items-center justify-between border-t border-[var(--border-soft)] pt-2">
         <span class="text-[var(--text-faint)]">Precio</span>
-        {editando === 'precio' ? (
+        {editando ? (
           <div class="flex items-center gap-1.5">
             <span class="text-[var(--text-faint)]">$</span>
             <input
@@ -572,7 +556,7 @@ function Desglose({
               class="btn btn-sm btn-ghost-claro"
               onClick={() => {
                 setValorPrecio(String(Math.round(precioActual / 100)));
-                setEditando('precio');
+                setEditando(true);
               }}
             >
               Editar

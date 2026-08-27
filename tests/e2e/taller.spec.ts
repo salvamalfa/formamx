@@ -1087,7 +1087,7 @@ test.describe('piezas de clientes', () => {
     // Precio calculado por pricing.ts al rebanar (Fase 3e); el costo vive
     // dentro del desglose, colapsado por defecto.
     await expect(main.getByText('$200 MXN')).toBeVisible();
-    await main.getByRole('button', { name: /Precio/ }).click();
+    await main.getByRole('button', { name: '$200 MXN' }).click();
     await expect(main.getByText('$50 MXN')).toBeVisible();
   });
 
