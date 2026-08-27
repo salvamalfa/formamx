@@ -58,10 +58,16 @@ este documento cubre SOLO este proyecto.)
   necesita que ambos lados decidan igual.
 - **Vínculo ranura↔bobina** (`spool_slots.bobina_id`): lo pone Salva a mano en
   "Bobina del almacén" y de ahí sale el peso restante real. El desplegable
-  agrupa por familia (arriba las que hacen juego, abajo el resto — nunca se
-  esconde una opción), y tolera tonos: un blanco hueso de la repisa empareja
-  con la ranura que la impresora reporta como #FFFFFF porque `bobinas.color_hex`
-  (0023) guarda el tono real, no solo la familia.
+  filtra DURO por familia de color (0026: solo aparecen bobinas de la misma
+  familia que la ranura — nunca otro color) y tolera tonos: un blanco hueso de
+  la repisa empareja con la ranura que la impresora reporta como #FFFFFF
+  porque `bobinas.color_hex` (0023) guarda el tono real, no solo la familia.
+  El material NO filtra (la impresora lo reporta con nombres que no calzan
+  exacto, "PLA" vs "PLA Basic"): es solo parte de la etiqueta de cada opción,
+  junto con el campo "detalle" (antes "marca") con el que Salva distingue dos
+  bobinas del mismo color — p. ej. dos azules genéricos de lotes distintos —
+  y el peso restante. Vincularla pone la bobina en `en_uso` sola
+  (`activateBobina`, `lib/inventario.ts`): no hay botón manual para eso.
 - **El vínculo sigue a la bobina, no a la ranura** (`workers/api/src/lib/ams.ts`):
   en cada lectura del AMS se recalcula a dónde va cada `bobina_id`. Primero el
   `tray_uuid` del RFID (solo filamento Bambu), luego la firma material+tono

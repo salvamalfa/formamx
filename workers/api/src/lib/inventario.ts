@@ -57,6 +57,21 @@ export function canTransitionBobina(from: string, to: string): boolean {
   return (BOBINA_TRANSITIONS[from as BobinaStatus] ?? []).includes(to as BobinaStatus);
 }
 
+// Vincular una bobina a una ranura del AMS es lo que de verdad la pone en
+// uso — no un botón aparte. Se llama tanto al vincular a mano (PATCH
+// /spools/:slot) como al re-mapear sola tras leer el AMS (POST /agent/ams);
+// no-op si ya estaba en_uso o agotada, así que es seguro llamarla siempre
+// que una ranura queda con bobina_id.
+export async function activateBobina(db: D1Database, bobinaId: string): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE bobinas SET status = 'en_uso', updated_at = datetime('now')
+       WHERE id = ? AND status = 'nueva'`,
+    )
+    .bind(bobinaId)
+    .run();
+}
+
 export function canTransitionPieza(from: string, to: string): boolean {
   return (PIEZA_TRANSITIONS[from as PiezaStatus] ?? []).includes(to as PiezaStatus);
 }
