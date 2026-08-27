@@ -46,6 +46,34 @@ export function IconBorrar({ class: className }: IconProps) {
   );
 }
 
+// Reinicia un ajuste manual (p. ej. "Quitar ajuste" de precio): flecha
+// circular en sentido contrario a IconRebanar, mismo lenguaje visual.
+export function IconReiniciar({ class: className }: IconProps) {
+  return (
+    <svg {...base} class={className} aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-3-6.7" />
+      <path d="M21 4v5h-5" />
+    </svg>
+  );
+}
+
+export function IconEditar({ class: className }: IconProps) {
+  return (
+    <svg {...base} class={className} aria-hidden="true">
+      <path d="M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6" />
+      <path d="M18.4 2.6a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+export function IconGuardar({ class: className }: IconProps) {
+  return (
+    <svg {...base} class={className} aria-hidden="true">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
 export function IconAjustes({ class: className }: IconProps) {
   return (
     <svg {...base} class={className} aria-hidden="true">

@@ -16,7 +16,7 @@ import {
 } from '../../../lib/taller';
 import { useSession } from '../hooks/useSession';
 import { colorLabel, colorSwatch } from '../ui/colores';
-import { IconBorrar, IconRebanar, IconUpload } from '../ui/icons';
+import { IconBorrar, IconEditar, IconGuardar, IconReiniciar, IconRebanar, IconUpload } from '../ui/icons';
 
 // Card "Piezas de clientes": subir un STL, pedir su rebanado con el material y
 // color que hay cargados en el AMS, y revisar el estimado antes de imprimir.
@@ -270,6 +270,36 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
   );
 }
 
+// Icono chico sin borde, para acciones pegadas unas a otras dentro de una
+// línea de texto (el desglose de precio) — IconButton (círculo con borde) es
+// demasiado grande ahí y con texto ("Editar", "Guardar") las tres acciones
+// no cabían sin encimarse.
+function MiniIconButton({
+  title,
+  onClick,
+  tono,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  tono?: 'verde';
+  children: ComponentChildren;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      class={`inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded transition-colors hover:bg-[var(--hueso)] ${
+        tono === 'verde' ? 'text-[var(--bosque)]' : 'text-[var(--text-faint)] hover:text-[var(--text-body)]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function IconButton({
   title,
   onClick,
@@ -372,7 +402,7 @@ function PiezaCard({
 
       {tieneEstimado && (
         <div class="relative z-10 -mt-3 mx-3 rounded-[var(--radius-s)] bg-[var(--surface-card)] p-3 text-[13px] shadow-[var(--shadow-card)]">
-          <div class="flex flex-nowrap items-center gap-x-2 overflow-x-auto whitespace-nowrap text-[11px] text-[var(--text-muted)]">
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--text-muted)]">
             <span>{formatDuracion(pieza.est_seconds!)}</span>
             <span>{pieza.est_grams} g</span>
             {pieza.material && <span>{pieza.material}</span>}
@@ -549,32 +579,27 @@ function Desglose({
               value={valorPrecio}
               onInput={(e) => setValorPrecio((e.currentTarget as HTMLInputElement).value)}
             />
-            <button type="button" class="btn btn-sm btn-primary" onClick={guardarPrecio}>
-              Guardar
-            </button>
+            <MiniIconButton title="Guardar precio" tono="verde" onClick={guardarPrecio}>
+              <IconGuardar class="size-3.5" />
+            </MiniIconButton>
           </div>
         ) : (
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1">
             <strong class="font-semibold text-[var(--text-body)]">{formatMxn(precioActual)}</strong>
             {pieza.price_override_mxn != null && (
-              <button
-                type="button"
-                class="cursor-pointer text-[var(--text-faint)] underline hover:text-[var(--text-body)]"
-                onClick={() => onPrecio(null)}
-              >
-                Quitar ajuste
-              </button>
+              <MiniIconButton title="Quitar ajuste" onClick={() => onPrecio(null)}>
+                <IconReiniciar class="size-3.5" />
+              </MiniIconButton>
             )}
-            <button
-              type="button"
-              class="btn btn-sm btn-ghost-claro"
+            <MiniIconButton
+              title="Editar precio"
               onClick={() => {
                 setValorPrecio(String(Math.round(precioActual / 100)));
                 setEditando(true);
               }}
             >
-              Editar
-            </button>
+              <IconEditar class="size-3.5" />
+            </MiniIconButton>
           </div>
         )}
       </div>
