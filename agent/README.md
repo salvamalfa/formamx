@@ -22,22 +22,22 @@ dashboard.
 
 ```powershell
 # 1. Carpeta de trabajo y código (dentro de tu carpeta de FORMA, que ya existe)
-mkdir C:\Users\salva\Desktop\FORMA\04-Web\formamx
-cd C:\Users\salva\Desktop\FORMA\04-Web\formamx
+mkdir C:\Users\salva\Desktop\FORMA\06-Web\formamx
+cd C:\Users\salva\Desktop\FORMA\06-Web\formamx
 git clone https://github.com/salvamalfa/formamx.git repo
 # (el repo es privado: git te pedirá iniciar sesión en GitHub la primera vez)
 cd repo\agent
 pip install -r requirements.txt
 
 # 2. Configuración (nunca al repo: lleva el token)
-copy config.example.toml C:\Users\salva\Desktop\FORMA\04-Web\formamx\config.toml
-notepad C:\Users\salva\Desktop\FORMA\04-Web\formamx\config.toml
+copy config.example.toml C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml
+notepad C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml
 #   → pega agent_token, serial de la impresora, y revisa ip/access_code
 
 # 3. Carpeta de los 3MF rebanados
-mkdir C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\pantalla
-mkdir C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\cuerpo
-mkdir C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\tapa
+mkdir C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\pantalla
+mkdir C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\cuerpo
+mkdir C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\tapa
 ```
 
 Cada lámpara son **3 impresiones separadas** (pantalla, cuerpo, tapa). Los 3MF
@@ -49,9 +49,9 @@ perfil con el que rebanas queda grabado en el G-code (temperaturas,
 velocidades), así que cada archivo es de UN material y el nombre lo declara:
 
 ```
-C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\pantalla\tessera.petg.gcode.3mf   (y diamond, fluted... según el material)
-C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\cuerpo\cuerpo.pla.gcode.3mf
-C:\Users\salva\Desktop\FORMA\04-Web\formamx\3mf\tapa\tapa.pla.gcode.3mf
+C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\pantalla\tessera.petg.gcode.3mf   (y diamond, fluted... según el material)
+C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\cuerpo\cuerpo.pla.gcode.3mf
+C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\tapa\tapa.pla.gcode.3mf
 ```
 
 El agente elige el archivo según el material de la ranura que va a usar: si
@@ -78,10 +78,10 @@ porque el CLI no resuelve la herencia de perfiles y rebanaría con valores por
 defecto en silencio — cama a 35 °C y piezas despegadas:
 
 ```powershell
-cd C:\Users\salva\Desktop\FORMA\04-Web\formamx\repo\agent
+cd C:\Users\salva\Desktop\FORMA\06-Web\formamx\repo\agent
 python -m formamx_agent.flatten_profiles `
   "C:\Program Files\Bambu Studio\resources\profiles\BBL" `
-  C:\Users\salva\Desktop\FORMA\04-Web\formamx\perfiles
+  C:\Users\salva\Desktop\FORMA\06-Web\formamx\perfiles
 ```
 
 Deja escritos `machine.json`, `process_estandar.json`, `filament_pla.json` y
@@ -115,8 +115,8 @@ Con `dry_run = true` en el config, el agente simula las impresiones: despacha
 un pedido desde `/taller` y ve avanzar el progreso en el dashboard.
 
 ```powershell
-cd C:\Users\salva\Desktop\FORMA\04-Web\formamx\repo\agent
-python -m formamx_agent C:\Users\salva\Desktop\FORMA\04-Web\formamx\config.toml
+cd C:\Users\salva\Desktop\FORMA\06-Web\formamx\repo\agent
+python -m formamx_agent C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml
 ```
 
 Cuando el ensayo se vea bien: pon `dry_run = false` y haz una impresión de
@@ -128,15 +128,15 @@ En PowerShell **como administrador**:
 
 ```powershell
 schtasks /Create /TN "formamx-agent" /SC ONLOGON /RL LIMITED `
-  /TR "'C:\Windows\py.exe' -3 -m formamx_agent C:\Users\salva\Desktop\FORMA\04-Web\formamx\config.toml" `
+  /TR "'C:\Windows\py.exe' -3 -m formamx_agent C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml" `
   /IT
 ```
 
 (o Programador de tareas → Crear tarea básica → Al iniciar sesión → Iniciar un
-programa: `py -3 -m formamx_agent C:\Users\salva\Desktop\FORMA\04-Web\formamx\config.toml`,
-"Iniciar en": `C:\Users\salva\Desktop\FORMA\04-Web\formamx\repo\agent`.)
+programa: `py -3 -m formamx_agent C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml`,
+"Iniciar en": `C:\Users\salva\Desktop\FORMA\06-Web\formamx\repo\agent`.)
 
-El log queda en `C:\Users\salva\Desktop\FORMA\04-Web\formamx\agent.log`.
+El log queda en `C:\Users\salva\Desktop\FORMA\06-Web\formamx\agent.log`.
 
 ## Entre impresiones: el candado de cama
 
