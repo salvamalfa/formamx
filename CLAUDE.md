@@ -7,6 +7,10 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
 
 ## Documentos por área — léelos según el tema
 
+- **Entender cómo encaja todo hoy** (las tres piezas, el viaje de un pedido,
+  el esquema de D1, el mapa de carpetas) → `docs/ARQUITECTURA.md`. Es el
+  retrato de lo que existe, con diagramas Mermaid que GitHub dibuja solo; hay
+  que mantenerlo al día (ver "Mantener el mapa de arquitectura" más abajo).
 - **Configurador de lámparas, dashboard /taller (sección Impresión 3D),
   agente local, Bambu A1, AMS, trabajos de impresión** →
   lee `docs/IMPRESION_3D.md` ANTES de tocar cualquiera de esas piezas.
@@ -181,6 +185,35 @@ Ramas: `master` es la única de larga vida (= producción). Cada cambio va en
 una rama corta desde `master`, se squash-mergea y muere; nunca se apilan
 commits sobre una rama ya mergeada (se reinicia desde `master`). Sin
 worktrees ni ramas de entorno.
+
+## Mantener el mapa de arquitectura
+
+`docs/ARQUITECTURA.md` es el retrato de lo que existe hoy y solo sirve si no
+miente. Se actualiza **en el mismo PR** que introduce el cambio, nunca después
+ni en un PR aparte.
+
+Actualízalo cuando el PR haga alguno de estos, y solo entonces:
+
+- Agrega, quita o renombra una **tabla de D1**, o cambia una relación entre
+  tablas (§3 y el diagrama ER).
+- Agrega un **módulo a /taller** o un grupo de rutas nuevo en el Worker (§1 y
+  §4).
+- Cambia el **grafo de estados** de un pedido o de un trabajo de impresión (§2).
+- Suma o quita una **pieza del sistema** o un servicio externo (§1 y §5): otro
+  binding de Cloudflare, otra máquina, otro proveedor de pago.
+- Cambia una **frontera de seguridad**: quién puede llamar qué, con qué token
+  (§5).
+- Implementa algo que §6 listaba como pendiente — entonces se mueve de §6 al
+  cuerpo del documento.
+
+NO lo toques por columnas nuevas en una tabla que ya está descrita, cambios de
+UI o copy, refactors internos, dependencias, tests ni CI. Un diagrama que se
+mueve en cada PR deja de leerse.
+
+Al editarlo: los diagramas son Mermaid en bloques ` ```mermaid `; verifica que
+siguen siendo válidos antes de subir (`npx -y @mermaid-js/mermaid-cli` con
+`--no-sandbox` en la nube). Español llano, sin jerga innecesaria: el lector es
+Salva, que conoce de programación pero no vive en este código.
 
 ## Organización del repo
 
