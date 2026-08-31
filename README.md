@@ -11,6 +11,9 @@ la Bambu Lab A1 con los filamentos correctos del AMS.
 
 ## Estructura
 
+Mapa completo con diagramas —las tres piezas, el viaje de un pedido, el
+esquema de la base de datos— en **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)**.
+
 | Carpeta | Qué es |
 | --- | --- |
 | `src/` | Sitio Astro 6 (Preact + Tailwind 4): bitácora, configurador de lámparas, `/taller` (dashboard privado) |
