@@ -134,14 +134,17 @@ mantenimiento interno sin cambios perceptibles: dependencias, CI, tests,
 documentación o refactors puramente técnicos.
 
 **GitHub es trabajo de Claude, merge incluido.** Claude crea la rama,
-implementa, abre el PR cuando corresponda, activa auto-merge con método squash
-y corrige los hallazgos de CI y de Codex. Normalmente GitHub mergea solo cuando
-los checks requeridos están verdes y las conversaciones resueltas. Pero el
-auto-merge solo se puede armar mientras hay checks pendientes: **si GitHub lo
-rechaza porque el PR ya está limpio, haz tú el squash merge** — con los checks
-verdes, sin conversaciones abiertas y respetando el orden de deploy de arriba.
-Un PR verde no se queda esperando a Salva. El merge a `master` dispara el
-deploy a Hostinger.
+implementa, abre el PR cuando corresponda y corrige los hallazgos de CI y de
+Codex. Intenta activar auto-merge con método squash, pero **cuenta con que
+falle**: el repo tiene "Allow auto-merge" prendido y aun así la herramienta lo
+rechaza en los dos estados — "unstable" con checks corriendo, y "already clean"
+con todo verde.
+
+Así que **cuando el auto-merge falle, por el motivo que sea, haz tú el squash
+merge** en cuanto se cumplan las tres condiciones: checks verdes, sin
+conversaciones abiertas y respetando el orden de deploy de arriba. No lo
+reintentes esperando que cambie, y no dejes el PR parado: un PR verde nunca se
+queda esperando a Salva. El merge a `master` dispara el deploy a Hostinger.
 
 ## Organización del repo
 
