@@ -29,6 +29,9 @@ pnpm-debug.log*
 # demás apliquen igual desde el teléfono, la PC y la web.
 .claude/*
 !.claude/settings.json
+# rules/ son reglas del proyecto con `paths:`, no configuración de máquina:
+# Claude las carga cuando toca los archivos que cubren, así que viajan en git.
+!.claude/rules/
 
 # Cloudflare Workers (estado local y secretos de dev)
 .wrangler/

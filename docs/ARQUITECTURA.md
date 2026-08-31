@@ -58,8 +58,8 @@ flowchart LR
 
 | Pieza | Dónde vive | Cómo se despliega |
 | --- | --- | --- |
-| Sitio (`src/`) | Hostinger | Automático al mergear a `master` |
-| Worker (`workers/api/`) | Cloudflare Workers | `npm run deploy` con wrangler, **antes** del merge del sitio |
+| Sitio (`src/`) | Hostinger, en `formamx.com` | Automático al mergear a `master` |
+| Worker (`workers/api/`) | Cloudflare Workers, en `https://formamx-api.formamx.workers.dev` | `npm run deploy` con wrangler, **antes** del merge del sitio |
 | Agente (`agent/`) | PC de Salva, junto a la impresora | A mano, en esa máquina |
 
 La base de datos es **D1** (SQLite administrado de Cloudflare). Solo el Worker
@@ -281,6 +281,9 @@ formamx/
 └── docs/                       Toda la documentación por área
 ```
 
+Puesta en marcha detallada de cada pieza: `workers/api/README.md` para el
+backend, `agent/README.md` para el agente.
+
 **Regla de espejo:** un tema del taller tiene su panel en
 `src/components/taller/<tema>/` y su archivo de rutas en
 `workers/api/src/routes/admin/<tema>.ts`. Agregar un módulo es agregar ambos
@@ -312,8 +315,9 @@ pero se muestran dentro de los paneles de Clientes y Proyectos.
 Para no confundir el mapa con el plan:
 
 - Stripe sigue en **modo prueba**; el paso a live está en `docs/NEGOCIO.md` §1.
-- Los avisos custom desde el Worker están rotos (ntfy bloquea a Workers). El
-  reemplazo —outbox en D1 + bot de Telegram— es `docs/AGENTE_IA.md` fases B1-B2.
+- Los avisos custom desde el Worker están rotos (ntfy bloquea a Workers).
+  Mientras tanto los avisos de pago llegan por la app de Stripe; el reemplazo
+  —outbox en D1 + bot de Telegram— es `docs/AGENTE_IA.md` fases B1-B2.
 - El servidor de IA en la Mac mini está aprobado en plan, sin implementar.
 - Lo legal y operativo para vender de verdad (privacidad, términos, CFDI,
   respaldos, CI, analytics) está planeado en `docs/NEGOCIO.md`.
