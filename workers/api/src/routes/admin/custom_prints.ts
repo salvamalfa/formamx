@@ -146,13 +146,14 @@ customPrints.post('/:id/rebanar', async (c) => {
 
   // UPDATE guardado por el estado leído (patrón pedidos.ts). Limpia los
   // resultados anteriores: los estimados de la pasada previa no valen para
-  // esta configuración.
+  // esta configuración, y tampoco un precio que Salva haya ajustado a mano
+  // sobre ese costo viejo — el rebanado nuevo puede salir con otros gramos.
   const updated = await c.env.DB.prepare(
     `UPDATE custom_prints
         SET status = 'en_cola', material = ?, color_id = ?, color_hex = ?,
             supports = ?, orient = ?, est_seconds = NULL, est_grams = NULL,
             preview = 0, message = NULL, claimed_at = NULL,
-            updated_at = datetime('now')
+            price_override_mxn = NULL, updated_at = datetime('now')
       WHERE id = ? AND status = ? RETURNING *`,
   )
     .bind(

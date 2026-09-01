@@ -279,18 +279,15 @@ function BobinasAms({
           // porque ambos son 'blanco'. Comparar hex exactos no serviría.
           const familiaRanura = familiaDeRanura({ color_hex: hex, color_id: catalogId });
           const vivas = bobinas.filter((b) => b.status !== 'agotada');
-          const hacenJuego = vivas.filter(
-            (b) =>
-              mismaFamilia(familiaRanura, familiaDeBobina(b)) &&
-              (!spool?.material || b.material.toLowerCase() === spool.material.toLowerCase()),
-          );
-          const juegoIds = new Set(hacenJuego.map((b) => b.id));
-          const resto = vivas.filter((b) => !juegoIds.has(b.id));
+          // Filtro duro por familia de color: el material varía demasiado en
+          // cómo lo reporta la impresora (PLA vs "PLA Basic", mayúsculas) para
+          // ser confiable como filtro, así que es solo parte de la etiqueta.
+          const hacenJuego = vivas.filter((b) => mismaFamilia(familiaRanura, familiaDeBobina(b)));
           const etiqueta = (b: Bobina) =>
-            `${colorLabel(b.color_id)} · ${b.material} · ${b.weight_left_g} g`;
+            `${b.brand?.trim() || 'sin detalle'} · ${b.material} · ${b.weight_left_g} g`;
           return (
             <div key={slot}>
-              <div class="mb-2 flex items-center gap-2">
+              <div class="mb-2 flex flex-wrap items-center gap-2">
                 <span
                   class="size-3.5 shrink-0 rounded-full border border-[var(--border-strong)]"
                   style={{ background: swatch }}
@@ -302,6 +299,24 @@ function BobinasAms({
                   >
                     {hex}
                   </span>
+                )}
+                {!empty && (
+                  <select
+                    class="min-w-0 flex-1 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-[11px] text-[var(--text-muted)]"
+                    aria-label={`Bobina del almacén para la ranura ${nombre}`}
+                    value={spool?.bobina_id ?? ''}
+                    onChange={(e) => {
+                      const v = (e.currentTarget as HTMLSelectElement).value;
+                      void onVincular(slot, v || null);
+                    }}
+                  >
+                    <option value="">Sin vincular</option>
+                    {hacenJuego.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {etiqueta(b)}
+                      </option>
+                    ))}
+                  </select>
                 )}
                 <span
                   class="ml-auto shrink-0 text-[11px]"
@@ -320,39 +335,6 @@ function BobinasAms({
                   />
                 )}
               </div>
-              {!empty && (
-                <label class="mt-1.5 flex items-center gap-1.5 text-[11px] text-[var(--text-faint)]">
-                  <span class="shrink-0">Bobina del almacén:</span>
-                  <select
-                    class="w-full rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-1 text-[11px] text-[var(--text-muted)]"
-                    value={spool?.bobina_id ?? ''}
-                    onChange={(e) => {
-                      const v = (e.currentTarget as HTMLSelectElement).value;
-                      void onVincular(slot, v || null);
-                    }}
-                  >
-                    <option value="">Sin vincular</option>
-                    {hacenJuego.length > 0 && (
-                      <optgroup label="Del mismo color">
-                        {hacenJuego.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {etiqueta(b)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                    {resto.length > 0 && (
-                      <optgroup label={hacenJuego.length > 0 ? 'Otros' : 'Ninguna hace juego'}>
-                        {resto.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {etiqueta(b)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
-                  </select>
-                </label>
-              )}
             </div>
           );
         })}

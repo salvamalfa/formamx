@@ -435,7 +435,7 @@ test('la card de bobinas AMS muestra el hex de la impresora y un selector de bob
   await expect(page.getByText('vacía')).toBeVisible();
 });
 
-test('el selector de bobina agrupa por familia de color y tolera tonos distintos', async ({
+test('el selector de bobina filtra por familia de color y tolera tonos distintos', async ({
   page,
 }) => {
   await mockApi(page, { syncedAt: '2026-07-11 15:30:00' });
@@ -472,14 +472,13 @@ test('el selector de bobina agrupa por familia de color y tolera tonos distintos
 
   const select = page.locator('main select').first();
   await expect(select).toBeVisible();
-  // El blanco hueso (#F4F4F2) empareja con la ranura #FFFFFF pese al tono.
-  await expect(
-    select.locator('optgroup[label="Del mismo color"] option'),
-  ).toHaveText(['Blanco · PLA · 800 g']);
-  // La azul y la PETG siguen ahí, pero abajo: nunca se esconde una opción.
-  await expect(select.locator('optgroup[label="Otros"] option')).toHaveText([
-    'Azul · PLA · 900 g',
-    'Blanco · PETG · 700 g',
+  // El blanco hueso (#F4F4F2) empareja con la ranura #FFFFFF pese al tono, y
+  // la PETG blanca también entra (el material ya no filtra, solo se muestra
+  // en la etiqueta). La azul, de otra familia, nunca aparece en esta ranura.
+  await expect(select.locator('option')).toHaveText([
+    'Sin vincular',
+    'sin detalle · PLA · 800 g',
+    'sin detalle · PETG · 700 g',
   ]);
 });
 
@@ -809,7 +808,7 @@ test('el módulo inventario da de alta una bobina y edita su peso', async ({ pag
   await expect(page.getByText('Aún no hay bobinas registradas.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Nueva bobina' }).click();
   await page.getByLabel('Color').selectOption('azul');
-  await page.getByPlaceholder('Marca').fill('Creality');
+  await page.getByPlaceholder(/^Detalles/).fill('Genérico');
   await page.getByRole('button', { name: 'Agregar bobina' }).click();
 
   // La tabla: color + peso restante editable ("1000" en el input, "/ 1000 g" al lado).
@@ -1085,9 +1084,11 @@ test.describe('piezas de clientes', () => {
     await expect(main.getByText('Azul', { exact: true })).toBeVisible();
     await expect(main.getByText('con soportes')).toBeVisible();
     await expect(main.getByText('2.3 MB')).toBeVisible();
-    // Costo/precio calculados por pricing.ts al rebanar (Fase 3e).
-    await expect(main.getByText('$50 MXN')).toBeVisible();
+    // Precio calculado por pricing.ts al rebanar (Fase 3e); el costo vive
+    // dentro del desglose, colapsado por defecto.
     await expect(main.getByText('$200 MXN')).toBeVisible();
+    await main.getByRole('button', { name: '$200 MXN' }).click();
+    await expect(main.getByText('$50 MXN')).toBeVisible();
   });
 
   test('una pieza terminada aparece en Histórico, no en Pendientes', async ({ page }) => {

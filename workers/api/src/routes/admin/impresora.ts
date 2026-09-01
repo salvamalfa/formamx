@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { AppContext } from '../../env';
+import { syncBobinaEstados } from '../../lib/inventario';
 import { shapeJob, type PrintJobRow } from '../../lib/jobs';
 
 export const impresora = new Hono<AppContext>();
@@ -96,5 +97,8 @@ impresora.patch('/spools/:slot', async (c) => {
   )
     .bind(bobinaId, slot)
     .run();
+  // en_uso sigue al vínculo, en los dos sentidos: vincular la pone en uso,
+  // desvincularla (si no sigue vinculada a otra ranura) la regresa a nueva.
+  await syncBobinaEstados(c.env.DB);
   return c.json({ slot, bobina_id: bobinaId });
 });

@@ -13,7 +13,7 @@ import {
 } from '../../../lib/taller';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useSession } from '../hooks/useSession';
-import { colorLabel, colorSwatch, familiaDeHex, SPOOL_COLORS } from '../ui/colores';
+import { colorLabel, colorSwatch, SPOOL_COLORS } from '../ui/colores';
 import { formatSync } from '../ui/format';
 import {
   BOBINA_STATUS_LABEL,
@@ -74,12 +74,10 @@ export function InventarioPanel() {
 // ---- Bobinas ---------------------------------------------------------------
 
 // El botón primario del siguiente paso por estado; agotarla siempre es
-// explícito (el worker no auto-agota al llegar a 0 g). El texto es un verbo
-// ("Marcar…"), no el nombre del estado destino: si el botón dice lo mismo
-// que el badge al que se convierte, parece que el botón "renombra" el badge
-// en vez de avanzar la bobina.
+// explícito (el worker no auto-agota al llegar a 0 g). nueva → en_uso NO es
+// un paso manual: pasa sola cuando Salva vincula la bobina a una ranura del
+// AMS en Impresora (ver activateBobina en el worker).
 const NEXT_STEP_BOBINA: Record<string, { status: string; label: string }> = {
-  nueva: { status: 'en_uso', label: 'Marcar en uso' },
   en_uso: { status: 'agotada', label: 'Marcar agotada' },
 };
 
@@ -156,22 +154,13 @@ function Bobinas() {
         <p class="meta-caps m-0 text-[var(--text-faint)]">
           {loading && bobinas.length === 0 ? 'cargando…' : `${bobinas.length} en el almacén`}
         </p>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            onClick={() => token && void load(token)}
-          >
-            Actualizar
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary btn-sm"
-            onClick={() => setFormAbierto((v) => !v)}
-          >
-            Nueva bobina
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          onClick={() => setFormAbierto((v) => !v)}
+        >
+          Nueva bobina
+        </button>
       </div>
 
       {error && (
@@ -206,7 +195,7 @@ function Bobinas() {
             >
               <span>Color</span>
               <span>Material</span>
-              <span>Marca</span>
+              <span>Detalles</span>
               <span>Restante</span>
               <span class="justify-self-end">Estado</span>
             </div>
@@ -398,14 +387,13 @@ function NuevaBobina({
   token: string;
   onCreada: (b: Bobina) => void;
 }) {
-  // El color va en dos piezas: la familia (para agrupar y etiquetar) y el tono
-  // exacto, que es lo que de verdad empareja con lo que reporta el AMS. Elegir
-  // la familia siembra el tono con su swatch, y de ahí se afina al color real
-  // del filamento que Salva tiene en la mano.
+  // Solo la familia de color (0026: sin selector de tono — el desplegable del
+  // AMS ya no necesita el hex exacto de la bobina, filtra por familia y
+  // desambigua con el detalle). El hex que se guarda es el swatch de la
+  // familia; el worker lo deriva solo si hace falta.
   const [colorId, setColorId] = useState('');
-  const [colorHex, setColorHex] = useState('');
   const [material, setMaterial] = useState('PLA');
-  const [marca, setMarca] = useState('');
+  const [detalle, setDetalle] = useState('');
   const [pesoG, setPesoG] = useState('1000');
   const [costo, setCosto] = useState('');
   const [creando, setCreando] = useState(false);
@@ -422,9 +410,8 @@ function NuevaBobina({
     try {
       const bobina = await createBobina(token, {
         ...(colorId ? { color_id: colorId } : {}),
-        ...(colorHex ? { color_hex: colorHex } : {}),
         ...(material.trim() ? { material: material.trim() } : {}),
-        ...(marca.trim() ? { brand: marca.trim() } : {}),
+        ...(detalle.trim() ? { brand: detalle.trim() } : {}),
         weight_g: pesoNum,
         // El costo se captura en pesos y viaja en centavos, como amount_mxn.
         ...(costo.trim() && Number.isFinite(costoNum)
@@ -443,42 +430,19 @@ function NuevaBobina({
     <div class={`${FORM_CARD} mt-4`}>
       <h3 class="meta-caps m-0 text-[var(--text-muted)]">Nueva bobina</h3>
       <div class="mt-3 flex flex-col gap-3">
-        <div class="flex items-center gap-2">
-          <select
-            class="input-brand min-w-0 flex-1"
-            aria-label="Color"
-            value={colorId}
-            onChange={(e) => {
-              const id = (e.target as HTMLSelectElement).value;
-              setColorId(id);
-              setColorHex(id ? colorSwatch(id).toUpperCase() : '');
-            }}
-          >
-            <option value="">Elige el color</option>
-            {SPOOL_COLORS.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="color"
-            aria-label="Tono exacto"
-            title="Tono exacto del filamento"
-            class="size-9 shrink-0 cursor-pointer rounded border border-[var(--border-soft)] bg-[var(--surface-card)] p-0.5 disabled:cursor-default disabled:opacity-50"
-            disabled={!colorId}
-            value={colorHex || '#FFFFFF'}
-            onInput={(e) => {
-              // El tono manda: si Salva lo arrastra hasta otra familia, el
-              // select la sigue. El worker deriva la familia del hex de todas
-              // formas, así que dejarlos discrepar solo mentiría en pantalla.
-              const v = (e.target as HTMLInputElement).value.toUpperCase();
-              setColorHex(v);
-              const familia = familiaDeHex(v);
-              if (familia) setColorId(familia);
-            }}
-          />
-        </div>
+        <select
+          class="input-brand"
+          aria-label="Color"
+          value={colorId}
+          onChange={(e) => setColorId((e.target as HTMLSelectElement).value)}
+        >
+          <option value="">Elige el color</option>
+          {SPOOL_COLORS.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
         <input
           type="text"
           class="input-brand"
@@ -495,9 +459,9 @@ function NuevaBobina({
         <input
           type="text"
           class="input-brand"
-          placeholder="Marca"
-          value={marca}
-          onInput={(e) => setMarca((e.target as HTMLInputElement).value)}
+          placeholder="Detalles (opcional): genérico, transparente…"
+          value={detalle}
+          onInput={(e) => setDetalle((e.target as HTMLInputElement).value)}
         />
         <label class="flex flex-col gap-1">
           <span class="text-[12px] text-[var(--text-muted)]">Peso de la bobina</span>
@@ -637,22 +601,13 @@ function Piezas() {
         <p class="meta-caps m-0 text-[var(--text-faint)]">
           {loading && piezas.length === 0 ? 'cargando…' : `${piezas.length} en el taller`}
         </p>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            onClick={() => token && void load(token)}
-          >
-            Actualizar
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary btn-sm"
-            onClick={() => setFormAbierto((v) => !v)}
-          >
-            Nueva pieza
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          onClick={() => setFormAbierto((v) => !v)}
+        >
+          Nueva pieza
+        </button>
       </div>
 
       {error && (
