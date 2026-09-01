@@ -17,6 +17,7 @@ import { envolver } from './layout.ts';
 import { revisar } from './lint.ts';
 import { BASE_IMAGENES } from './marca.ts';
 import { leerPaleta, type Paleta } from './tokens.ts';
+import { paraArtifact } from './vista.ts';
 
 export const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)));
 const EDICIONES = join(RAIZ, 'newsletter', 'ediciones');
@@ -92,10 +93,13 @@ function main(): void {
     mkdirSync(SALIDA, { recursive: true });
     const nombre = archivo.replace(/\.md$/, '');
     const html = construir(edicion, paleta);
+    const previa = versionPrevia(html, RAIZ);
     writeFileSync(join(SALIDA, `${nombre}.html`), html, 'utf8');
-    writeFileSync(join(SALIDA, `${nombre}.preview.html`), versionPrevia(html, RAIZ), 'utf8');
-    console.log(`   para Reach   newsletter/dist/${nombre}.html`);
-    console.log(`   para mirar   newsletter/dist/${nombre}.preview.html`);
+    writeFileSync(join(SALIDA, `${nombre}.preview.html`), previa, 'utf8');
+    writeFileSync(join(SALIDA, `${nombre}.artifact.html`), paraArtifact(edicion, previa, paleta), 'utf8');
+    console.log(`   para Reach     newsletter/dist/${nombre}.html`);
+    console.log(`   para mirar     newsletter/dist/${nombre}.preview.html`);
+    console.log(`   para revisar   newsletter/dist/${nombre}.artifact.html  (Claude lo publica)`);
   }
 
   if (hayErrores) {

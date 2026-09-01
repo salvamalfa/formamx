@@ -87,12 +87,36 @@ de 70 KB por imagen.
 
 ```sh
 npm run newsletter:check    # solo revisa
-npm run newsletter:build    # revisa y escribe newsletter/dist/*.html
+npm run newsletter:build    # revisa y escribe newsletter/dist/
 npm test                    # los tests del sistema
 ```
 
-Los errores del lint detienen el build; los avisos solo se imprimen. El HTML
-sale en `newsletter/dist/` (fuera de git).
+Los errores del lint detienen el build; los avisos solo se imprimen. Salen tres
+archivos por edición a `newsletter/dist/` (fuera de git):
+
+| Archivo | Para qué |
+| --- | --- |
+| `.html` | El que se sube a Reach. Imágenes por URL de formamx.com |
+| `.preview.html` | Para abrir en un navegador. Imágenes incrustadas |
+| `.artifact.html` | Para publicarlo como artifact y que Salva lo comente |
+
+## El bucle de revisión
+
+Así se trabaja una edición con Salva:
+
+1. Él cuenta qué pasó este mes. Tú escribes el archivo de la edición en su voz.
+2. `npm run newsletter:build`.
+3. **Publica el `.artifact.html`** con la herramienta Artifact. Le aparece en
+   el panel lateral y ahí puede comentar encima, que es como pide los cambios.
+4. Lee los comentarios (`action: "comments"`), corrige el archivo de la
+   edición, reconstruye y **republica el mismo `file_path`** para conservar el
+   enlace. Responde y resuelve los hilos que atendiste.
+5. Cuando quede, él sube el `.html` a Reach y se manda una prueba.
+
+En el paso 3, si es una edición nueva, publica sin `url`; si es la misma que ya
+estaba en revisión, republica el mismo `file_path` en la misma conversación, o
+pasa su `url` si vienes de otra sesión. No abras un artifact por iteración: se
+llena la galería de vistas casi idénticas.
 
 Luego, y esto lo hace Salva: subir el HTML en Reach (Campañas → Subir HTML,
 necesita plan Reach 500 o superior) y **mandarse una prueba antes del envío
