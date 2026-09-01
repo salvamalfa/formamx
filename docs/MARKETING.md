@@ -12,6 +12,23 @@ Salva, y no tiene nada que ver con este documento ni con Reach.
 **Estado: decisión de stack tomada, cuenta configurada, nada enviado
 todavía.** El formulario de suscripción en el sitio sigue sin construirse.
 
+## Datos legales para el pie del correo
+
+Un correo comercial masivo tiene que llevar razón social y domicilio. Son
+estos, y son los que usa el sistema de plantillas:
+
+- **Razón social: FORMA WORKS, S.A.S.** Inscrita en el Registro Público de
+  Comercio de la CDMX el 24/07/2026, FME N-2026059434, capital fijo (por eso
+  `S.A.S.` sin "de C.V."). Fuente: `FORMA/01-Legal/Boleta_RPC.pdf`.
+  **No es "FORMA STUDIO"**: ese nombre aparecía en borradores viejos y nunca
+  fue el registrado.
+- **Domicilio:** Camino San Juan de Aragón 215, L-14, Pueblo San Juan de
+  Aragón, C.P. 07950, Gustavo A. Madero, Ciudad de México.
+  Ojo: es el **domicilio social** del acta constitutiva. La Constancia de
+  Situación Fiscal todavía no está guardada en `FORMA/02-Fiscal/`, así que
+  conviene confirmar contra el SAT que el domicilio fiscal coincide antes del
+  primer envío real.
+
 ## Por qué Hostinger Reach y no otra cosa
 
 - El dominio `formamx.com` ya vive en Hostinger (DNS, correo, hosting del
@@ -36,11 +53,25 @@ todavía.** El formulario de suscripción en el sitio sigue sin construirse.
 - Perfil `formamx.com` / marca "Forma", sin logo cargado todavía.
 - Cero contactos, cero segmentos, cero campañas, cero formularios, cero
   automatizaciones. Arranque limpio.
-- **Decisión: no subir a un plan de pago todavía.** Subir HTML propio a una
-  campaña requiere el plan pagado (confirmado en la UI, la opción "Subir
-  HTML" trae candado Pro). Antes de comprometerse a un plan de 12-24 meses,
-  se van a mandar las primeras ediciones con el editor/IA del plan gratis
-  para validar que el formato y la cadencia funcionan.
+- **Plan: se sube a Reach 500.** El Code editor (subir y editar HTML propio)
+  es una función premium disponible **desde Reach 500 en adelante**, y es lo
+  que habilita el sistema de plantillas de `newsletter/`. El plan gratis solo
+  deja el editor de bloques y el generador con IA.
+
+### Qué le hace Reach al HTML que subes
+
+Importante para el sistema de plantillas, porque condiciona qué NO debemos
+maquetar:
+
+- Al guardar, **Reach valida y ajusta la estructura del HTML** para mejorar
+  compatibilidad. No esperes que lo que subes salga byte por byte igual.
+- **Reach se encarga del enlace de baja**: se asegura de que exista y esté
+  bien configurado. Por eso la plantilla no maqueta su propio unsubscribe,
+  pelearía con el suyo. La razón social y el domicilio sí van en nuestro pie:
+  esos no los pone Reach.
+- Su propia documentación pide "HTML hecho específicamente para correo, no
+  HTML de web normal", y layouts simples. De ahí que el build emita tablas y
+  estilos en línea.
 
 ## Cómo se accede a Reach desde Claude Code
 
@@ -74,20 +105,26 @@ de asumir que ya se puede automatizar el envío completo.
 
 ## Pendiente: formulario de suscripción en el sitio
 
-Falta el componente en `formamx.com` para que un visitante se suscriba a la
-lista (referenciado por Salva como parte de este proyecto, aún sin
-implementar). Reach expone formularios con una URL de plantilla hosteada
-(`reach_getFormDetailsV1`), pero no trae snippet de embed listo, así que
-hay que decidir si se embebe ese formulario hosteado o se construye uno
-propio en Astro que hable con la API de contactos de Reach.
+**La maqueta ya existe**, no hay que diseñarla: `src/pages/index.astro`
+(alrededor de la línea 157) tiene el input de correo y el botón "Avísame" en
+el pie de la portada, con el copy "Sin algoritmo de por medio: te escribo
+cuando hay pieza nueva". El botón es `type="button"` y no tiene handler: es
+puro decorado.
+
+Lo que falta es conectarlo. Reach expone formularios con una URL de plantilla
+hosteada (`reach_getFormDetailsV1`), pero no trae snippet de embed listo, así
+que hay que decidir entre embeber ese formulario hosteado o hacer que el
+botón actual llame a la API de contactos de Reach (`reach_createNewContactsV1`)
+a través del Worker, para no exponer el token en el cliente.
 
 ## Próximos pasos
 
-1. Definir logo/marca del perfil de Reach.
-2. Mandar 1-2 ediciones de prueba con el editor gratis de Reach (sin HTML
-   propio) para validar contenido y cadencia antes de pagar.
-3. Construir el formulario de suscripción en el sitio.
-4. Arreglar el conector hosteado antes de intentar automatizar el envío
+1. Subir a Reach 500 y confirmar que el Code editor aparece.
+2. Subir el HTML que produce `newsletter/` y mandarse la primera edición a uno
+   mismo, para ver cómo cae en Gmail (que ignora Alan Sans y cae a Arial) y en
+   modo oscuro.
+3. Definir logo/marca del perfil de Reach.
+4. Conectar el formulario de suscripción que ya está maquetado en la portada.
+5. Arreglar el conector hosteado antes de intentar automatizar el envío
    como agente programado.
-5. Decidir sobre el upgrade de plan solo si el gratis se vuelve un límite
-   real (más de 100 contactos, o necesidad probada de HTML propio).
+6. Confirmar el domicilio fiscal contra el SAT (ver "Datos legales" arriba).

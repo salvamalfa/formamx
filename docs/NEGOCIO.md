@@ -52,9 +52,13 @@ lo demás es decorado si no entra dinero.
 
 ### Fase 1a — trámites de la SAS (los hace Salva; Claude solo documenta)
 
-1. **SAS constituida** — "FORMA STUDIO S.A.S." (razón social en aprobación,
-   portal gob.mx/tuempresa). Al constituirse por el sistema electrónico, la
-   SAS queda inscrita en el RFC en el mismo trámite.
+1. **SAS constituida — HECHO.** Razón social **FORMA WORKS** (no "FORMA
+   STUDIO", que era el nombre que se pidió y no fue el que quedó). Inscrita en
+   el Registro Público de Comercio de la Ciudad de México el 24/07/2026, folio
+   mercantil electrónico N-2026059434, capital fijo (por eso es `S.A.S.` a
+   secas, sin "de C.V."). La boleta está en
+   `FORMA/01-Legal/Boleta_RPC.pdf`. Al constituirse por el sistema electrónico,
+   la SAS queda inscrita en el RFC en el mismo trámite.
 2. **RFC + e.firma de la sociedad** — la e.firma de la persona moral requiere
    cita en el SAT (llevar acta constitutiva e identificación del representante
    legal). Sin e.firma no hay CSD ni facturación (§2b).
