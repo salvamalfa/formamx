@@ -18,7 +18,8 @@ de verdad del retrato; no lo dupliques aquí.
 | Agregar módulos al dashboard o tocar la estructura de /taller | `docs/ROADMAP_ARQUITECTURA.md` — convenciones y receta de activación |
 | Servidor de IA (Mac mini, revisión local de PR, Telegram, modelos abiertos, métricas) | `docs/AGENTE_IA.md` — plan aprobado, SIN implementar; léelo antes de cualquier fase |
 | Negocio: Stripe live, SAS/RFC, páginas legales, envíos, CFDI, respaldos, CI, analytics | `docs/NEGOCIO.md` — plan por fases, sin implementar. Los textos legales son borradores: abogado/contador antes de confiar en ellos |
-| Newsletter de clientes, Hostinger Reach, formulario de suscripción | `docs/MARKETING.md` — decisión de stack tomada, cuenta configurada; envío real y formulario del sitio aún pendientes. No confundir con el newsletter interno (agente de Cowork aparte) |
+| Newsletter de clientes: escribir o construir una edición | `.claude/skills/newsletter/SKILL.md` y el código en `newsletter/`. El envío se queda manual: la API de Reach no crea campañas |
+| Newsletter: decisiones de canal, cuenta de Reach, datos legales del pie | `docs/MARKETING.md`. No confundir con el newsletter interno (agente de Cowork aparte, sin relación con este repo) |
 | Marca, voz, estilos | `ds-bundle/readme.md` |
 
 Lo que aún no existe (Stripe en prueba, avisos rotos, lo legal) está en

@@ -73,6 +73,18 @@ maquetar:
   HTML de web normal", y layouts simples. De ahí que el build emita tablas y
   estilos en línea.
 
+## El sistema de plantillas
+
+El correo no se maqueta a mano cada mes: una edición se escribe como texto en
+`newsletter/ediciones/` y `npm run newsletter:build` produce el HTML de correo
+con la marca aplicada. Los colores salen del design system (`ds-bundle/tokens/`)
+para que el newsletter siga a la marca sin copiarla, y un lint bloquea lo que
+la voz de forma no admite (emoji, guiones largos, jerga de marketing, enlaces
+relativos, huecos sin llenar).
+
+El procedimiento completo está en `.claude/skills/newsletter/SKILL.md`. Lo que
+el sistema **no** hace es enviar: eso sigue siendo manual por lo de la API.
+
 ## Cómo se accede a Reach desde Claude Code
 
 Dos vías, no son lo mismo:

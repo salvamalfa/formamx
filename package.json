@@ -11,7 +11,10 @@
     "check": "astro check",
     "preview": "astro preview",
     "astro": "astro",
-    "test:e2e": "playwright test"
+    "test": "node --test --experimental-strip-types \"newsletter/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "newsletter:build": "node --experimental-strip-types newsletter/build.ts",
+    "newsletter:check": "node --experimental-strip-types newsletter/build.ts --revisar"
   },
   "dependencies": {
     "@astrojs/preact": "^6.0.4",
