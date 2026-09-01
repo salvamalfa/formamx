@@ -27,6 +27,11 @@ nunca al revés. La impresión 3D es UN proyecto dentro de forma, no el todo.
 - **Marca, voz, estilos** → `ds-bundle/readme.md`. Regla corta: español de
   tú, primera persona, sin marketing, SIN emoji, sentence case, tokens de
   `src/styles/brand.css`.
+- **Newsletter de clientes, Hostinger Reach, formulario de suscripción** →
+  lee `docs/MARKETING.md` (decisión de stack tomada, cuenta configurada,
+  envío real y formulario del sitio aún pendientes). No confundir con el
+  newsletter interno de FORMA (agente de Cowork aparte, sin relación con
+  este repo).
 
 ## Arquitectura general
 
