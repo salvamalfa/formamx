@@ -32,6 +32,9 @@ pnpm-debug.log*
 # rules/ son reglas del proyecto con `paths:`, no configuración de máquina:
 # Claude las carga cuando toca los archivos que cubren, así que viajan en git.
 !.claude/rules/
+# skills/ son procedimientos del proyecto (cómo se arma un newsletter, por
+# ejemplo): sirven igual desde la PC, el teléfono o una sesión en la nube.
+!.claude/skills/
 
 # Cloudflare Workers (estado local y secretos de dev)
 .wrangler/

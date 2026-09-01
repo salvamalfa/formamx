@@ -25,6 +25,10 @@ jobs:
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npm run check
+      - run: npm test
+      # Revisa las ediciones del newsletter (voz de marca, enlaces, huecos sin
+      # llenar) antes de que se puedan mergear.
+      - run: npm run newsletter:check
       - run: npm run build
 
   worker:
