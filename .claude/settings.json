@@ -37,18 +37,18 @@
       "Bash(gh run view:*)"
     ],
     "deny": [
-      "mcp__hostinger-billing__billing_createPurchaseOrderV1",
-      "mcp__hostinger-billing__billing_deletePaymentMethodV1",
-      "mcp__hostinger-domains__domains_purchaseNewDomainV1",
-      "mcp__hostinger-domains__domains_startOutgoingDomainMoveV1",
-      "mcp__hostinger-vps__VPS_purchaseNewVirtualMachineV1",
-      "mcp__hostinger-vps__VPS_deleteProjectV1",
-      "mcp__hostinger-vps__VPS_recreateVirtualMachineV1",
-      "mcp__hostinger-dns__DNS_deleteDNSRecordsV1",
-      "mcp__hostinger-dns__DNS_resetDNSRecordsV1",
-      "mcp__hostinger-hosting__hosting_deleteWebsiteV1",
-      "mcp__hostinger-hosting__hosting_deleteAccountDatabaseV1",
-      "mcp__hostinger-ecommerce__ecommerce_deleteStoreV1"
+      "mcp__hostinger__billing_createPurchaseOrderV1",
+      "mcp__hostinger__billing_deletePaymentMethodV1",
+      "mcp__hostinger__domains_purchaseNewDomainV1",
+      "mcp__hostinger__domains_startOutgoingDomainMoveV1",
+      "mcp__hostinger__VPS_purchaseNewVirtualMachineV1",
+      "mcp__hostinger__VPS_deleteProjectV1",
+      "mcp__hostinger__VPS_recreateVirtualMachineV1",
+      "mcp__hostinger__DNS_deleteDNSRecordsV1",
+      "mcp__hostinger__DNS_resetDNSRecordsV1",
+      "mcp__hostinger__hosting_deleteWebsiteV1",
+      "mcp__hostinger__hosting_deleteAccountDatabaseV1",
+      "mcp__hostinger__ecommerce_deleteStoreV1"
     ]
   }
 }

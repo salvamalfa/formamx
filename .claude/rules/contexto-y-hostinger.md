@@ -34,22 +34,20 @@ trabajo perdido esperando a que alguien lo descubra.
 
 ## Hostinger
 
-Los servidores MCP de Hostinger están declarados en `.mcp.json` (en la raíz),
-así que viajan con el repo y funcionan igual en local y en la nube. Lo único
-que hace falta es la variable de entorno `HOSTINGER_API_TOKEN`, igual que
-`CLOUDFLARE_API_TOKEN`.
+El acceso a Hostinger es por el **conector hosteado** de claude.ai
+(`claude.ai/directory/hostinger-connector`, OAuth, servidor `hostinger`).
+Viaja con la cuenta de Anthropic a cualquier sesión, local o en la nube — no
+hace falta declarar nada en este repo ni poner un token en ninguna config.
+Verificado funcionando el 2026-09-01 (antes daba 403 / listas vacías por una
+cuenta mal apuntada; ver `docs/MARKETING.md`).
 
-Dan acceso real a la cuenta: DNS, dominios, correo, hosting, facturación,
-VPS y Reach. Dos cosas antes de usarlos:
+Da acceso real a la cuenta: DNS, dominios, correo, hosting, facturación,
+VPS y Reach. Dos cosas antes de usarlo:
 
 - Las operaciones que gastan dinero o son irreversibles (comprar dominio o
   VPS, borrar métodos de pago, borrar o resetear registros DNS, transferir el
   dominio, borrar un sitio o una base) están **bloqueadas** en
-  `.claude/settings.json`. Si alguna hace falta de verdad, la hace Salva en
-  hPanel.
+  `.claude/settings.json` (tools `mcp__hostinger__*`). Si alguna hace falta
+  de verdad, la hace Salva en hPanel.
 - El DNS de `formamx.com` sostiene el sitio **y el correo**. Tocar un registro
   ahí no es un cambio de código: consulta antes, aunque no esté bloqueado.
-
-El conector hosteado de Hostinger (el de OAuth desde claude.ai) devuelve 403 y
-no sirve; no lo uses ni intentes arreglarlo desde aquí. Contexto en
-`docs/MARKETING.md`.

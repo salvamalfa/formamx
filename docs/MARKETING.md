@@ -87,22 +87,24 @@ el sistema **no** hace es enviar: eso sigue siendo manual por lo de la API.
 
 ## Cómo se accede a Reach desde Claude Code
 
-Dos vías, no son lo mismo:
+Una sola vía: el **conector hosteado** (`claude.ai/directory/hostinger-connector`,
+OAuth, servidor `hostinger`). Viaja con la cuenta de Anthropic a cualquier
+sesión, incluida la nube — no hay servidores MCP de Hostinger declarados por
+CLI ni tokens de API en configs de este repo ni de la máquina de Salva; se
+retiraron el 2026-09-01 al confirmar que el conector funciona.
 
-- **Conector hosteado** (`claude.ai/directory/hostinger-connector`, OAuth):
-  viaja con la cuenta de Anthropic a cualquier sesión, incluida la nube.
-  **Ahora mismo devuelve error 403 en llamadas reales**, aunque la
-  autorización se complete. Pendiente de reinstalar/arreglar.
-- **Servidores MCP por CLI** (`hostinger-reach`, `hostinger-dns`, etc. vía
-  `npx hostinger-api-mcp` con token de hPanel, agregados con `-s user` en
-  `C:\Users\salva\.claude.json`): sí funcionan, pero solo existen en la
-  máquina Windows de Salva. Una sesión en la nube no los puede usar.
+Diagnóstico del 2026-09-01 (por si vuelve a fallar): el conector daba 403 en
+`reach_*` y listas vacías sin error en `domains_getDomainListV1` /
+`billing_getSubscriptionListV1` porque apuntaba a una cuenta de Hostinger sin
+los recursos correctos, no por un problema de transporte — endpoints
+independientes de cuenta (`VPS_getDataCenterListV1`) sí respondían bien. Se
+reinstaló el conector y desde entonces devuelve los dominios, suscripciones y
+el perfil de Reach reales. **El modo de fallo peligroso es la lista vacía sin
+error**: no dar por buena una respuesta vacía del conector sin contrastarla.
 
 **Por qué importa para este proyecto:** si el newsletter de clientes se
 automatiza como agente programado (igual que el interno), ese trabajo corre
-en la nube y necesita el conector hosteado funcionando, no la vía CLI. Es
-un bloqueante real para automatizar esto sin depender de que la laptop de
-Salva esté encendida.
+en la nube y depende de este conector — ya no es un bloqueante.
 
 ## Limitación conocida de la API de Reach (al 2026-09-01)
 
