@@ -17,16 +17,16 @@
     "newsletter:check": "node --experimental-strip-types newsletter/build.ts --revisar"
   },
   "dependencies": {
-    "@astrojs/preact": "^6.0.4",
+    "@astrojs/preact": "^6.0.5",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.2.8",
+    "astro": "^7.2.10",
     "preact": "^10.29.8",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@playwright/test": "^1.62.1",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.4.1",
     "typescript": "^6.0.3"
   }
 }
