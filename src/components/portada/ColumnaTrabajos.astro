@@ -16,12 +16,12 @@ const Titulo = menu ? 'h2' : 'h1';
 <div class="col-trabajos @container">
   <Titulo class="titulo-columna m-0">Trabajos</Titulo>
 
-  <ul class="lista m-0 mt-5 grid list-none gap-x-5 gap-y-8 p-0 @sm:grid-cols-2 @2xl:mt-10 @2xl:gap-x-8 @2xl:gap-y-14">
+  <ul class="lista m-0 mt-4 grid list-none gap-x-3 gap-y-5 p-0 @min-[15rem]:grid-cols-2 @2xl:mt-10 @2xl:gap-x-8 @2xl:gap-y-14">
     {
       trabajos.map((t, i) => {
         const El = t.href && !menu ? 'a' : 'div';
         return (
-          <li class:list={[i % 2 === 1 && '@sm:mt-[22%]', !t.href && 'pendiente']}>
+          <li class:list={[i % 2 === 1 && '@min-[15rem]:mt-[22%]', !t.href && 'pendiente']}>
             <El href={El === 'a' ? t.href : undefined} class="trabajo block no-underline">
               <Recuadro trabajo={t} sizes={menu ? '(min-width: 768px) 16vw, 45vw' : '(min-width: 768px) 46vw, 100vw'} />
               <span class="pie">
@@ -51,9 +51,9 @@ const Titulo = menu ? 'h2' : 'h1';
 
   .col-trabajos .pie {
     display: block;
-    margin-top: 8px;
-    font-size: 12.5px;
-    line-height: 1.4;
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.35;
     color: var(--text-body);
   }
 

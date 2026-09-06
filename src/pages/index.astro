@@ -34,7 +34,7 @@ import fondo from '../assets/photos/banca.jpeg';
       <a href="/trabajos" class="columna" aria-label="Trabajos: todas las piezas" style="view-transition-name: col-trabajos">
         <ColumnaTrabajos menu />
       </a>
-      <a href="/mas" class="columna" aria-label="Más: avisos por correo y enlaces" style="view-transition-name: col-mas">
+      <a href="/mas" class="columna" aria-label="Más: avisos por correo" style="view-transition-name: col-mas">
         <ColumnaMas menu />
       </a>
     </div>
@@ -93,6 +93,8 @@ import fondo from '../assets/photos/banca.jpeg';
   }
 
   .portada .columna:hover::after { opacity: 0; }
+  /* La columna Más es corta y no se recorta: sin degradado. */
+  .portada .columna:last-child::after { display: none; }
 
   @media (min-width: 768px) {
     .portada .columna {
