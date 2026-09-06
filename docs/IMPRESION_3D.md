@@ -91,6 +91,18 @@ apagarlo — primera sospecha si el agente "no ve" la impresora). Usuario
 `bblp`, contraseña = access code. Cert autofirmado (sin verificación de
 cadena; es LAN propia).
 
+0. **La IP se descubre sola, no se guarda** (`agent/discovery.py`): la A1 en
+   modo LAN reanuncia su presencia cada pocos segundos por SSDP —
+   multicast UDP a `239.255.255.250:2021`, mensajes `NOTIFY` con header `USN`
+   (serie) y `Location` (IP) — igual que la encuentran Bambu Studio y Home
+   Assistant. `BambuPrinter` escucha ese broadcast, se queda con el anuncio
+   cuyo `USN` trae el `serial` del config, y cachea esa IP mientras siga
+   funcionando; si una conexión falla, olvida la IP cacheada y vuelve a
+   escuchar en el siguiente intento (así sobrevive a que Salva apague y
+   prenda la impresora sin tocar nada). `ip` en el config es opcional: solo
+   sirve de respaldo manual si el multicast no llega (red con VLANs, firewall
+   raro) — con IP fija a mano vuelve el problema original si la impresora
+   cambia de IP.
 1. **FTPS implícito** (:990): TLS desde antes del banner (subclase de
    `FTP_TLS` con el setter de `sock`).
 2. **Reusar la sesión TLS del canal de control en el canal de datos**
@@ -110,10 +122,10 @@ cadena; es LAN propia).
 ## Config del agente (PC de Salva, nunca al repo)
 
 `C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml`: api_base,
-agent_token, files_dir, dry_run, `[printer]` ip/serial/access_code. El
-**modo ensayo** (`dry_run = true`) simula las impresiones pero SÍ lee el AMS
-real — sirve para probar el circuito completo sin filamento. Log en
-`C:\Users\salva\Desktop\FORMA\06-Web\formamx\agent.log`.
+agent_token, files_dir, dry_run, `[printer]` serial/access_code (+ `ip`
+opcional, ver arriba). El **modo ensayo** (`dry_run = true`) simula las
+impresiones pero SÍ lee el AMS real — sirve para probar el circuito completo
+sin filamento. Log en `C:\Users\salva\Desktop\FORMA\06-Web\formamx\agent.log`.
 
 ## Verificación al tocar este proyecto
 

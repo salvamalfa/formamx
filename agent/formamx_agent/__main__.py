@@ -209,7 +209,7 @@ def main() -> None:
         from .printer import BambuPrinter
 
         p = cfg['printer']
-        real_printer = BambuPrinter(p['ip'], p['serial'], p['access_code'])
+        real_printer = BambuPrinter(p['serial'], p['access_code'], ip=p.get('ip'))
 
     if dry:
         from .dryrun import DryPrinter
