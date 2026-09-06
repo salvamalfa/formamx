@@ -1,12 +1,11 @@
 ---
-// Portada "Bitácora" — diseño Canvas.html de Claude Design, variante 1a
-// ("naranja de acción"): página blanca, el azul en enlaces y metadata, el
-// naranja en el botón primario, y el pie sobre tinta.
+// Portada en tres columnas — inspirada en atlason.com: a la izquierda quién
+// está detrás (marca, foto, contacto), al centro el listado de piezas como
+// imágenes con pie corto, a la derecha lo demás (avisos por correo, enlaces).
+// La bitácora completa vive en cada pieza; aquí solo se enlista.
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import ProjectCard from '../components/ProjectCard.astro';
 import logoNegro from '../assets/brand/forma-negro.svg';
-import logoBlanco from '../assets/brand/forma-blanco.svg';
 import sillaJardin from '../assets/photos/banca.jpeg';
 import lampBase from '../assets/lamps/base/TesseraLamp_CuerpoTapa_Azul.png';
 import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
@@ -16,168 +15,192 @@ import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
   title="forma"
   description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Cada pieza se hace una vez."
 >
-  <main class="brand-forma min-h-dvh bg-[var(--surface-page)] text-[var(--text-body)]">
-    <!-- Cabecera -->
-    <header
-      class="relative mx-auto flex max-w-[1100px] items-center justify-between gap-6 border-b border-[var(--border-soft)] px-6 py-5 sm:px-12"
-    >
-      <a href="/" aria-label="forma — inicio" class="shrink-0">
-        <Image src={logoNegro} alt="forma" class="block h-[30px] w-auto" />
-      </a>
+  <main class="brand-forma portada min-h-dvh bg-[var(--surface-page)] text-[var(--text-body)]">
+    <div class="mx-auto grid max-w-[1400px] gap-x-8 gap-y-14 px-6 py-8 sm:px-10 md:grid-cols-[1.25fr_1.1fr_0.85fr] md:gap-y-0 lg:gap-x-12">
+      <!-- Columna 1: quién -->
+      <section class="columna md:sticky md:top-8 md:self-start" aria-labelledby="quien">
+        <h1 id="quien" class="m-0">
+          <a href="/" aria-label="forma — inicio" class="block">
+            <Image src={logoNegro} alt="forma" class="block h-[56px] w-auto sm:h-[72px] lg:h-[84px]" />
+          </a>
+        </h1>
 
-      <!-- Nav en línea (tablet y escritorio) -->
-      <nav class="hidden items-center gap-7 sm:flex">
-        <a href="/" class="text-[15px] font-semibold text-[var(--text-body)] no-underline">Bitácora</a>
-        <a href="#bitacora" class="text-[15px] text-[var(--text-muted)] no-underline">Piezas</a>
-        <span class="cursor-default text-[15px] text-[var(--text-muted)]">Quién</span>
-        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-secondary">Escríbeme</a>
-      </nav>
+        <figure class="m-0 mt-6">
+          <Image
+            src={sillaJardin}
+            alt="Silla de jardín al sol, en pino"
+            widths={[600, 1000, 1400]}
+            sizes="(min-width: 768px) 46vw, 100vw"
+            class="foto-principal block w-full rounded-[var(--radius-m)] object-cover"
+          />
+        </figure>
 
-      <!-- Menú móvil: botón hamburguesa + panel desplegable -->
-      <button
-        type="button"
-        id="menu-btn"
-        aria-expanded="false"
-        aria-controls="menu-movil"
-        aria-label="Abrir menú"
-        class="grid size-10 cursor-pointer place-items-center rounded-full border-[1.5px] border-[var(--border-strong)] bg-transparent text-[var(--text-body)] sm:hidden"
-      >
-        <svg data-icon="abrir" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path>
-        </svg>
-        <svg data-icon="cerrar" viewBox="0 0 24 24" class="hidden size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>
-        </svg>
-      </button>
+        <p class="m-0 mt-5 max-w-[420px] text-[length:var(--text-md)] leading-[var(--leading-body)] text-[var(--text-muted)]">
+          Taller de proyectos de una persona. Bancas, lámparas, videos, música.
+          Lo que sale bien y lo que se quema, documentado.
+        </p>
 
-      <nav id="menu-movil" hidden class="menu-movil absolute right-6 top-full z-50 w-60 sm:hidden" aria-label="Menú">
-        <a href="/" class="font-semibold">Bitácora</a>
-        <a href="#bitacora">Piezas</a>
-        <span class="cursor-default px-3 py-2.5 text-[15px] text-[var(--text-faint)]">Quién</span>
-        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-secondary mt-1.5 justify-center">Escríbeme</a>
-      </nav>
-    </header>
+        <dl class="contacto mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-[13px] leading-[1.5] sm:grid-cols-[auto_1fr_auto_1fr]">
+          <dt class="font-bold">Taller</dt>
+          <dd class="m-0 text-[var(--text-muted)]">Ciudad de México<br />Desde 2026</dd>
+          <dt class="font-bold">Escríbeme</dt>
+          <dd class="m-0">
+            <a href="mailto:hola@forma.mx" class="enlace">hola@forma.mx</a><br />
+            <a href="#mas" class="enlace">Avisos por correo</a>
+          </dd>
+        </dl>
+      </section>
 
-    <!-- Hero editorial -->
-    <section
-      class="mx-auto grid max-w-[1100px] items-center gap-12 px-6 pt-12 sm:px-12 md:grid-cols-[1.1fr_1fr]"
-    >
-      <div>
-        <p class="meta-caps m-0 text-[var(--accent)]">Taller de proyectos — Desde 2026</p>
-        <h1
-          class="m-0 mt-3.5 text-[length:var(--display-lg)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)] text-[var(--text-body)] md:text-[length:var(--display-xl)]"
+      <!-- Columna 2: piezas -->
+      <section class="columna" aria-labelledby="piezas">
+        <h2 id="piezas" class="titulo-columna m-0">Piezas</h2>
+
+        <ul class="lista-piezas m-0 mt-5 grid list-none gap-x-4 gap-y-8 p-0 sm:grid-cols-2">
+          <li>
+            <a href="/banca" class="pieza block no-underline">
+              <Image
+                src={sillaJardin}
+                alt="Silla de jardín"
+                widths={[400, 800]}
+                sizes="(min-width: 768px) 18vw, 50vw"
+                class="block aspect-[4/5] w-full rounded-[var(--radius-s)] object-cover"
+              />
+              <span class="pie">Silla de jardín. Pino, 2026. Pieza única.</span>
+            </a>
+          </li>
+          <li class="sm:mt-16">
+            <a href="/lampara" class="pieza block no-underline">
+              <span class="relative block aspect-[4/5] w-full overflow-hidden rounded-[var(--radius-s)] bg-[var(--hueso)]">
+                <Image
+                  src={lampBase}
+                  alt=""
+                  aria-hidden="true"
+                  widths={[400, 800]}
+                  sizes="(min-width: 768px) 18vw, 50vw"
+                  class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
+                />
+                <Image
+                  src={lampShade}
+                  alt="Lámpara Tessera azul"
+                  widths={[400, 800]}
+                  sizes="(min-width: 768px) 18vw, 50vw"
+                  class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
+                />
+              </span>
+              <span class="pie">Lámpara Tessera. PLA, en proceso. Tercer intento del difusor.</span>
+            </a>
+          </li>
+          <li class="pendiente" aria-label="Video: el jardín en junio, pronto">
+            <span class="grid aspect-[4/5] w-full place-items-center rounded-[var(--radius-s)] border border-dashed border-[var(--border-strong)]">
+              <span class="meta-caps text-[var(--text-faint)]">Grabando</span>
+            </span>
+            <span class="pie text-[var(--text-faint)]">Video: el jardín en junio. Sin guion, con pájaros.</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Columna 3: más -->
+      <section id="mas" class="columna md:sticky md:top-8 md:self-start" aria-labelledby="mas-titulo">
+        <h2 id="mas-titulo" class="titulo-columna m-0">Más</h2>
+
+        <div class="relative mt-5 aspect-square w-full overflow-hidden rounded-[var(--radius-s)] bg-[var(--surface-inverse)]">
+          <Image
+            src={lampShade}
+            alt=""
+            aria-hidden="true"
+            widths={[400, 800]}
+            sizes="(min-width: 768px) 22vw, 100vw"
+            class="absolute -bottom-[18%] -right-[22%] h-[118%] w-auto object-contain"
+          />
+        </div>
+
+        <p
+          class="m-0 mt-5 text-[length:var(--display-sm)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)]"
           style="font-family: var(--font-display)"
         >
           Cada pieza se hace una vez.
-        </h1>
-        <p class="m-0 mt-[18px] max-w-[440px] text-[length:var(--text-lg)] leading-[var(--leading-body)] text-[var(--text-muted)]">
-          Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema,
-          documentado. Se vende, si quieres — pero primero la historia.
         </p>
-        <div class="mt-7 flex flex-wrap gap-3">
-          <a href="#bitacora" class="btn btn-lg btn-primary no-underline">Ver la bitácora</a>
-          <span class="btn btn-lg btn-ghost-azul">Quién soy →</span>
-        </div>
-      </div>
-      <Image
-        src={sillaJardin}
-        alt="silla de jardín al sol"
-        widths={[600, 1000, 1400]}
-        sizes="(min-width: 768px) 480px, 100vw"
-        class="h-[260px] w-full rounded-[var(--radius-l)] object-cover sm:h-[380px]"
-      />
-    </section>
+        <p class="m-0 mt-2 text-sm leading-[var(--leading-body)] text-[var(--text-muted)]">
+          Se vende, si quieres. Pero primero la historia.
+        </p>
 
-    <!-- Bitácora -->
-    <section id="bitacora" class="mx-auto max-w-[1100px] px-6 py-16 sm:px-12">
-      <div class="flex flex-wrap items-baseline justify-between gap-6">
-        <h2
-          class="m-0 text-[length:var(--display-md)] font-bold text-[var(--text-body)]"
-          style="font-family: var(--font-display)"
-        >
-          Bitácora
-        </h2>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="chip activo" data-cat-btn="todos">todos</button>
-          <button type="button" class="chip" data-cat-btn="madera">madera</button>
-          <button type="button" class="chip" data-cat-btn="impresión 3d">impresión 3d</button>
-          <button type="button" class="chip" data-cat-btn="video">video</button>
-        </div>
-      </div>
-
-      <div class="mt-6 grid gap-6 md:grid-cols-3">
-        <ProjectCard
-          cat="madera"
-          image={sillaJardin}
-          imageAlt="Silla de jardín"
-          meta={['Proyecto 001', '2026.04', 'Pino']}
-          title="Silla de jardín"
-          note="La primera capa quedó chueca. La segunda, mejor."
-          tags={['madera', 'exterior']}
-          unique
-          href="/banca"
-        />
-        <ProjectCard
-          cat="impresión 3d"
-          meta={['Proyecto 002', 'En proceso', 'PLA']}
-          title="Lámpara impresa"
-          note="Tercer intento del difusor. Los dos primeros se doblaron."
-          tags={['impresión 3d', 'luz']}
-          href="/lampara"
-        >
-          <div slot="media" class="relative h-[210px] w-full border-b border-[var(--border-soft)] bg-[var(--hueso)]">
-            <Image
-              src={lampBase}
-              alt=""
-              aria-hidden="true"
-              widths={[400, 800]}
-              sizes="(min-width: 768px) 340px, 100vw"
-              class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
-            />
-            <Image
-              src={lampShade}
-              alt="Lámpara Tessera azul"
-              widths={[400, 800]}
-              sizes="(min-width: 768px) 340px, 100vw"
-              class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
-            />
-          </div>
-        </ProjectCard>
-        <ProjectCard
-          cat="video"
-          placeholder="grabando"
-          meta={['Proyecto 003', 'Pronto']}
-          title="Video: el jardín en junio"
-          note="Grabando las tardes. Sin guion, con pájaros."
-          tags={['video', 'naturaleza']}
-        />
-      </div>
-    </section>
-
-    <!-- Pie con aviso por correo -->
-    <footer class="bg-[var(--surface-inverse)] px-6 py-14 sm:px-12">
-      <div class="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-12">
-        <div>
-          <Image src={logoBlanco} alt="forma" class="block h-[26px] w-auto" />
-          <p class="m-0 mt-3.5 max-w-[340px] text-sm leading-[1.6] text-[var(--gris-claro)]">
-            Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez
-            en cuando.
+        <form class="mt-8" novalidate>
+          <p class="meta-caps m-0 text-[var(--accent)]">Avisos por correo</p>
+          <p class="m-0 mt-2 text-sm leading-[var(--leading-body)] text-[var(--text-muted)]">
+            Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez en cuando.
           </p>
-        </div>
-        <form class="flex w-full items-end gap-2.5 sm:w-auto" novalidate>
-          <input
-            type="email"
-            class="input-brand input-brand-noche min-w-0 flex-1 sm:w-[260px] sm:flex-none"
-            placeholder="tu@correo.com"
-            aria-label="Tu correo"
-          />
-          <button type="button" class="btn btn-primary shrink-0">Avísame</button>
+          <div class="mt-3 flex gap-2">
+            <input
+              type="email"
+              class="input-brand min-w-0 flex-1"
+              placeholder="tu@correo.com"
+              aria-label="Tu correo"
+            />
+            <button type="button" class="btn btn-primary shrink-0">Avísame</button>
+          </div>
         </form>
-      </div>
-    </footer>
-  </main>
 
-  <!-- Script externo (is:inline evita que Astro lo empaquete/inline): la CSP
-       del sitio no permite scripts inline. Ver public/scripts/home.js. -->
-  <script is:inline type="module" src="/scripts/home.js"></script>
+        <ul class="m-0 mt-8 list-none border-t border-[var(--border-soft)] p-0 text-[15px]">
+          <li class="border-b border-[var(--border-soft)] py-3">
+            <a href="/banca" class="enlace-fila">Bitácora de la silla</a>
+          </li>
+          <li class="border-b border-[var(--border-soft)] py-3">
+            <a href="/lampara" class="enlace-fila">Configura una lámpara</a>
+          </li>
+          <li class="border-b border-[var(--border-soft)] py-3">
+            <a href="mailto:hola@forma.mx" class="enlace-fila">Escríbeme</a>
+          </li>
+          <li class="flex items-baseline justify-between gap-3 border-b border-[var(--border-soft)] py-3 text-[var(--text-faint)]">
+            <span>Quién soy</span>
+            <span class="meta-caps text-[10px]">Pronto</span>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </main>
 </BaseLayout>
+
+<style>
+  /* Títulos de columna: grandes, como los de atlason, en la fuente de la marca. */
+  .portada .titulo-columna {
+    font-family: var(--font-display);
+    font-size: var(--display-lg);
+    font-weight: var(--weight-display);
+    line-height: 1;
+    letter-spacing: var(--tracking-display);
+    color: var(--text-body);
+  }
+
+  @media (min-width: 1024px) {
+    .portada .titulo-columna { font-size: var(--display-xl); }
+  }
+
+  /* Foto principal: en móvil una franja; en escritorio ocupa casi toda la
+     altura de la ventana, como el retrato de atlason. */
+  .portada .foto-principal { height: 56vw; max-height: 520px; }
+
+  @media (min-width: 768px) {
+    .portada .foto-principal { height: calc(100dvh - 300px); min-height: 380px; max-height: 760px; }
+  }
+
+  /* Pie de cada pieza: una línea corta en el color de la metadata. */
+  .portada .pie {
+    display: block;
+    margin-top: 8px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--text-body);
+  }
+
+  .portada .pieza img,
+  .portada .pieza > span { transition: opacity var(--duration-slow) var(--ease-out); }
+  .portada .pieza:hover img,
+  .portada .pieza:hover > span:first-child { opacity: 0.88; }
+  .portada .pieza:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; border-radius: var(--radius-s); }
+
+  .portada .enlace { color: var(--accent); text-decoration: none; }
+  .portada .enlace:hover { color: var(--accent-hover); text-decoration: underline; }
+
+  .portada .enlace-fila { display: block; color: var(--text-body); text-decoration: none; }
+  .portada .enlace-fila:hover { color: var(--accent); }
+</style>
