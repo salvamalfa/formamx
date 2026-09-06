@@ -23,8 +23,8 @@ import { IconBorrar, IconEditar, IconGuardar, IconReiniciar, IconRebanar, IconUp
 // El rebanado lo hace el agente en la PC del taller (docs/STL_CLIENTES.md).
 // Tarjetas en vez de filas (rediseño agosto 2026): Pendientes muestra lo que
 // todavía necesita una decisión; Histórico, lo ya impreso — el worker borra
-// el STL y la vista previa de R2 en cuanto la pieza termina, así que ahí solo
-// quedan los datos.
+// el STL de R2 en cuanto la pieza termina (ya no sirve de nada), pero
+// conserva la vista previa para que el histórico la siga mostrando.
 
 const ESTADO_LABEL: Record<CustomPrintStatus, string> = {
   subido: 'Subido',

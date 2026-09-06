@@ -309,11 +309,11 @@ agent.post('/jobs/:id/status', async (c) => {
       )
         .bind(job.custom_print_id)
         .first<{ r2_key: string }>();
-      // Terminada la pieza, el STL del cliente y su vista previa ya cumplieron
-      // su propósito: se limpian de R2 y solo queda el metadato para el
-      // histórico. No bloquea la respuesta al agente, y si R2 falla la fila se
-      // queda con files_deleted = 0: el listado del tablero lo reintenta, así
-      // que un fallo transitorio no deja el archivo del cliente guardado para
+      // Terminada la pieza, el STL del cliente ya cumplió su propósito: se
+      // limpia de R2 (la vista previa se queda para el histórico). No bloquea
+      // la respuesta al agente, y si R2 falla la fila se queda con
+      // files_deleted = 0: el listado del tablero lo reintenta, así que un
+      // fallo transitorio no deja el archivo del cliente guardado para
       // siempre en silencio.
       if (marcada) {
         c.executionCtx.waitUntil(

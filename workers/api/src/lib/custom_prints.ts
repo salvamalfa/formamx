@@ -28,7 +28,8 @@ export interface CustomPrintRow {
   file_name: string;
   r2_key: string;
   size_bytes: number;
-  // 1 cuando el STL y la vista previa ya se limpiaron de R2 (migración 0018).
+  // 1 cuando el STL ya se limpió de R2 (migración 0018). La vista previa se
+  // conserva para el histórico.
   files_deleted: number;
   material: string | null;
   color_id: string | null;
@@ -132,12 +133,14 @@ export const SCOPE_WHERE: Record<string, string> = {
   historico: "cp.status = 'terminado'",
 };
 
-// Limpia de R2 el STL del cliente y su vista previa, y lo anota en la fila.
-// Idempotente (las claves son deterministas y borrar en R2 no falla si el
-// objeto ya no está), así que se puede reintentar cuantas veces haga falta.
-// Devuelve false si R2 falló: la fila se queda con files_deleted = 0 y el
-// listado del tablero vuelve a intentarlo. Nunca marca limpio lo que no lo
-// está — el archivo de un cliente no puede quedarse guardado en silencio.
+// Limpia de R2 el STL del cliente (ya impreso, no sirve de nada) y lo anota
+// en la fila. La vista previa NO se toca: se queda en R2 para que el
+// histórico la siga mostrando. Idempotente (la clave es determinista y
+// borrar en R2 no falla si el objeto ya no está), así que se puede reintentar
+// cuantas veces haga falta. Devuelve false si R2 falló: la fila se queda con
+// files_deleted = 0 y el listado del tablero vuelve a intentarlo. Nunca marca
+// limpio lo que no lo está — el archivo de un cliente no puede quedarse
+// guardado en silencio.
 export async function purgeCustomPrintFiles(
   bucket: R2Bucket,
   db: D1Database,
@@ -146,15 +149,12 @@ export async function purgeCustomPrintFiles(
 ): Promise<boolean> {
   try {
     await bucket.delete(r2Key);
-    await bucket.delete(previewKey(id));
   } catch {
     return false;
   }
-  // `preview` vuelve a 0 en el mismo paso: su PNG ya no existe, así que la UI
-  // no debe pedirlo.
   await db
     .prepare(
-      `UPDATE custom_prints SET files_deleted = 1, preview = 0, updated_at = datetime('now')
+      `UPDATE custom_prints SET files_deleted = 1, updated_at = datetime('now')
        WHERE id = ?`,
     )
     .bind(id)
