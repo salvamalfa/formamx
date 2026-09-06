@@ -7,27 +7,35 @@ interface Props {
 
 const { menu = false } = Astro.props;
 const Titulo = menu ? 'h2' : 'h1';
+// En el menú no puede haber controles dentro del enlace de la columna: el
+// formulario se dibuja con spans y la página real (/mas) lleva el <form>.
+const Bloque = menu ? 'div' : 'form';
 ---
 
 <div class="col-mas @container">
   <Titulo class="titulo-columna m-0">Más</Titulo>
 
-  <form class="mt-5 max-w-[560px] @2xl:mt-10" novalidate>
+  <Bloque class="mt-5 max-w-[560px] @2xl:mt-10" novalidate={menu ? undefined : true}>
     <p class="meta-caps m-0 text-[var(--accent)]">Avisos por correo</p>
     <p class="m-0 mt-2 text-[14px] leading-[var(--leading-body)] text-[var(--text-muted)] @2xl:text-[length:var(--text-lg)]">
       Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez en cuando.
     </p>
     <div class="mt-3 flex gap-2 @2xl:mt-5">
-      <input
-        type="email"
-        class="input-brand min-w-0 flex-1"
-        placeholder="tu@correo.com"
-        aria-label="Tu correo"
-        tabindex={menu ? -1 : undefined}
-      />
-      <button type="button" class="btn btn-primary shrink-0" tabindex={menu ? -1 : undefined}>Avísame</button>
+      {
+        menu ? (
+          <>
+            <span class="input-brand min-w-0 flex-1 text-[var(--text-faint)]" aria-hidden="true">tu@correo.com</span>
+            <span class="btn btn-primary shrink-0" aria-hidden="true">Avísame</span>
+          </>
+        ) : (
+          <>
+            <input type="email" class="input-brand min-w-0 flex-1" placeholder="tu@correo.com" aria-label="Tu correo" />
+            <button type="button" class="btn btn-primary shrink-0">Avísame</button>
+          </>
+        )
+      }
     </div>
-  </form>
+  </Bloque>
 </div>
 
 <style>
