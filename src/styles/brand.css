@@ -333,46 +333,6 @@
   outline-color: var(--accent);
 }
 
-/* Menú móvil: tarjeta sólida sobre la página, como las cards del kit */
-.brand-forma .menu-movil {
-  background: var(--surface-card);
-  border-radius: var(--radius-m);
-  box-shadow: var(--shadow-raised);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  animation: menu-in var(--duration-slow) var(--ease-out);
-}
-
-.brand-forma .menu-movil[hidden] {
-  display: none;
-}
-
-.brand-forma .menu-movil a:not(.btn) {
-  color: var(--text-body);
-  text-decoration: none;
-  font-size: 15px;
-  padding: 10px 12px;
-  border-radius: var(--radius-s);
-  transition: background var(--duration-fast) var(--ease-out);
-}
-
-.brand-forma .menu-movil a:not(.btn):hover {
-  background: var(--hueso);
-}
-
-@keyframes menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* Input (componente Input del kit): foco en azul, el color principal */
 .brand-forma .input-brand {
   font-family: var(--font-body);

@@ -33,7 +33,7 @@ const { trabajo: t, sizes, class: extra = '' } = Astro.props;
           src={capa}
           alt={i === t.capas!.length - 1 ? (t.imagenAlt ?? t.titulo) : ''}
           aria-hidden={i === t.capas!.length - 1 ? undefined : 'true'}
-          widths={[400, 800]}
+          widths={[400, 800, 1400]}
           sizes={sizes}
           class="absolute inset-[6%] h-[88%] w-[88%] object-contain"
         />

@@ -71,7 +71,6 @@ import fondo from '../assets/photos/banca.jpeg';
     color: inherit;
     text-decoration: none;
     overflow: hidden;
-    max-height: 72vh;
     border-bottom: 1px solid var(--border-soft);
     transition: background var(--duration-slow) var(--ease-out);
   }
@@ -80,32 +79,34 @@ import fondo from '../assets/photos/banca.jpeg';
   .portada .columna:hover { background: var(--hueso); }
   .portada .columna:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 
-  /* Degradado al pie de cada columna: se nota que hay más abajo. */
-  .portada .columna::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 72px;
-    background: linear-gradient(to bottom, transparent, var(--surface-page));
-    pointer-events: none;
-    transition: opacity var(--duration-slow) var(--ease-out);
-  }
-
-  .portada .columna:hover::after { opacity: 0; }
-  /* La columna Más es corta y no se recorta: sin degradado. */
-  .portada .columna:last-child::after { display: none; }
+  /* En móvil solo la columna forma desborda; las otras dos se ven enteras. */
+  .portada .columna:first-child { max-height: 72vh; }
 
   @media (min-width: 768px) {
     .portada .columna {
-      max-height: none;
       height: 100%;
       padding: 32px 28px;
       border-bottom: 0;
       border-right: 1px solid var(--border-soft);
     }
+    .portada .columna:first-child { max-height: none; }
     .portada .columna:last-child { border-right: 0; }
+
+    /* Degradado al pie de las columnas que sí se recortan (forma y Trabajos):
+       se nota que hay más abajo. Más es corta y se ve entera. */
+    .portada .columna:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 72px;
+      background: linear-gradient(to bottom, transparent, var(--surface-page));
+      pointer-events: none;
+      transition: opacity var(--duration-slow) var(--ease-out);
+    }
+
+    .portada .columna:hover::after { opacity: 0; }
   }
 
   @media (min-width: 1200px) {
