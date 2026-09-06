@@ -23,9 +23,15 @@ dry_run_seconds = 20
 log_file = 'C:\Users\salva\Desktop\FORMA\06-Web\formamx\agent.log'
 
 [printer]
-ip = "PEGA-AQUI-LA-IP-LOCAL"
 serial = "PEGA-AQUI-EL-NUMERO-DE-SERIE"
 access_code = "PEGA-AQUI-EL-ACCESS-CODE"
+# El agente encuentra la IP solo por SSDP (broadcast de la impresora en modo
+# LAN), así que no hace falta ponerla ni actualizarla cuando la impresora
+# cambia de IP al apagarse y encenderse. Descomenta `ip` solo si tu red
+# bloquea el multicast (VLANs, algunos routers) y el agente no la encuentra:
+# ahí sirve como respaldo manual, pero si la impresora cambia de IP tendrás
+# que volver a editarla a mano, como antes.
+# ip = "PEGA-AQUI-LA-IP-LOCAL"
 
 # Rebanado de los STL que mandan los clientes (docs/STL_CLIENTES.md). Es
 # OPCIONAL: sin esta sección el agente solo imprime. Los perfiles los genera

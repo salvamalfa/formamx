@@ -15,6 +15,8 @@ import ssl
 import threading
 import time
 
+from .discovery import DEFAULT_TIMEOUT, discover_ip
+
 log = logging.getLogger('formamx.printer')
 
 FTPS_PORT = 990
@@ -85,19 +87,59 @@ def _ssl_context() -> ssl.SSLContext:
 
 
 class BambuPrinter:
-    def __init__(self, ip: str, serial: str, access_code: str):
-        self.ip = ip
+    def __init__(
+        self,
+        serial: str,
+        access_code: str,
+        ip: str | None = None,
+        discover_timeout: float = DEFAULT_TIMEOUT,
+    ):
         self.serial = serial
         self.access_code = access_code
+        # IP fija de config, si Salva la dejó como respaldo manual — se usa
+        # SOLO cuando el broadcast SSDP no responde (firewall, red separada).
+        # La IP de verdad es la que se descubre sola en cada arranque de la
+        # impresora; cachearla para siempre reintroduciría el bug original.
+        self._static_ip = ip
+        self._discovered_ip: str | None = None
+        self._discover_timeout = discover_timeout
+
+    def _resolve_ip(self) -> str:
+        if self._discovered_ip:
+            return self._discovered_ip
+        found = discover_ip(self.serial, timeout=self._discover_timeout)
+        if found:
+            log.info('SSDP: %s encontrada en %s', self.serial, found)
+            self._discovered_ip = found
+            return found
+        if self._static_ip:
+            log.warning(
+                'SSDP: sin respuesta de %s; uso la IP fija del config (%s)',
+                self.serial,
+                self._static_ip,
+            )
+            return self._static_ip
+        raise PrinterError(
+            f'no encontré la impresora {self.serial} por SSDP en la LAN '
+            '(¿está encendida y en modo LAN? revisa que un firewall no '
+            'bloquee el multicast) y el config no trae una IP fija de respaldo'
+        )
+
+    def _forget_ip(self) -> None:
+        # Se llama tras cualquier fallo de conexión: si la impresora cambió de
+        # IP (la apagaron y prendieron), la próxima operación vuelve a
+        # descubrirla en vez de insistir con la que ya no contesta.
+        self._discovered_ip = None
 
     # ---- FTPS ----
 
     def upload(self, local_path, remote_name: str = 'model.3mf') -> None:
         """Sube el 3MF a la microSD (siempre con el mismo nombre: no acumula basura)."""
+        ip = self._resolve_ip()
         ftps = ImplicitFTPS(context=_ssl_context())
         try:
-            ftps.connect(self.ip, FTPS_PORT, timeout=20)
-            log.info('FTPS: conectado a %s', self.ip)
+            ftps.connect(ip, FTPS_PORT, timeout=20)
+            log.info('FTPS: conectado a %s', ip)
             ftps.login('bblp', self.access_code)
             ftps.prot_p()
             log.info('FTPS: autenticado; subiendo %s', remote_name)
@@ -107,6 +149,7 @@ class BambuPrinter:
         # ftplib.all_errors ya es una tupla de excepciones (incluye OSError);
         # anidarla en otra tupla rompe el except en tiempo de ejecución.
         except ftplib.all_errors as err:
+            self._forget_ip()
             raise PrinterError(f'no pude subir el archivo: {err}') from err
         finally:
             try:
@@ -169,12 +212,14 @@ class BambuPrinter:
             state['trays'] = trays
             got.set()
 
+        ip = self._resolve_ip()
         client = self._client()
         client.on_connect = on_connect
         client.on_message = on_message
         try:
-            client.connect(self.ip, MQTT_PORT, keepalive=30)
+            client.connect(ip, MQTT_PORT, keepalive=30)
         except OSError as err:
+            self._forget_ip()
             raise PrinterError(f'impresora fuera de línea: {err}') from err
         client.loop_start()
         got.wait(wait_seconds)
@@ -208,12 +253,14 @@ class BambuPrinter:
                 state['gcode_state'] = g
                 got.set()
 
+        ip = self._resolve_ip()
         client = self._client()
         client.on_connect = on_connect
         client.on_message = on_message
         try:
-            client.connect(self.ip, MQTT_PORT, keepalive=30)
+            client.connect(ip, MQTT_PORT, keepalive=30)
         except OSError as err:
+            self._forget_ip()
             raise PrinterError(f'impresora fuera de línea: {err}') from err
         client.loop_start()
         got.wait(wait_seconds)
@@ -284,12 +331,14 @@ class BambuPrinter:
                 result['error'] = f"la impresora reportó fallo (print_error={p.get('print_error')})"
                 finished.set()
 
+        ip = self._resolve_ip()
         client = self._client()
         client.on_connect = on_connect
         client.on_message = on_message
         try:
-            client.connect(self.ip, MQTT_PORT, keepalive=60)
+            client.connect(ip, MQTT_PORT, keepalive=60)
         except OSError as err:
+            self._forget_ip()
             raise PrinterError(f'impresora fuera de línea: {err}') from err
         client.loop_start()
         finished.wait(max_hours * 3600)
