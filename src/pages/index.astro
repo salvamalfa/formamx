@@ -1,183 +1,115 @@
 ---
-// Portada "Bitácora" — diseño Canvas.html de Claude Design, variante 1a
-// ("naranja de acción"): página blanca, el azul en enlaces y metadata, el
-// naranja en el botón primario, y el pie sobre tinta.
+// Portada-menú, como atlason.com: una foto a pantalla completa y, encima, un
+// panel blanco con tres columnas (forma · Trabajos · Más). Cada columna es
+// una versión reducida de su página y la columna entera es el enlace; al
+// abrirla, la transición de vista la hace crecer hasta ocupar la pantalla
+// (src/styles/portada.css, @view-transition).
+import '../styles/portada.css';
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import ProjectCard from '../components/ProjectCard.astro';
-import logoNegro from '../assets/brand/forma-negro.svg';
-import logoBlanco from '../assets/brand/forma-blanco.svg';
-import sillaJardin from '../assets/photos/banca.jpeg';
-import lampBase from '../assets/lamps/base/TesseraLamp_CuerpoTapa_Azul.png';
-import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
+import ColumnaForma from '../components/portada/ColumnaForma.astro';
+import ColumnaTrabajos from '../components/portada/ColumnaTrabajos.astro';
+import ColumnaMas from '../components/portada/ColumnaMas.astro';
+import fondo from '../assets/photos/banca.jpeg';
 ---
 
 <BaseLayout
   title="forma"
-  description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Cada pieza se hace una vez."
+  description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Bitácora de lo que sale bien y lo que se quema."
 >
-  <main class="brand-forma min-h-dvh bg-[var(--surface-page)] text-[var(--text-body)]">
-    <!-- Cabecera -->
-    <header
-      class="relative mx-auto flex max-w-[1100px] items-center justify-between gap-6 border-b border-[var(--border-soft)] px-6 py-5 sm:px-12"
-    >
-      <a href="/" aria-label="forma — inicio" class="shrink-0">
-        <Image src={logoNegro} alt="forma" class="block h-[30px] w-auto" />
+  <main class="brand-forma portada relative min-h-dvh text-[var(--text-body)]">
+    <Image
+      src={fondo}
+      alt=""
+      aria-hidden="true"
+      widths={[1000, 1600, 2400]}
+      sizes="100vw"
+      loading="eager"
+      class="fondo fixed inset-0 -z-10 h-full w-full object-cover object-[35%_40%]"
+    />
+
+    <div class="panel mx-auto flex max-w-[1440px] flex-col md:grid md:grid-cols-[1.15fr_1fr_0.9fr]">
+      <a href="/forma" class="columna" aria-label="forma: quién está detrás" style="view-transition-name: col-forma">
+        <ColumnaForma menu />
       </a>
-
-      <!-- Nav en línea (tablet y escritorio) -->
-      <nav class="hidden items-center gap-7 sm:flex">
-        <a href="/" class="text-[15px] font-semibold text-[var(--text-body)] no-underline">Bitácora</a>
-        <a href="#bitacora" class="text-[15px] text-[var(--text-muted)] no-underline">Piezas</a>
-        <span class="cursor-default text-[15px] text-[var(--text-muted)]">Quién</span>
-        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-secondary">Escríbeme</a>
-      </nav>
-
-      <!-- Menú móvil: botón hamburguesa + panel desplegable -->
-      <button
-        type="button"
-        id="menu-btn"
-        aria-expanded="false"
-        aria-controls="menu-movil"
-        aria-label="Abrir menú"
-        class="grid size-10 cursor-pointer place-items-center rounded-full border-[1.5px] border-[var(--border-strong)] bg-transparent text-[var(--text-body)] sm:hidden"
-      >
-        <svg data-icon="abrir" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M4 6h16"></path><path d="M4 12h16"></path><path d="M4 18h16"></path>
-        </svg>
-        <svg data-icon="cerrar" viewBox="0 0 24 24" class="hidden size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>
-        </svg>
-      </button>
-
-      <nav id="menu-movil" hidden class="menu-movil absolute right-6 top-full z-50 w-60 sm:hidden" aria-label="Menú">
-        <a href="/" class="font-semibold">Bitácora</a>
-        <a href="#bitacora">Piezas</a>
-        <span class="cursor-default px-3 py-2.5 text-[15px] text-[var(--text-faint)]">Quién</span>
-        <a href="mailto:hola@forma.mx" class="btn btn-sm btn-secondary mt-1.5 justify-center">Escríbeme</a>
-      </nav>
-    </header>
-
-    <!-- Hero editorial -->
-    <section
-      class="mx-auto grid max-w-[1100px] items-center gap-12 px-6 pt-12 sm:px-12 md:grid-cols-[1.1fr_1fr]"
-    >
-      <div>
-        <p class="meta-caps m-0 text-[var(--accent)]">Taller de proyectos — Desde 2026</p>
-        <h1
-          class="m-0 mt-3.5 text-[length:var(--display-lg)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)] text-[var(--text-body)] md:text-[length:var(--display-xl)]"
-          style="font-family: var(--font-display)"
-        >
-          Cada pieza se hace una vez.
-        </h1>
-        <p class="m-0 mt-[18px] max-w-[440px] text-[length:var(--text-lg)] leading-[var(--leading-body)] text-[var(--text-muted)]">
-          Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema,
-          documentado. Se vende, si quieres — pero primero la historia.
-        </p>
-        <div class="mt-7 flex flex-wrap gap-3">
-          <a href="#bitacora" class="btn btn-lg btn-primary no-underline">Ver la bitácora</a>
-          <span class="btn btn-lg btn-ghost-azul">Quién soy →</span>
-        </div>
-      </div>
-      <Image
-        src={sillaJardin}
-        alt="silla de jardín al sol"
-        widths={[600, 1000, 1400]}
-        sizes="(min-width: 768px) 480px, 100vw"
-        class="h-[260px] w-full rounded-[var(--radius-l)] object-cover sm:h-[380px]"
-      />
-    </section>
-
-    <!-- Bitácora -->
-    <section id="bitacora" class="mx-auto max-w-[1100px] px-6 py-16 sm:px-12">
-      <div class="flex flex-wrap items-baseline justify-between gap-6">
-        <h2
-          class="m-0 text-[length:var(--display-md)] font-bold text-[var(--text-body)]"
-          style="font-family: var(--font-display)"
-        >
-          Bitácora
-        </h2>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="chip activo" data-cat-btn="todos">todos</button>
-          <button type="button" class="chip" data-cat-btn="madera">madera</button>
-          <button type="button" class="chip" data-cat-btn="impresión 3d">impresión 3d</button>
-          <button type="button" class="chip" data-cat-btn="video">video</button>
-        </div>
-      </div>
-
-      <div class="mt-6 grid gap-6 md:grid-cols-3">
-        <ProjectCard
-          cat="madera"
-          image={sillaJardin}
-          imageAlt="Silla de jardín"
-          meta={['Proyecto 001', '2026.04', 'Pino']}
-          title="Silla de jardín"
-          note="La primera capa quedó chueca. La segunda, mejor."
-          tags={['madera', 'exterior']}
-          unique
-          href="/banca"
-        />
-        <ProjectCard
-          cat="impresión 3d"
-          meta={['Proyecto 002', 'En proceso', 'PLA']}
-          title="Lámpara impresa"
-          note="Tercer intento del difusor. Los dos primeros se doblaron."
-          tags={['impresión 3d', 'luz']}
-          href="/lampara"
-        >
-          <div slot="media" class="relative h-[210px] w-full border-b border-[var(--border-soft)] bg-[var(--hueso)]">
-            <Image
-              src={lampBase}
-              alt=""
-              aria-hidden="true"
-              widths={[400, 800]}
-              sizes="(min-width: 768px) 340px, 100vw"
-              class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
-            />
-            <Image
-              src={lampShade}
-              alt="Lámpara Tessera azul"
-              widths={[400, 800]}
-              sizes="(min-width: 768px) 340px, 100vw"
-              class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
-            />
-          </div>
-        </ProjectCard>
-        <ProjectCard
-          cat="video"
-          placeholder="grabando"
-          meta={['Proyecto 003', 'Pronto']}
-          title="Video: el jardín en junio"
-          note="Grabando las tardes. Sin guion, con pájaros."
-          tags={['video', 'naturaleza']}
-        />
-      </div>
-    </section>
-
-    <!-- Pie con aviso por correo -->
-    <footer class="bg-[var(--surface-inverse)] px-6 py-14 sm:px-12">
-      <div class="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-12">
-        <div>
-          <Image src={logoBlanco} alt="forma" class="block h-[26px] w-auto" />
-          <p class="m-0 mt-3.5 max-w-[340px] text-sm leading-[1.6] text-[var(--gris-claro)]">
-            Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez
-            en cuando.
-          </p>
-        </div>
-        <form class="flex w-full items-end gap-2.5 sm:w-auto" novalidate>
-          <input
-            type="email"
-            class="input-brand input-brand-noche min-w-0 flex-1 sm:w-[260px] sm:flex-none"
-            placeholder="tu@correo.com"
-            aria-label="Tu correo"
-          />
-          <button type="button" class="btn btn-primary shrink-0">Avísame</button>
-        </form>
-      </div>
-    </footer>
+      <a href="/trabajos" class="columna" aria-label="Trabajos: todas las piezas" style="view-transition-name: col-trabajos">
+        <ColumnaTrabajos menu />
+      </a>
+      <a href="/mas" class="columna" aria-label="Más: avisos por correo" style="view-transition-name: col-mas">
+        <ColumnaMas menu />
+      </a>
+    </div>
   </main>
-
-  <!-- Script externo (is:inline evita que Astro lo empaquete/inline): la CSP
-       del sitio no permite scripts inline. Ver public/scripts/home.js. -->
-  <script is:inline type="module" src="/scripts/home.js"></script>
 </BaseLayout>
+
+<style>
+  /* El panel flota sobre la foto con el mismo aire por los cuatro lados. En
+     escritorio tiene altura fija y cada columna recorta lo que no cabe, como
+     en atlason: es un menú, no la página. En móvil las columnas se apilan. */
+  .portada .panel {
+    background: var(--surface-page);
+    border-radius: var(--radius-l);
+    margin: 4vh 4vw;
+    width: 92vw;
+    overflow: hidden;
+    box-shadow: var(--shadow-raised);
+  }
+
+  @media (min-width: 768px) {
+    .portada .panel {
+      margin: 8vh auto;
+      width: 90vw;
+      height: 84vh;
+      max-height: 860px;
+    }
+  }
+
+  .portada .columna {
+    display: block;
+    position: relative;
+    padding: 24px 20px;
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border-soft);
+    transition: background var(--duration-slow) var(--ease-out);
+  }
+
+  .portada .columna:last-child { border-bottom: 0; }
+  .portada .columna:hover { background: var(--hueso); }
+  .portada .columna:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+
+  /* En móvil solo la columna forma desborda; las otras dos se ven enteras. */
+  .portada .columna:first-child { max-height: 72vh; }
+
+  @media (min-width: 768px) {
+    .portada .columna {
+      height: 100%;
+      padding: 32px 28px;
+      border-bottom: 0;
+      border-right: 1px solid var(--border-soft);
+    }
+    .portada .columna:first-child { max-height: none; }
+    .portada .columna:last-child { border-right: 0; }
+
+    /* Degradado al pie de las columnas que sí se recortan (forma y Trabajos):
+       se nota que hay más abajo. Más es corta y se ve entera. */
+    .portada .columna:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 72px;
+      background: linear-gradient(to bottom, transparent, var(--surface-page));
+      pointer-events: none;
+      transition: opacity var(--duration-slow) var(--ease-out);
+    }
+
+    .portada .columna:hover::after { opacity: 0; }
+  }
+
+  @media (min-width: 1200px) {
+    .portada .columna { padding: 40px 36px; }
+  }
+</style>

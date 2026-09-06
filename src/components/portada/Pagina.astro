@@ -1,0 +1,43 @@
+---
+// Página a todo lo ancho de una columna del menú (/forma, /trabajos, /mas).
+// `nombre` enlaza la columna del menú con esta página para la transición de
+// vista: al abrir, la columna crece hasta ocupar la pantalla.
+import '../../styles/portada.css';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  nombre: 'forma' | 'trabajos' | 'mas';
+}
+
+const { title, description, nombre } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <main
+    class="brand-forma pagina-columna min-h-dvh bg-[var(--surface-page)] text-[var(--text-body)]"
+    style={`view-transition-name: col-${nombre}`}
+  >
+    <a href="/" class="menu-link fixed right-4 top-4 z-20 sm:right-8 sm:top-6" aria-label="Volver al menú">Menú</a>
+    <div class="mx-auto max-w-[1600px] px-5 pb-24 pt-6 sm:px-10 sm:pt-8">
+      <slot />
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .pagina-columna .menu-link {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-body);
+    text-decoration: none;
+    background: var(--blanco);
+    border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
+    transition: background var(--duration-fast) var(--ease-out);
+  }
+
+  .pagina-columna .menu-link:hover { background: var(--hueso); }
+</style>

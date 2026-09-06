@@ -1,0 +1,71 @@
+---
+// Columna "forma": quién está detrás. En el menú (`menu`) se ve reducida y sin
+// enlaces internos (la columna entera es el enlace a /forma); en /forma se ve
+// completa. El tamaño lo decide el ancho del contenedor (@container).
+import { Image } from 'astro:assets';
+import logoNegro from '../../assets/brand/forma-negro.svg';
+import { trabajos } from '../../lib/trabajos';
+import Recuadro from './Recuadro.astro';
+
+interface Props {
+  menu?: boolean;
+}
+
+const { menu = false } = Astro.props;
+const ultima = trabajos[0];
+const Enlace = menu ? 'span' : 'a';
+---
+
+<div class="col-forma @container">
+  <div class="flex flex-col gap-5 @2xl:gap-10">
+    <!-- El logo es el h1 también en el menú: la portada no tiene otro. -->
+    <h1 class="m-0">
+      <Image src={logoNegro} alt="forma" class="block h-[52px] w-auto @sm:h-[64px] @2xl:h-[clamp(96px,11vw,170px)]" />
+    </h1>
+
+    <p class="m-0 max-w-[520px] text-[15px] leading-[var(--leading-body)] text-[var(--text-muted)] @2xl:text-[length:var(--text-lg)]">
+      Taller de proyectos de una persona. Bancas, lámparas, videos, música.
+      Lo que sale bien y lo que se quema, documentado.
+    </p>
+
+    <div class="grid gap-4 @2xl:grid-cols-[1.1fr_1fr] @2xl:items-end @2xl:gap-10">
+      <Recuadro trabajo={ultima} sizes="(min-width: 1024px) 40vw, 100vw" class="foto-ultima" />
+      <div>
+        <p class="meta-caps m-0 text-[var(--accent)]">Última pieza — {ultima.meta.join(' — ')}</p>
+        <p
+          class="m-0 mt-2 text-[length:var(--display-sm)] font-bold leading-[var(--leading-display)] @2xl:text-[length:var(--display-md)]"
+          style="font-family: var(--font-display)"
+        >
+          {ultima.titulo}
+        </p>
+        <p class="m-0 mt-2 max-w-[440px] text-[14px] leading-[var(--leading-body)] text-[var(--text-muted)] @2xl:text-[15px]">
+          {ultima.pie} {ultima.nota}
+        </p>
+        <p class="m-0 mt-3 text-[14px] font-semibold">
+          <Enlace href={menu ? undefined : ultima.href} class="enlace">Ver la bitácora →</Enlace>
+        </p>
+      </div>
+    </div>
+
+    <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 border-t border-[var(--border-soft)] pt-5 text-[13px] leading-[1.5] @2xl:grid-cols-[auto_1fr_auto_1fr_auto_1fr] @2xl:text-[14px]">
+      <dt class="font-bold">Taller</dt>
+      <dd class="m-0 text-[var(--text-muted)]">Ciudad de México<br />Desde 2026</dd>
+      <dt class="font-bold">Escríbeme</dt>
+      <dd class="m-0"><Enlace href={menu ? undefined : 'mailto:hola@formamx.com'} class="enlace">hola@formamx.com</Enlace></dd>
+      <dt class="font-bold">Sigue</dt>
+      <dd class="m-0"><Enlace href={menu ? undefined : '/mas'} class="enlace">Avisos por correo</Enlace></dd>
+    </dl>
+  </div>
+</div>
+
+<style>
+  /* En el menú la foto va apaisada para que quepan el título y la nota de la
+     última pieza; en /forma recupera su proporción. */
+  @container (max-width: 42rem) {
+    .col-forma :global(.foto-ultima) { aspect-ratio: 3 / 2 !important; }
+  }
+
+  .col-forma a.enlace { color: var(--accent); text-decoration: none; }
+  .col-forma a.enlace:hover { color: var(--accent-hover); text-decoration: underline; }
+  .col-forma span.enlace { color: var(--accent); }
+</style>
