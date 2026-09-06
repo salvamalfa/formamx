@@ -1,0 +1,69 @@
+---
+// Columna "Trabajos": todos los trabajos como imágenes con pie corto. En el
+// menú va en una columna angosta; en /trabajos, a todo lo ancho en dos
+// columnas desfasadas, como la lista de works de atlason.
+import { trabajos } from '../../lib/trabajos';
+import Recuadro from './Recuadro.astro';
+
+interface Props {
+  menu?: boolean;
+}
+
+const { menu = false } = Astro.props;
+const Titulo = menu ? 'h2' : 'h1';
+---
+
+<div class="col-trabajos @container">
+  <Titulo class="titulo-columna m-0">Trabajos</Titulo>
+
+  <ul class="lista m-0 mt-5 grid list-none gap-x-5 gap-y-8 p-0 @sm:grid-cols-2 @2xl:mt-10 @2xl:gap-x-8 @2xl:gap-y-14">
+    {
+      trabajos.map((t, i) => {
+        const El = t.href && !menu ? 'a' : 'div';
+        return (
+          <li class:list={[i % 2 === 1 && '@sm:mt-[22%]', !t.href && 'pendiente']}>
+            <El href={El === 'a' ? t.href : undefined} class="trabajo block no-underline">
+              <Recuadro trabajo={t} sizes={menu ? '(min-width: 768px) 16vw, 45vw' : '(min-width: 768px) 46vw, 100vw'} />
+              <span class="pie">
+                <span class="font-semibold">{t.titulo}.</span> {t.pie}
+              </span>
+            </El>
+          </li>
+        );
+      })
+    }
+  </ul>
+</div>
+
+<style>
+  .col-trabajos .titulo-columna {
+    font-family: var(--font-display);
+    font-size: 44px;
+    font-weight: var(--weight-display);
+    line-height: 0.95;
+    letter-spacing: var(--tracking-display);
+    color: var(--text-body);
+  }
+
+  @container (min-width: 42rem) {
+    .col-trabajos .titulo-columna { font-size: clamp(72px, 12vw, 200px); line-height: 0.85; }
+  }
+
+  .col-trabajos .pie {
+    display: block;
+    margin-top: 8px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--text-body);
+  }
+
+  @container (min-width: 42rem) {
+    .col-trabajos .pie { font-size: 15px; margin-top: 12px; }
+  }
+
+  .col-trabajos .pendiente .pie { color: var(--text-faint); }
+
+  .col-trabajos a.trabajo :global(.recuadro) { transition: opacity var(--duration-slow) var(--ease-out); }
+  .col-trabajos a.trabajo:hover :global(.recuadro) { opacity: 0.86; }
+  .col-trabajos a.trabajo:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; border-radius: var(--radius-s); }
+</style>

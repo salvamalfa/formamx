@@ -19,6 +19,27 @@
   --radius-btn:  0.5rem;
 }
 
+/* Transiciones de vista entre páginas (sin JS): el navegador funde una
+   página con la siguiente y, si dos elementos comparten view-transition-name,
+   mueve uno hasta el otro. La portada-menú lo usa para que cada columna
+   crezca hasta ser su página. Donde no hay soporte, navegación normal. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(*) {
+  animation-duration: 450ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 @layer base {
   body {
     background-color: var(--color-bg);

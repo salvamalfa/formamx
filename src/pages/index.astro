@@ -1,206 +1,111 @@
 ---
-// Portada en tres columnas — inspirada en atlason.com: a la izquierda quién
-// está detrás (marca, foto, contacto), al centro el listado de piezas como
-// imágenes con pie corto, a la derecha lo demás (avisos por correo, enlaces).
-// La bitácora completa vive en cada pieza; aquí solo se enlista.
+// Portada-menú, como atlason.com: una foto a pantalla completa y, encima, un
+// panel blanco con tres columnas (forma · Trabajos · Más). Cada columna es
+// una versión reducida de su página y la columna entera es el enlace; al
+// abrirla, la transición de vista la hace crecer hasta ocupar la pantalla
+// (src/styles/global.css, @view-transition).
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import logoNegro from '../assets/brand/forma-negro.svg';
-import sillaJardin from '../assets/photos/banca.jpeg';
-import lampBase from '../assets/lamps/base/TesseraLamp_CuerpoTapa_Azul.png';
-import lampShade from '../assets/lamps/pantalla/TesseraLamp_Pantalla_Azul.png';
+import ColumnaForma from '../components/portada/ColumnaForma.astro';
+import ColumnaTrabajos from '../components/portada/ColumnaTrabajos.astro';
+import ColumnaMas from '../components/portada/ColumnaMas.astro';
+import fondo from '../assets/photos/banca.jpeg';
 ---
 
 <BaseLayout
   title="forma"
-  description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Cada pieza se hace una vez."
+  description="Taller de proyectos de una persona: bancas, lámparas, videos, música. Bitácora de lo que sale bien y lo que se quema."
 >
-  <main class="brand-forma portada min-h-dvh bg-[var(--surface-page)] text-[var(--text-body)]">
-    <div class="mx-auto grid max-w-[1400px] gap-x-8 gap-y-14 px-6 py-8 sm:px-10 md:grid-cols-[1.25fr_1.1fr_0.85fr] md:gap-y-0 lg:gap-x-12">
-      <!-- Columna 1: quién -->
-      <section class="columna md:sticky md:top-8 md:self-start" aria-labelledby="quien">
-        <h1 id="quien" class="m-0">
-          <a href="/" aria-label="forma — inicio" class="block">
-            <Image src={logoNegro} alt="forma" class="block h-[56px] w-auto sm:h-[72px] lg:h-[84px]" />
-          </a>
-        </h1>
+  <main class="brand-forma portada relative min-h-dvh text-[var(--text-body)]">
+    <Image
+      src={fondo}
+      alt=""
+      aria-hidden="true"
+      widths={[1000, 1600, 2400]}
+      sizes="100vw"
+      loading="eager"
+      class="fondo fixed inset-0 -z-10 h-full w-full object-cover object-[35%_40%]"
+    />
 
-        <figure class="m-0 mt-6">
-          <Image
-            src={sillaJardin}
-            alt="Silla de jardín al sol, en pino"
-            widths={[600, 1000, 1400]}
-            sizes="(min-width: 768px) 46vw, 100vw"
-            class="foto-principal block w-full rounded-[var(--radius-m)] object-cover"
-          />
-        </figure>
-
-        <p class="m-0 mt-5 max-w-[420px] text-[length:var(--text-md)] leading-[var(--leading-body)] text-[var(--text-muted)]">
-          Taller de proyectos de una persona. Bancas, lámparas, videos, música.
-          Lo que sale bien y lo que se quema, documentado.
-        </p>
-
-        <dl class="contacto mt-8 grid grid-cols-[auto_1fr] gap-x-6 gap-y-3 text-[13px] leading-[1.5] sm:grid-cols-[auto_1fr_auto_1fr]">
-          <dt class="font-bold">Taller</dt>
-          <dd class="m-0 text-[var(--text-muted)]">Ciudad de México<br />Desde 2026</dd>
-          <dt class="font-bold">Escríbeme</dt>
-          <dd class="m-0">
-            <a href="mailto:hola@forma.mx" class="enlace">hola@forma.mx</a><br />
-            <a href="#mas" class="enlace">Avisos por correo</a>
-          </dd>
-        </dl>
-      </section>
-
-      <!-- Columna 2: piezas -->
-      <section class="columna" aria-labelledby="piezas">
-        <h2 id="piezas" class="titulo-columna m-0">Piezas</h2>
-
-        <ul class="lista-piezas m-0 mt-5 grid list-none gap-x-4 gap-y-8 p-0 sm:grid-cols-2">
-          <li>
-            <a href="/banca" class="pieza block no-underline">
-              <Image
-                src={sillaJardin}
-                alt="Silla de jardín"
-                widths={[400, 800]}
-                sizes="(min-width: 768px) 18vw, 50vw"
-                class="block aspect-[4/5] w-full rounded-[var(--radius-s)] object-cover"
-              />
-              <span class="pie">Silla de jardín. Pino, 2026. Pieza única.</span>
-            </a>
-          </li>
-          <li class="sm:mt-16">
-            <a href="/lampara" class="pieza block no-underline">
-              <span class="relative block aspect-[4/5] w-full overflow-hidden rounded-[var(--radius-s)] bg-[var(--hueso)]">
-                <Image
-                  src={lampBase}
-                  alt=""
-                  aria-hidden="true"
-                  widths={[400, 800]}
-                  sizes="(min-width: 768px) 18vw, 50vw"
-                  class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
-                />
-                <Image
-                  src={lampShade}
-                  alt="Lámpara Tessera azul"
-                  widths={[400, 800]}
-                  sizes="(min-width: 768px) 18vw, 50vw"
-                  class="absolute inset-3 h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] object-contain"
-                />
-              </span>
-              <span class="pie">Lámpara Tessera. PLA, en proceso. Tercer intento del difusor.</span>
-            </a>
-          </li>
-          <li class="pendiente" aria-label="Video: el jardín en junio, pronto">
-            <span class="grid aspect-[4/5] w-full place-items-center rounded-[var(--radius-s)] border border-dashed border-[var(--border-strong)]">
-              <span class="meta-caps text-[var(--text-faint)]">Grabando</span>
-            </span>
-            <span class="pie text-[var(--text-faint)]">Video: el jardín en junio. Sin guion, con pájaros.</span>
-          </li>
-        </ul>
-      </section>
-
-      <!-- Columna 3: más -->
-      <section id="mas" class="columna md:sticky md:top-8 md:self-start" aria-labelledby="mas-titulo">
-        <h2 id="mas-titulo" class="titulo-columna m-0">Más</h2>
-
-        <div class="relative mt-5 aspect-square w-full overflow-hidden rounded-[var(--radius-s)] bg-[var(--surface-inverse)]">
-          <Image
-            src={lampShade}
-            alt=""
-            aria-hidden="true"
-            widths={[400, 800]}
-            sizes="(min-width: 768px) 22vw, 100vw"
-            class="absolute -bottom-[18%] -right-[22%] h-[118%] w-auto object-contain"
-          />
-        </div>
-
-        <p
-          class="m-0 mt-5 text-[length:var(--display-sm)] font-bold leading-[var(--leading-display)] tracking-[var(--tracking-display)]"
-          style="font-family: var(--font-display)"
-        >
-          Cada pieza se hace una vez.
-        </p>
-        <p class="m-0 mt-2 text-sm leading-[var(--leading-body)] text-[var(--text-muted)]">
-          Se vende, si quieres. Pero primero la historia.
-        </p>
-
-        <form class="mt-8" novalidate>
-          <p class="meta-caps m-0 text-[var(--accent)]">Avisos por correo</p>
-          <p class="m-0 mt-2 text-sm leading-[var(--leading-body)] text-[var(--text-muted)]">
-            Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez en cuando.
-          </p>
-          <div class="mt-3 flex gap-2">
-            <input
-              type="email"
-              class="input-brand min-w-0 flex-1"
-              placeholder="tu@correo.com"
-              aria-label="Tu correo"
-            />
-            <button type="button" class="btn btn-primary shrink-0">Avísame</button>
-          </div>
-        </form>
-
-        <ul class="m-0 mt-8 list-none border-t border-[var(--border-soft)] p-0 text-[15px]">
-          <li class="border-b border-[var(--border-soft)] py-3">
-            <a href="/banca" class="enlace-fila">Bitácora de la silla</a>
-          </li>
-          <li class="border-b border-[var(--border-soft)] py-3">
-            <a href="/lampara" class="enlace-fila">Configura una lámpara</a>
-          </li>
-          <li class="border-b border-[var(--border-soft)] py-3">
-            <a href="mailto:hola@forma.mx" class="enlace-fila">Escríbeme</a>
-          </li>
-          <li class="flex items-baseline justify-between gap-3 border-b border-[var(--border-soft)] py-3 text-[var(--text-faint)]">
-            <span>Quién soy</span>
-            <span class="meta-caps text-[10px]">Pronto</span>
-          </li>
-        </ul>
-      </section>
+    <div class="panel mx-auto flex max-w-[1440px] flex-col md:grid md:grid-cols-[1.15fr_1fr_0.9fr]">
+      <a href="/forma" class="columna" aria-label="forma: quién está detrás" style="view-transition-name: col-forma">
+        <ColumnaForma menu />
+      </a>
+      <a href="/trabajos" class="columna" aria-label="Trabajos: todas las piezas" style="view-transition-name: col-trabajos">
+        <ColumnaTrabajos menu />
+      </a>
+      <a href="/mas" class="columna" aria-label="Más: avisos por correo y enlaces" style="view-transition-name: col-mas">
+        <ColumnaMas menu />
+      </a>
     </div>
   </main>
 </BaseLayout>
 
 <style>
-  /* Títulos de columna: grandes, como los de atlason, en la fuente de la marca. */
-  .portada .titulo-columna {
-    font-family: var(--font-display);
-    font-size: var(--display-lg);
-    font-weight: var(--weight-display);
-    line-height: 1;
-    letter-spacing: var(--tracking-display);
-    color: var(--text-body);
+  /* El panel flota sobre la foto con el mismo aire por los cuatro lados. En
+     escritorio tiene altura fija y cada columna recorta lo que no cabe, como
+     en atlason: es un menú, no la página. En móvil las columnas se apilan. */
+  .portada .panel {
+    background: var(--surface-page);
+    border-radius: var(--radius-l);
+    margin: 4vh 4vw;
+    width: 92vw;
+    overflow: hidden;
+    box-shadow: var(--shadow-raised);
   }
-
-  @media (min-width: 1024px) {
-    .portada .titulo-columna { font-size: var(--display-xl); }
-  }
-
-  /* Foto principal: en móvil una franja; en escritorio ocupa casi toda la
-     altura de la ventana, como el retrato de atlason. */
-  .portada .foto-principal { height: 56vw; max-height: 520px; }
 
   @media (min-width: 768px) {
-    .portada .foto-principal { height: calc(100dvh - 300px); min-height: 380px; max-height: 760px; }
+    .portada .panel {
+      margin: 8vh auto;
+      width: 90vw;
+      height: 84vh;
+      max-height: 860px;
+    }
   }
 
-  /* Pie de cada pieza: una línea corta en el color de la metadata. */
-  .portada .pie {
+  .portada .columna {
     display: block;
-    margin-top: 8px;
-    font-size: 12.5px;
-    line-height: 1.4;
-    color: var(--text-body);
+    position: relative;
+    padding: 24px 20px;
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+    max-height: 72vh;
+    border-bottom: 1px solid var(--border-soft);
+    transition: background var(--duration-slow) var(--ease-out);
   }
 
-  .portada .pieza img,
-  .portada .pieza > span { transition: opacity var(--duration-slow) var(--ease-out); }
-  .portada .pieza:hover img,
-  .portada .pieza:hover > span:first-child { opacity: 0.88; }
-  .portada .pieza:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; border-radius: var(--radius-s); }
+  .portada .columna:last-child { border-bottom: 0; }
+  .portada .columna:hover { background: var(--hueso); }
+  .portada .columna:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 
-  .portada .enlace { color: var(--accent); text-decoration: none; }
-  .portada .enlace:hover { color: var(--accent-hover); text-decoration: underline; }
+  /* Degradado al pie de cada columna: se nota que hay más abajo. */
+  .portada .columna::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 72px;
+    background: linear-gradient(to bottom, transparent, var(--surface-page));
+    pointer-events: none;
+    transition: opacity var(--duration-slow) var(--ease-out);
+  }
 
-  .portada .enlace-fila { display: block; color: var(--text-body); text-decoration: none; }
-  .portada .enlace-fila:hover { color: var(--accent); }
+  .portada .columna:hover::after { opacity: 0; }
+
+  @media (min-width: 768px) {
+    .portada .columna {
+      max-height: none;
+      height: 100%;
+      padding: 32px 28px;
+      border-bottom: 0;
+      border-right: 1px solid var(--border-soft);
+    }
+    .portada .columna:last-child { border-right: 0; }
+  }
+
+  @media (min-width: 1200px) {
+    .portada .columna { padding: 40px 36px; }
+  }
 </style>

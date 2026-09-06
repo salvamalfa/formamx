@@ -1,0 +1,57 @@
+---
+// Imagen de un trabajo: foto, capas de render o hueco. Misma pieza en la
+// portada, en /trabajos y en la columna "forma".
+import { Image } from 'astro:assets';
+import type { Trabajo } from '../../lib/trabajos';
+
+interface Props {
+  trabajo: Trabajo;
+  sizes: string;
+  class?: string;
+}
+
+const { trabajo: t, sizes, class: extra = '' } = Astro.props;
+---
+
+{
+  t.imagen ? (
+    <Image
+      src={t.imagen}
+      alt={t.imagenAlt ?? t.titulo}
+      widths={[400, 800, 1400]}
+      sizes={sizes}
+      class:list={['recuadro block w-full object-cover', extra]}
+      style={`aspect-ratio: ${t.ratio}`}
+    />
+  ) : t.capas ? (
+    <span
+      class:list={['recuadro relative block w-full overflow-hidden bg-[var(--hueso)]', extra]}
+      style={`aspect-ratio: ${t.ratio}`}
+    >
+      {t.capas.map((capa, i) => (
+        <Image
+          src={capa}
+          alt={i === t.capas!.length - 1 ? (t.imagenAlt ?? t.titulo) : ''}
+          aria-hidden={i === t.capas!.length - 1 ? undefined : 'true'}
+          widths={[400, 800]}
+          sizes={sizes}
+          class="absolute inset-[6%] h-[88%] w-[88%] object-contain"
+        />
+      ))}
+    </span>
+  ) : (
+    <span
+      class:list={[
+        'recuadro grid w-full place-items-center border border-dashed border-[var(--border-strong)]',
+        extra,
+      ]}
+      style={`aspect-ratio: ${t.ratio}`}
+    >
+      <span class="meta-caps text-[var(--text-faint)]">{t.placeholder}</span>
+    </span>
+  )
+}
+
+<style>
+  .recuadro { border-radius: var(--radius-s); }
+</style>
