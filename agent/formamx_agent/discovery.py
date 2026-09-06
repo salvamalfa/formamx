@@ -30,7 +30,10 @@ log = logging.getLogger('formamx.discovery')
 
 DISCOVERY_GROUP = '239.255.255.250'
 DISCOVERY_PORT = 2021
-DEFAULT_TIMEOUT = 5.0
+# La impresora reanuncia cada ~5s: un timeout de un solo ciclo pierde el
+# anuncio por mala suerte si empezamos a escuchar justo después de uno.
+# Con margen para 2-3 ciclos casi nunca falla en una red sana.
+DEFAULT_TIMEOUT = 12.0
 
 
 def parse_ssdp_response(data: bytes) -> dict[str, str]:
