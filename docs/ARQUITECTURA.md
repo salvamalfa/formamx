@@ -24,7 +24,7 @@ flowchart LR
 
     subgraph sitio["Sitio estático · Astro + Preact · Hostinger"]
         direction TB
-        paginas["Páginas públicas<br/>/ · /banca · /lampara · /gracias"]
+        paginas["Páginas públicas<br/>/ · /forma · /trabajos · /mas<br/>/banca · /lampara · /gracias"]
         taller["/taller<br/>una isla Preact, paneles por hash"]
     end
 
@@ -64,6 +64,10 @@ flowchart LR
 
 La base de datos es **D1** (SQLite administrado de Cloudflare). Solo el Worker
 la toca: ni el sitio ni el agente hablan con ella directo.
+
+La portada (`/`) es un menú de tres columnas (forma · Trabajos · Más) sobre
+una foto; cada columna es un enlace a su página completa (`/forma`,
+`/trabajos`, `/mas`).
 
 ---
 
