@@ -139,6 +139,4 @@ a través del Worker, para no exponer el token en el cliente.
    modo oscuro.
 3. Definir logo/marca del perfil de Reach.
 4. Conectar el formulario de suscripción que ya está maquetado en la portada.
-5. Arreglar el conector hosteado antes de intentar automatizar el envío
-   como agente programado.
-6. Confirmar el domicilio fiscal contra el SAT (ver "Datos legales" arriba).
+5. Confirmar el domicilio fiscal contra el SAT (ver "Datos legales" arriba).
