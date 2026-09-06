@@ -1,0 +1,22 @@
+/* Transiciones de vista entre las páginas de la portada (/, /forma,
+   /trabajos, /mas), sin JS: el navegador funde una página con la siguiente
+   y, si dos elementos comparten view-transition-name, mueve uno hasta el
+   otro. Así cada columna del menú crece hasta ser su página. Solo la cargan
+   esas cuatro páginas; el resto del sitio (/taller incluido) no cambia.
+   Donde no hay soporte, navegación normal. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-group(*) {
+  animation-duration: 450ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
