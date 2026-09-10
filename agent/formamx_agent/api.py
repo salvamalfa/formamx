@@ -73,7 +73,7 @@ class TallerApi:
         return r.json()['print']
 
     def download_stl(self, print_id: str, dest: Path) -> None:
-        """Baja el STL a `dest`. Por trozos: los archivos de cliente pesan."""
+        """Baja el STL o proyecto 3MF a `dest`. Por trozos: los archivos de cliente pesan."""
         dest.parent.mkdir(parents=True, exist_ok=True)
         with self.session.get(
             f'{self.base}/api/agent/custom-prints/{print_id}/stl',

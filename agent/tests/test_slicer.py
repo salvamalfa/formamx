@@ -6,6 +6,7 @@ result.json y no dar por bueno un rebanado que no dejó archivo.
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -32,13 +33,41 @@ def test_saca_tiempo_y_gramos():
     assert res.grams == 3.69
 
 
-def test_suma_los_gramos_de_todos_los_filamentos():
+def test_un_filamento_en_cero_no_cuenta_como_color_extra():
+    # Algunas ranuras del AMS aparecen en el result.json sin uso (0 g): no son
+    # un segundo color, así que no deben disparar el rechazo de abajo, y su
+    # peso (nulo) no cambia la suma.
+    datos = json.loads(json.dumps(EXITO))
+    datos['sliced_plates'][0]['filaments'] = [
+        {'id': 1, 'total_used_g': 3.69},
+        {'id': 2, 'total_used_g': 0},
+    ]
+    res = parse_result(datos)
+    assert res.ok
+    assert res.grams == 3.69
+
+
+def test_varios_platos_se_rechaza():
+    # printer.py siempre imprime plate_1.gcode: un proyecto con más de un
+    # plato no tiene forma de imprimirse hoy.
+    datos = json.loads(json.dumps(EXITO))
+    datos['sliced_plates'] = [datos['sliced_plates'][0], datos['sliced_plates'][0]]
+    res = parse_result(datos)
+    assert not res.ok
+    assert 'platos' in res.error
+
+
+def test_mas_de_un_filamento_usado_se_rechaza():
+    # `imprimir` arma colors_json de largo 1: un proyecto que de verdad usa
+    # más de un color no se puede imprimir con esta fase.
     datos = json.loads(json.dumps(EXITO))
     datos['sliced_plates'][0]['filaments'] = [
         {'id': 1, 'total_used_g': 3.69},
         {'id': 2, 'total_used_g': 1.31},
     ]
-    assert parse_result(datos).grams == 5.0
+    res = parse_result(datos)
+    assert not res.ok
+    assert 'filamentos' in res.error
 
 
 def test_el_error_del_rebanador_llega_legible():
@@ -163,3 +192,216 @@ def test_sin_miniatura_no_hay_vista_y_no_revienta(tmp_path):
     # Caso de una máquina que rebanó sin sesión gráfica: la pieza se revisa
     # con los estimados (el reemplazo dibujado vive en agent/apendice/).
     assert _extraer_preview(_tresemefe(tmp_path, [])) is None
+
+
+# ---- Armado del comando (STL vs proyecto 3MF) --------------------------------
+
+
+def test_comando_stl_conserva_la_receta(tmp_path):
+    """La rama STL de _comando es la receta de siempre, sin cambios."""
+    from formamx_agent.slicer import _SALIDA, _comando
+
+    profiles_dir = tmp_path
+    proceso = tmp_path / 'process.json'
+    filamento = tmp_path / 'filament_pla.json'
+    entrada = tmp_path / 'pieza.stl'
+    salida_dir = tmp_path / 'out'
+
+    cmd = _comando('bambu-studio', profiles_dir, entrada, proceso, filamento, salida_dir, 'stl', orient='auto')
+
+    assert cmd == [
+        'bambu-studio',
+        '--load-settings', f'{profiles_dir / "machine.json"};{proceso}',
+        '--load-filaments', str(filamento),
+        '--slice', '0',
+        '--arrange', '1',
+        '--orient', '1',
+        '--ensure-on-bed',
+        '--export-3mf', _SALIDA,
+        '--outputdir', str(salida_dir),
+        str(entrada),
+    ]
+
+
+def test_comando_stl_respeta_la_orientacion_original(tmp_path):
+    from formamx_agent.slicer import _comando
+
+    cmd = _comando(
+        'bambu-studio', tmp_path, tmp_path / 'x.stl', tmp_path / 'p.json', tmp_path / 'f.json', tmp_path, 'stl',
+        orient='original',
+    )
+    assert cmd[cmd.index('--orient') + 1] == '0'
+
+
+def test_comando_3mf_no_pisa_el_trabajo_del_proyecto(tmp_path):
+    """El proyecto ya trae colocación/soportes: sin --load-settings, --arrange
+    y --orient en 0, y sin --ensure-on-bed (nada que forzar a la cama)."""
+    from formamx_agent.slicer import _SALIDA, _comando
+
+    filamento = tmp_path / 'filament_pla.json'
+    entrada = tmp_path / 'proyecto.3mf'
+    salida_dir = tmp_path / 'out'
+
+    cmd = _comando('bambu-studio', tmp_path, entrada, None, filamento, salida_dir, '3mf')
+
+    assert cmd == [
+        'bambu-studio',
+        '--load-filaments', str(filamento),
+        '--slice', '0',
+        '--arrange', '0',
+        '--orient', '0',
+        '--export-3mf', _SALIDA,
+        '--outputdir', str(salida_dir),
+        str(entrada),
+    ]
+    assert '--load-settings' not in cmd
+    assert '--ensure-on-bed' not in cmd
+    assert cmd[-1].endswith('.3mf')
+
+
+# ---- Validación de proyectos 3MF (Guardar proyecto de Bambu Studio) ---------
+
+
+def _proyecto_zip(ruta, ajustes=None, incluye_modelo=True):
+    """Arma un proyecto 3MF mínimo para las pruebas: 3D/3dmodel.model (lo que
+    distingue un 3MF de proyecto de cualquier otro zip) y, si se dan, los
+    project_settings.config que _validar_proyecto revisa."""
+    import zipfile
+
+    with zipfile.ZipFile(ruta, 'w') as z:
+        if incluye_modelo:
+            z.writestr('3D/3dmodel.model', '<model/>')
+        if ajustes is not None:
+            z.writestr('Metadata/project_settings.config', json.dumps(ajustes))
+    return ruta
+
+
+def test_valida_proyecto_bien_formado_pasa(tmp_path):
+    from formamx_agent.slicer import _validar_proyecto
+
+    proyecto = _proyecto_zip(
+        tmp_path / 'ok.3mf', {'printer_model': 'Bambu Lab A1', 'curr_bed_type': 'Textured PEI Plate'}
+    )
+    assert _validar_proyecto(proyecto) is None
+
+
+def test_proyecto_que_no_es_zip_se_rechaza(tmp_path):
+    from formamx_agent.slicer import _validar_proyecto
+
+    falso = tmp_path / 'no_es_zip.3mf'
+    falso.write_text('esto no es un zip', encoding='utf-8')
+    error = _validar_proyecto(falso)
+    assert error is not None
+    assert 'zip' in error
+
+
+def test_proyecto_sin_3dmodel_se_rechaza(tmp_path):
+    from formamx_agent.slicer import _validar_proyecto
+
+    proyecto = _proyecto_zip(tmp_path / 'vacio.3mf', incluye_modelo=False)
+    error = _validar_proyecto(proyecto)
+    assert error is not None
+    assert '3dmodel.model' in error
+
+
+def test_proyecto_de_otra_impresora_se_rechaza(tmp_path):
+    from formamx_agent.slicer import _validar_proyecto
+
+    proyecto = _proyecto_zip(tmp_path / 'x1c.3mf', {'printer_model': 'Bambu Lab X1 Carbon'})
+    error = _validar_proyecto(proyecto)
+    assert error is not None
+    assert 'X1 Carbon' in error
+
+
+def test_a1_mini_no_pasa_por_contener_a1(tmp_path):
+    # "Bambu Lab A1 mini" contiene "Bambu Lab A1" pero es otra impresora: la
+    # comparación de _validar_proyecto es exacta, no un substring.
+    from formamx_agent.slicer import _validar_proyecto
+
+    proyecto = _proyecto_zip(tmp_path / 'mini.3mf', {'printer_model': 'Bambu Lab A1 mini'})
+    assert _validar_proyecto(proyecto) is not None
+
+
+def test_proyecto_sin_printer_model_no_se_rechaza(tmp_path):
+    # Un proyecto puede no declarar impresora; sin dato no hay nada que
+    # rechazar (no es lo mismo "no dice" que "dice que es otra").
+    from formamx_agent.slicer import _validar_proyecto
+
+    proyecto = _proyecto_zip(tmp_path / 'sin_dato.3mf', {'curr_bed_type': 'Textured PEI Plate'})
+    assert _validar_proyecto(proyecto) is None
+
+
+# ---- slice_stl con formato='3mf' ---------------------------------------------
+
+
+def test_slice_stl_rechaza_proyecto_de_otra_impresora_sin_ejecutar_nada(tmp_path, monkeypatch):
+    profiles_dir = tmp_path
+    (profiles_dir / 'filament_pla.json').write_text('{}', encoding='utf-8')
+    proyecto = _proyecto_zip(tmp_path / 'x1c.3mf', {'printer_model': 'Bambu Lab X1 Carbon'})
+
+    llamadas = []
+    monkeypatch.setattr('formamx_agent.slicer.subprocess.run', lambda *a, **k: llamadas.append((a, k)))
+
+    res = slice_stl('bambu-studio', profiles_dir, proyecto, tmp_path / 'out.3mf', 'PLA', formato='3mf')
+
+    assert not res.ok
+    assert 'X1 Carbon' in res.error
+    assert llamadas == []
+
+
+def test_slice_stl_3mf_que_no_es_zip_falla_antes_de_ejecutar(tmp_path, monkeypatch):
+    profiles_dir = tmp_path
+    (profiles_dir / 'filament_pla.json').write_text('{}', encoding='utf-8')
+    falso = tmp_path / 'no_es_zip.3mf'
+    falso.write_text('esto no es un zip', encoding='utf-8')
+
+    llamadas = []
+    monkeypatch.setattr('formamx_agent.slicer.subprocess.run', lambda *a, **k: llamadas.append((a, k)))
+
+    res = slice_stl('bambu-studio', profiles_dir, falso, tmp_path / 'out.3mf', 'PLA', formato='3mf')
+
+    assert not res.ok
+    assert llamadas == []
+
+
+def test_proyecto_3mf_de_punta_a_punta_con_cli_falso(tmp_path, monkeypatch):
+    """Simula el CLI entero: recibe el proyecto, escribe result.json (EXITO)
+    y un pieza.gcode.3mf sintético en --outputdir, como haría Bambu Studio."""
+    import subprocess
+
+    from formamx_agent import slicer as slicer_mod
+
+    profiles_dir = tmp_path / 'perfiles'
+    profiles_dir.mkdir()
+    (profiles_dir / 'filament_pla.json').write_text('{}', encoding='utf-8')
+
+    proyecto = _proyecto_zip(
+        tmp_path / 'prueba.3mf', {'printer_model': 'Bambu Lab A1', 'curr_bed_type': 'Textured PEI Plate'}
+    )
+    out_path = tmp_path / 'salida' / 'pieza.pla.gcode.3mf'
+
+    llamada = {}
+
+    def cli_falso(cmd, capture_output=True, timeout=None):
+        llamada['cmd'] = cmd
+        outputdir = Path(cmd[cmd.index('--outputdir') + 1])
+        (outputdir / 'result.json').write_text(json.dumps(EXITO), encoding='utf-8')
+        _tresemefe(outputdir, ['Metadata/plate_1.png'])  # deja pieza.gcode.3mf con miniatura
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr('formamx_agent.slicer.subprocess.run', cli_falso)
+
+    res = slice_stl('bambu-studio', profiles_dir, proyecto, out_path, 'PLA', formato='3mf', timeout=5)
+
+    assert res.ok
+    assert out_path.is_file()
+    assert res.preview is not None and res.preview.is_file()
+
+    cmd = llamada['cmd']
+    assert '--load-settings' not in cmd
+    assert '--ensure-on-bed' not in cmd
+    assert cmd[cmd.index('--arrange') + 1] == '0'
+    assert cmd[cmd.index('--orient') + 1] == '0'
+    assert cmd[cmd.index('--load-filaments') + 1] == str(profiles_dir / 'filament_pla.json')
+    assert cmd[-1] == str(proyecto)
+    assert cmd[0] == 'bambu-studio'
