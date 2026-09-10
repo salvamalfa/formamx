@@ -21,6 +21,7 @@ de verdad del retrato; no lo dupliques aquí.
 | Newsletter de clientes: escribir o construir una edición | `.claude/skills/newsletter/SKILL.md` y el código en `newsletter/`. El envío se queda manual: la API de Reach no crea campañas |
 | Newsletter: decisiones de canal, cuenta de Reach, datos legales del pie | `docs/MARKETING.md`. No confundir con el newsletter interno (agente de Cowork aparte, sin relación con este repo) |
 | Marca, voz, estilos | `ds-bundle/readme.md` |
+| Sincronizar `ds-bundle/` con el proyecto de Claude Design (pull-before-push) | `.design-sync/NOTES.md` — léelo ANTES de tocar `ds-bundle/`; hay una regla que se auto-carga en `.claude/rules/design-sync.md` |
 
 Lo que aún no existe (Stripe en prueba, avisos rotos, lo legal) está en
 `docs/ARQUITECTURA.md` §6, no aquí — así no hay dos listas que se contradigan.
