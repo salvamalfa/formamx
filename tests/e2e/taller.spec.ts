@@ -136,6 +136,7 @@ const PIEZA_LISTA = {
   id: 'cp_11111111',
   file_name: 'soporte-cliente.stl',
   size_bytes: 2_400_000,
+  formato: 'stl',
   material: 'PLA',
   color_id: 'azul',
   color_hex: '#2F5FD6',
@@ -1207,6 +1208,96 @@ test.describe('piezas de clientes', () => {
     const main = page.locator('main');
     await main.getByRole('button', { name: 'Rebanar', exact: true }).click();
     await expect(main.getByText(/Ninguna bobina del AMS/)).toBeVisible();
+  });
+
+  test('subir un 3mf lo agrega a la lista', async ({ page }) => {
+    await mockApi(page);
+    let subido: string | null = null;
+    await page.route('**/api/admin/custom-prints**', (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      subido = new URL(route.request().url()).searchParams.get('filename');
+      return route.fulfill({
+        json: { ...PIEZA_LISTA, id: 'cp_nueva', file_name: subido, formato: '3mf',
+                status: 'subido', est_seconds: null, est_grams: null, material: null,
+                color_id: null, supports: null, orient: null },
+      });
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await main.locator('input[type=file]').setInputFiles({
+      name: 'proyecto-cliente.3mf',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.from('PK\x03\x04'),
+    });
+
+    await expect(main.getByText('proyecto-cliente.3mf')).toBeVisible();
+    await expect(main.getByText('Subido')).toBeVisible();
+    expect(subido).toBe('proyecto-cliente.3mf');
+  });
+
+  test('un .gcode.3mf se rechaza antes de subir', async ({ page }) => {
+    await mockApi(page);
+    let pedido = false;
+    await page.route('**/api/admin/custom-prints**', (route) => {
+      if (route.request().method() !== 'POST') return route.fallback();
+      pedido = true;
+      return route.fulfill({ json: { error: 'ya_rebanado' }, status: 400 });
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await main.locator('input[type=file]').setInputFiles({
+      name: 'plato.gcode.3mf',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.from('PK\x03\x04'),
+    });
+
+    await expect(main.getByText(/ya viene rebanado/)).toBeVisible();
+    expect(pedido).toBe(false);
+  });
+
+  test('rebanar un 3mf no ofrece soportes ni orientación y el POST no los manda', async ({
+    page,
+  }) => {
+    await mockApi(page, {
+      spools: ['azul', 'blanco', null, null],
+      customPrints: [
+        { ...PIEZA_LISTA, formato: '3mf', status: 'subido', est_seconds: null,
+          est_grams: null, material: null, color_id: null, supports: null, orient: null },
+      ],
+    });
+    let enviado: Record<string, unknown> | null = null;
+    await page.route('**/api/admin/custom-prints/*/rebanar', (route) => {
+      enviado = route.request().postDataJSON();
+      return route.fulfill({ json: { ...PIEZA_LISTA, formato: '3mf', status: 'en_cola' } });
+    });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await main.getByRole('button', { name: 'Rebanar', exact: true }).click();
+    await expect(main.getByRole('button', { name: 'Sin soportes' })).toHaveCount(0);
+    await expect(main.getByRole('button', { name: 'Como viene el archivo' })).toHaveCount(0);
+    await expect(main.getByText('Soportes y orientación: los del proyecto.')).toBeVisible();
+    await main.getByRole('button', { name: 'Rebanar', exact: true }).last().click();
+
+    await expect.poll(() => enviado).not.toBeNull();
+    expect(enviado).toMatchObject({ material: 'PLA', color_id: 'azul' });
+    expect(enviado).not.toHaveProperty('supports');
+    expect(enviado).not.toHaveProperty('orient');
+  });
+
+  test('una pieza 3mf lista muestra "soportes y orientación del proyecto"', async ({ page }) => {
+    await mockApi(page, { customPrints: [{ ...PIEZA_LISTA, formato: '3mf' }] });
+    await page.goto('/taller#proyectos/impresora');
+    await entrar(page);
+    const main = page.locator('main');
+
+    await expect(main.getByText('soportes y orientación del proyecto')).toBeVisible();
+    await expect(main.getByText('sin soportes')).toHaveCount(0);
   });
 });
 

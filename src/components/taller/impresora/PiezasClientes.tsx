@@ -129,6 +129,16 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
   async function subir(file: File) {
     if (!token) return;
     setError(null);
+    // Un '.gcode.3mf' es el plato YA rebanado (Fase 2, todavía no
+    // implementada): se detecta antes de subir nada, con el mismo mensaje
+    // que espera el server si de todos modos llegara a mandarse.
+    if (file.name.toLowerCase().endsWith('.gcode.3mf')) {
+      setError(
+        'Ese archivo ya viene rebanado. Sube el proyecto (.3mf guardado desde Bambu Studio), no el plato exportado.',
+      );
+      if (input.current) input.current.value = '';
+      return;
+    }
     setSubiendo(0);
     try {
       const nueva = await uploadCustomPrint(token, file, setSubiendo);
@@ -140,7 +150,8 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
     } catch (err) {
       const msg = (err as Error).message;
       if (msg === 'no_autorizado') invalidate('Token inválido.');
-      else if (msg === 'error_400') setError('El archivo no sirve: debe ser un .stl de menos de 100 MB.');
+      else if (msg === 'error_400')
+        setError('El archivo no sirve: debe ser .stl o proyecto .3mf de menos de 100 MB.');
       else setError('No pude subir el archivo.');
     } finally {
       setSubiendo(null);
@@ -179,7 +190,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
         <input
           ref={input}
           type="file"
-          accept=".stl"
+          accept=".stl,.3mf"
           class="hidden"
           onChange={(e) => {
             const file = (e.currentTarget as HTMLInputElement).files?.[0];
@@ -193,7 +204,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
           onClick={() => input.current?.click()}
         >
           <IconUpload class="size-4" />
-          {subiendo !== null ? `Subiendo ${subiendo}%` : 'Importar STL'}
+          {subiendo !== null ? `Subiendo ${subiendo}%` : 'Importar STL / 3MF'}
         </button>
       </div>
 
@@ -230,7 +241,7 @@ export function PiezasClientes({ spools }: { spools: Spool[] }) {
       ) : piezas.length === 0 ? (
         <p class="m-0 text-sm text-[var(--text-muted)]">
           {tab === 'pendientes'
-            ? 'Nada por aquí. Importa el STL que te mandó un cliente y el agente lo rebana.'
+            ? 'Nada por aquí. Importa el STL que te mandó un cliente (o tu proyecto 3MF de Bambu Studio) y el agente lo rebana.'
             : 'Todavía no hay piezas de clientes terminadas.'}
         </p>
       ) : (
@@ -351,8 +362,8 @@ function PiezaCard({
     material: string;
     color_id: string;
     color_hex?: string | null;
-    supports: 'auto' | 'no';
-    orient: 'auto' | 'original';
+    supports?: 'auto' | 'no';
+    orient?: 'auto' | 'original';
   }) => void;
   onAbrir: () => void;
   onImprimir: () => void;
@@ -411,7 +422,13 @@ function PiezaCard({
               <span class="flex flex-wrap items-center gap-x-1.5">
                 {pieza.material && <span>{pieza.material}</span>}
                 {pieza.color_id && <span>{colorLabel(pieza.color_id)}</span>}
-                <span>{pieza.supports === 'auto' ? 'con soportes' : 'sin soportes'}</span>
+                <span>
+                  {pieza.formato === '3mf'
+                    ? 'soportes y orientación del proyecto'
+                    : pieza.supports === 'auto'
+                      ? 'con soportes'
+                      : 'sin soportes'}
+                </span>
               </span>
             </div>
             {pieza.cost_breakdown ? (
@@ -465,7 +482,7 @@ function PiezaCard({
 
       {abierta && rebanable && (
         <div class="border-t border-[var(--border-soft)] px-3 pt-3 pb-3">
-          <FormRebanar spools={spools} onRebanar={onRebanar} />
+          <FormRebanar spools={spools} formato={pieza.formato} onRebanar={onRebanar} />
         </div>
       )}
     </div>
@@ -646,17 +663,20 @@ function Preview({ id, token }: { id: string; token: string }) {
 // puede pedir todavía.
 function FormRebanar({
   spools,
+  formato,
   onRebanar,
 }: {
   spools: Spool[];
+  formato: CustomPrint['formato'];
   onRebanar: (op: {
     material: string;
     color_id: string;
     color_hex?: string | null;
-    supports: 'auto' | 'no';
-    orient: 'auto' | 'original';
+    supports?: 'auto' | 'no';
+    orient?: 'auto' | 'original';
   }) => void;
 }) {
+  const es3mf = formato === '3mf';
   const usables = spools.filter((s) => s.material && s.color_id);
   const [elegida, setElegida] = useState<number | null>(usables[0]?.slot ?? null);
   const [supports, setSupports] = useState<'auto' | 'no'>('auto');
@@ -694,24 +714,32 @@ function FormRebanar({
         </div>
       </div>
 
-      <Opcion
-        titulo="Soportes"
-        valor={supports}
-        opciones={[
-          ['auto', 'Automáticos'],
-          ['no', 'Sin soportes'],
-        ]}
-        onElegir={(v) => setSupports(v as 'auto' | 'no')}
-      />
-      <Opcion
-        titulo="Orientación"
-        valor={orient}
-        opciones={[
-          ['auto', 'La mejor automática'],
-          ['original', 'Como viene el archivo'],
-        ]}
-        onElegir={(v) => setOrient(v as 'auto' | 'original')}
-      />
+      {es3mf ? (
+        <p class="m-0 text-[13px] text-[var(--text-muted)]">
+          Soportes y orientación: los del proyecto.
+        </p>
+      ) : (
+        <>
+          <Opcion
+            titulo="Soportes"
+            valor={supports}
+            opciones={[
+              ['auto', 'Automáticos'],
+              ['no', 'Sin soportes'],
+            ]}
+            onElegir={(v) => setSupports(v as 'auto' | 'no')}
+          />
+          <Opcion
+            titulo="Orientación"
+            valor={orient}
+            opciones={[
+              ['auto', 'La mejor automática'],
+              ['original', 'Como viene el archivo'],
+            ]}
+            onElegir={(v) => setOrient(v as 'auto' | 'original')}
+          />
+        </>
+      )}
 
       <button
         type="button"
@@ -719,13 +747,21 @@ function FormRebanar({
         disabled={!spool}
         onClick={() =>
           spool &&
-          onRebanar({
-            material: spool.material!,
-            color_id: spool.color_id!,
-            color_hex: spool.color_hex,
-            supports,
-            orient,
-          })
+          onRebanar(
+            es3mf
+              ? {
+                  material: spool.material!,
+                  color_id: spool.color_id!,
+                  color_hex: spool.color_hex,
+                }
+              : {
+                  material: spool.material!,
+                  color_id: spool.color_id!,
+                  color_hex: spool.color_hex,
+                  supports,
+                  orient,
+                },
+          )
         }
       >
         Rebanar
