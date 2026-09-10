@@ -7,8 +7,8 @@ todo sin leer el código. No es un plan ni una propuesta: lo planeado vive en
 Los diagramas son Mermaid; GitHub los dibuja solo al abrir este archivo.
 
 **Cómo se mantiene:** se actualiza en el mismo PR que introduce el cambio,
-siguiendo la regla de `CLAUDE.md` (§ "Mantener el mapa de arquitectura"). Si
-este archivo contradice al código, el código gana y el archivo está en deuda.
+siguiendo la regla de `.claude/rules/mapa-arquitectura.md`. Si este archivo
+contradice al código, el código gana y el archivo está en deuda.
 
 ---
 
@@ -79,30 +79,46 @@ sequenceDiagram
     participant S as Sitio
     participant W as Worker
     participant St as Stripe
+    participant Sa as Salva (/taller)
     participant A as Agente + A1
 
-    C->>S: configura la lámpara y paga
+    C->>S: configura la lámpara
     S->>W: POST /api/checkout
     W->>St: crea sesión de Checkout
-    W->>W: guarda el pedido en `pendiente`
+    C->>St: paga (tarjeta u OXXO)
     St-->>W: webhook checkout.session.completed
-    W->>W: pedido a `pagada`, crea print_jobs
+    W->>W: inserta el pedido<br/>tarjeta en `pagada` · OXXO en `pendiente`
+    St-->>W: (OXXO) async_payment_succeeded
+    W->>W: pedido a `pagada`
+    Sa->>W: PATCH /orders/:id (pagada → en_cola)
+    Sa->>W: POST /orders/:id/dispatch
+    W->>W: crea print_jobs
     A->>W: GET /api/agent (¿hay trabajo?)
     W-->>A: entrega el trabajo (claim atómico)
     A->>A: rebana e imprime
     A-->>W: progreso y estado
     W->>W: pedido a `imprimiendo` → `lista`
-    S-->>C: /taller muestra el avance
+    Sa->>W: consulta el avance en /taller
 ```
 
 **Estados de un pedido** (grafo en `workers/api/src/lib/orders.ts`):
 
 ```
 pendiente → pagada → en_cola → imprimiendo → lista → enviada
-                                                  ↘ cancelada
+    ↓          ↓         ↓            ↓         ↓
+    └──────────┴─────────┴────────────┴─────────┴──→ cancelada
 ```
 
-- Pago con **OXXO** entra en `pendiente` y sube a `pagada` cuando Stripe avisa.
+Cualquier estado no terminal (todos menos `enviada` y `cancelada`) puede
+cancelarse a mano desde /taller.
+
+- `/api/checkout` solo crea la sesión de Stripe; no toca `orders`. El pedido
+  nace con el webhook `checkout.session.completed`: tarjeta entra directo en
+  `pagada`, OXXO entra en `pendiente` y sube a `pagada` cuando Stripe avisa
+  (`async_payment_succeeded`).
+- `print_jobs` no se crea al pagar: nace cuando Salva pasa el pedido a
+  `en_cola` y despacha desde /taller (`POST /orders/:id/dispatch`), que
+  genera los 3 trabajos de la lámpara (pantalla, cuerpo, tapa).
 - Los productos con `production='manual'` (madera) nunca pasan por la
   impresora: se muestran como "En progreso" hasta `lista`.
 - El webhook es **idempotente**: `webhook_events` guarda cada `evt_` de Stripe
@@ -110,6 +126,9 @@ pendiente → pagada → en_cola → imprimiendo → lista → enviada
 - Tras cada impresión real la cama queda marcada como ocupada
   (`printer_flags.bed_clear = 0`) y el agente no recibe más trabajos hasta que
   Salva confirme en /taller que la despejó.
+- **No hay página pública de seguimiento.** `/taller` es el dashboard privado
+  de Salva, detrás de `ADMIN_TOKEN`; el cliente no puede consultar el avance
+  de su pedido desde el sitio.
 
 ---
 
@@ -126,14 +145,12 @@ erDiagram
     CUSTOMERS ||--o{ MESSAGES : escribe
     ORDERS ||--o{ MESSAGES : sobre
     ORDERS ||--o{ SHIPMENTS : "se envia con"
-    ORDERS ||--o{ QC_REGISTROS : "se revisa en"
     ORDERS ||--o{ PRINT_JOBS : genera
     ORDERS ||--o{ PIEZAS : reserva
     PRODUCTS ||--o{ ORDERS : "vendido en"
     PRODUCTS ||--o{ PIEZAS : define
     CUSTOM_PRINTS ||--o{ PRINT_JOBS : genera
     PRINT_JOBS ||--o{ PIEZAS : produce
-    PRINT_JOBS ||--o{ QC_REGISTROS : "se revisa en"
     BOBINAS ||--o{ CUSTOM_PRINTS : surte
     BOBINAS ||--o{ SPOOL_SLOTS : "montada en"
 
@@ -216,13 +233,6 @@ erDiagram
         text color_id
         text material
     }
-    QC_REGISTROS {
-        text id PK
-        text order_id FK
-        text print_job_id FK
-        text checklist_json
-        int passed
-    }
 ```
 
 ### Dinero y pedidos
@@ -250,7 +260,6 @@ erDiagram
 | `bobinas` | Almacén de filamento: material, color, gramos restantes, costo. |
 | `spool_slots` | Las 4 ranuras del AMS: qué bobina está montada ahora mismo en la impresora. |
 | `piezas` | Piezas terminadas en bodega: en stock, reservada, vendida o merma, con su ubicación. |
-| `qc_registros` | Historial de revisiones de calidad. **Inmutable**: repetir una revisión es insertar otra fila. |
 | `shipments` | Guías de envío por pedido. Un pedido puede tener varias (reenvíos); el historial no se edita. |
 | `printer_flags` | Una sola fila: el candado de cama y las horas acumuladas de impresión. |
 
