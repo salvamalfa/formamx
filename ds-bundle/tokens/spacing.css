@@ -24,7 +24,7 @@
   --shadow-raised: 0 2px 4px rgba(26, 26, 24, 0.08), 0 12px 32px rgba(26, 26, 24, 0.12);
 
   /* Transiciones */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --duration-fast: 150ms;
-  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --duration-fast: 150ms; /* @kind other */
+  --duration-slow: 300ms; /* @kind other */
 }

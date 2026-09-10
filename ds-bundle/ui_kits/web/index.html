@@ -1,5 +1,4 @@
 <!-- @dsCard group="Web" viewport="1280x780" subtitle="Home de la bitácora — filtro funcional" name="Web · Bitácora" -->
-<!-- @startingPoint section="Web" subtitle="Home de la bitácora de forma" viewport="1280x780" -->
 <!DOCTYPE html><html lang="es"><head>
 <meta charset="utf-8">
 <title>forma — bitácora</title>
@@ -75,7 +74,7 @@ function App() {
           <a href="#" style={{ color: C.text, textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>Bitácora</a>
           <a href="#" style={{ color: C.muted, textDecoration: 'none', fontSize: 15 }}>Piezas</a>
           <a href="#" style={{ color: C.muted, textDecoration: 'none', fontSize: 15 }}>Quién</a>
-          <Button variant="secondary" size="sm" style={noche ? { color: 'var(--blanco)', borderColor: 'rgba(255,255,255,0.28)' } : undefined}>Escríbeme</Button>
+          <Button variant="secondary" size="sm">Escríbeme</Button>
         </nav>
       </header>
 
@@ -87,7 +86,7 @@ function App() {
             <p style={{ fontSize: 'var(--text-lg)', lineHeight: 'var(--leading-body)', color: C.muted, margin: '18px 0 0', maxWidth: 440 }}>Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema, documentado. Se vende, si quieres — pero primero la historia.</p>
             <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
               <Button variant="primary" size="lg">Ver la bitácora</Button>
-              <Button variant="ghost" size="lg" style={{ color: C.text }}>Quién soy →</Button>
+              <Button variant="ghost" size="lg" style={noche ? { color: 'var(--azul-noche)' } : undefined}>Quién soy →</Button>
             </div>
           </div>
           <img src="../../assets/imagenes/silla-jardin-01.jpeg" style={{ width: '100%', height: 380, objectFit: 'cover', borderRadius: 'var(--radius-l)' }} alt="silla de jardín al sol" />

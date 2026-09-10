@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Bitácora web" description="Home de la bitácora: portada editorial, filtro por categoría, galería de piezas y pie con suscripción." -->
+<helmet>
+<script src="./ds-base.js"></script>
+<style>body{margin:0;background:#FFFFFF}a{color:#2E6DA4}a:hover{color:#245883}</style>
+</helmet>
+<div style="font-family:'Alan Sans',ui-sans-serif,system-ui,sans-serif;color:#1A1A18;background:#FFFFFF;min-height:100vh">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 48px;max-width:1100px;margin:0 auto;box-sizing:border-box">
+<img src="../../assets/logo/forma-negro.svg" style="height:30px" alt="forma">
+<nav style="display:flex;gap:28px;align-items:center">
+<a href="#" style="color:#1A1A18;text-decoration:none;font-size:15px;font-weight:600">Bitácora</a>
+<a href="#" style="color:#6E6E68;text-decoration:none;font-size:15px">Piezas</a>
+<a href="#" style="color:#6E6E68;text-decoration:none;font-size:15px">Quién</a>
+<x-import component-from-global-scope="FormaDesignSystem_12defe.Button" variant="secondary" size="sm" hint-size="112px,34px">Escríbeme</x-import>
+</nav>
+</header>
+<section style="max-width:1100px;margin:0 auto;padding:48px 48px 0;box-sizing:border-box;display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center">
+<div>
+<x-import component-from-global-scope="FormaDesignSystem_12defe.Meta" items="{{ metaPortada }}" hint-size="240px,16px"></x-import>
+<h1 style="font-weight:700;font-size:64px;line-height:1.15;letter-spacing:-0.01em;margin:14px 0 0">Cada pieza se hace una vez.</h1>
+<p style="font-size:19px;line-height:1.6;color:#6E6E68;margin:18px 0 0;max-width:440px;text-wrap:pretty">Bancas, lámparas, videos, música. Lo que sale bien y lo que se quema, documentado. Se vende, si quieres — pero primero la historia.</p>
+<div style="display:flex;gap:12px;margin-top:28px">
+<x-import component-from-global-scope="FormaDesignSystem_12defe.Button" variant="primary" size="lg" hint-size="182px,46px">Ver la bitácora</x-import>
+<x-import component-from-global-scope="FormaDesignSystem_12defe.Button" variant="ghost" size="lg" hint-size="150px,46px">Quién soy →</x-import>
+</div>
+</div>
+<img src="../../assets/imagenes/silla-jardin-01.jpeg" style="width:100%;height:380px;object-fit:cover;border-radius:24px" alt="silla de jardín al sol">
+</section>
+<section style="max-width:1100px;margin:0 auto;padding:64px 48px;box-sizing:border-box">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap">
+<h2 style="font-weight:700;font-size:32px;margin:0">Bitácora</h2>
+<div style="display:flex;gap:8px">
+<sc-for list="{{ categorias }}" as="c" hint-placeholder-count="4">
+<sc-if value="{{ c.activa }}" hint-placeholder-val="{{ true }}">
+<button onClick="{{ c.select }}" style="font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 14px;border-radius:999px;border:1.5px solid #2E6DA4;background:#E6EFF7;color:#245883">{{ c.nombre }}</button>
+</sc-if>
+<sc-if value="{{ c.inactiva }}">
+<button onClick="{{ c.select }}" style="font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 14px;border-radius:999px;border:1.5px solid #D8D8D3;background:transparent;color:#6E6E68">{{ c.nombre }}</button>
+</sc-if>
+</sc-for>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:24px">
+<sc-for list="{{ visibles }}" as="p" hint-placeholder-count="3">
+<x-import component-from-global-scope="FormaDesignSystem_12defe.ProjectCard" image="{{ p.image }}" placeholder="{{ p.placeholder }}" meta="{{ p.meta }}" title="{{ p.title }}" note="{{ p.note }}" tags="{{ p.tags }}" unique="{{ p.unique }}" hint-size="100%,400px"></x-import>
+</sc-for>
+</div>
+</section>
+<footer style="background:#1A1A18;padding:56px 48px">
+<div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;gap:48px;align-items:center;flex-wrap:wrap">
+<div>
+<img src="../../assets/logo/forma-blanco.svg" style="height:26px" alt="forma">
+<p style="color:#A8A8A2;font-size:14px;line-height:1.6;margin:14px 0 0;max-width:340px;text-wrap:pretty">Sin algoritmo de por medio: te escribo cuando hay pieza nueva. Poco y de vez en cuando.</p>
+</div>
+<div style="display:flex;gap:10px;align-items:flex-end">
+<div style="width:260px"><x-import component-from-global-scope="FormaDesignSystem_12defe.Input" placeholder="tu@correo.com" hint-size="260px,44px"></x-import></div>
+<x-import component-from-global-scope="FormaDesignSystem_12defe.Button" variant="primary" hint-size="128px,42px">Avísame</x-import>
+</div>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { cat: 'todos' };
+  proyectos() {
+    return [
+      { id: 1, cat: 'madera', image: '../../assets/imagenes/silla-jardin-01.jpeg', meta: ['Proyecto 001', '2026.04', 'Pino'], title: 'Silla de jardín', note: 'La primera capa quedó chueca. La segunda, mejor.', tags: ['madera', 'exterior'], unique: true },
+      { id: 2, cat: 'impresión 3d', image: null, placeholder: 'foto pendiente', meta: ['Proyecto 002', 'En proceso', 'PLA'], title: 'Lámpara impresa', note: 'Tercer intento del difusor. Los dos primeros se doblaron.', tags: ['impresión 3d', 'luz'], unique: false },
+      { id: 3, cat: 'video', image: null, placeholder: 'grabando', meta: ['Proyecto 003', 'Pronto'], title: 'Video: el jardín en junio', note: 'Grabando las tardes. Sin guion, con pájaros.', tags: ['video', 'naturaleza'], unique: false },
+    ];
+  }
+  renderVals() {
+    const cat = this.state.cat;
+    return {
+      metaPortada: ['Taller de proyectos', 'Desde 2026'],
+      visibles: this.proyectos().filter(p => cat === 'todos' || p.cat === cat),
+      categorias: ['todos', 'madera', 'impresión 3d', 'video'].map(nombre => {
+        const on = nombre === cat;
+        return { nombre, activa: on, inactiva: !on, select: () => this.setState({ cat: nombre }) };
+      }),
+    };
+  }
+}
+</script>
+</body>
+</html>
