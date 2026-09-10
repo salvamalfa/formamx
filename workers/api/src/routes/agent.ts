@@ -443,8 +443,9 @@ agent.get('/custom-prints/next', async (c) => {
   return c.json({ print: shapeCustomPrint(print) });
 });
 
-// El STL crudo, para que el agente lo rebane. Va por el bearer del agente:
-// nada de URLs firmadas ni llaves S3 que rotar.
+// El STL o el proyecto 3MF crudo, para que el agente lo rebane (sirve lo que
+// diga r2_key, sea cual sea el formato). Va por el bearer del agente: nada de
+// URLs firmadas ni llaves S3 que rotar.
 agent.get('/custom-prints/:id/stl', async (c) => {
   const id = c.req.param('id');
   const row = await c.env.DB.prepare('SELECT r2_key FROM custom_prints WHERE id = ?')

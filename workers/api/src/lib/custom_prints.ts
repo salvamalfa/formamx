@@ -28,6 +28,11 @@ export interface CustomPrintRow {
   file_name: string;
   r2_key: string;
   size_bytes: number;
+  // 'stl' (migración 0016) o '3mf': un proyecto de Bambu Studio ("Guardar
+  // proyecto"), que ya trae colocación/soportes/capas resueltos (migración
+  // 0024). El rebanado de un 3mf ignora supports/orient: los decide el
+  // proyecto.
+  formato: string;
   // 1 cuando el STL ya se limpió de R2 (migración 0018). La vista previa se
   // conserva para el histórico.
   files_deleted: number;
@@ -116,8 +121,27 @@ export function isOrient(v: unknown): v is string {
   return typeof v === 'string' && ORIENT_VALUES.includes(v);
 }
 
-export function stlKey(id: string): string {
-  return `stl/${id}.stl`;
+export type Formato = 'stl' | '3mf';
+export const FORMATO_VALUES: Formato[] = ['stl', '3mf'];
+
+export function isFormato(v: unknown): v is Formato {
+  return typeof v === 'string' && (FORMATO_VALUES as string[]).includes(v);
+}
+
+// Decide el formato por la extensión del nombre subido. `.gcode.3mf` es un
+// PLATO ya exportado/rebanado (Fase 2, todavía no implementada): se
+// distingue del proyecto ('.3mf' a secas) y devuelve null para que la ruta
+// lo rechace con un mensaje claro en vez de tratarlo como proyecto.
+export function formatoDeNombre(fileName: string): Formato | null {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith('.gcode.3mf')) return null;
+  if (lower.endsWith('.stl')) return 'stl';
+  if (lower.endsWith('.3mf')) return '3mf';
+  return null;
+}
+
+export function stlKey(id: string, formato: Formato = 'stl'): string {
+  return `stl/${id}.${formato}`;
 }
 
 export function previewKey(id: string): string {
@@ -188,6 +212,7 @@ export function shapeCustomPrint(
     id: row.id,
     file_name: row.file_name,
     size_bytes: row.size_bytes,
+    formato: row.formato,
     material: row.material,
     color_id: row.color_id,
     color_hex: row.color_hex,

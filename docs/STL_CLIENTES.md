@@ -5,7 +5,10 @@ automáticamente y mandarlos a la Bambu A1 desde /taller, sin pasar por Bambu
 Studio a mano. Léelo completo antes de implementar cualquier fase.
 
 **Estado: las 4 fases implementadas y validadas de punta a punta en producción
-(agosto 2026), smoke test real incluido.** La prueba de concepto del CLI se
+(agosto 2026), smoke test real incluido.** Fase 5 (proyectos 3MF de Bambu
+Studio) implementada en agente, Worker y sitio; pendiente la sonda de
+`bambu-studio.exe` en la PC del taller para confirmar la receta exacta antes
+del smoke test real. La prueba de concepto del CLI se
 hizo en Linux con Bambu Studio 02.08.02.61 en modo línea de comandos, sin
 interfaz gráfica: STL → `.gcode.3mf` con el arranque real de la A1,
 temperaturas correctas y estimación de tiempo/gramos. La receta exacta está
@@ -42,8 +45,10 @@ Decisiones tomadas con Salva al arrancar la implementación:
 
 ## El flujo terminado
 
-1. Un cliente manda un STL. Salva entra a /taller → Proyectos → Impresora y
-   pulsa **Importar STL**; el archivo sube al Worker y se guarda en R2.
+1. Un cliente manda un STL, o Salva ya preparó la pieza en Bambu Studio y
+   guardó el proyecto. Salva entra a /taller → Proyectos → Impresora y pulsa
+   **Importar STL / 3MF**; el archivo sube al Worker y se guarda en R2 (Fase
+   5 explica el caso del proyecto 3MF).
 2. Salva elige material y color (de las bobinas presentes en el AMS), decide
    soportes y orientación, y pulsa **Rebanar**. La pieza entra a la cola de
    rebanado.
@@ -234,8 +239,8 @@ tocar nada) y rebanó un STL real de cliente de punta a punta.
 **Corre en: sitio.** Cambio de producto: demo con capturas a Salva ANTES de
 abrir el PR (regla de `CLAUDE.md`).
 
-- En Proyectos → Impresora: botón **Importar STL**, subida con progreso,
-  lista de piezas de cliente con estado.
+- En Proyectos → Impresora: botón **Importar STL** (desde Fase 5, **Importar
+  STL / 3MF**), subida con progreso, lista de piezas de cliente con estado.
 - Selector de material/color alimentado por el estado del AMS ya sincronizado
   (solo bobinas presentes; mismo emparejado de color de `lib/catalog.ts`), más
   los interruptores de soportes (automáticos / sin soportes) y orientación
@@ -290,6 +295,117 @@ impresora): subió el colador de prueba en producción, lo rebanó, revisó el
 estimado y la vista del plato, y le dio Imprimir con la impresora encendida —
 terminó correctamente. El sistema queda validado de punta a punta.
 
+### Fase 5 — Proyectos 3MF de Bambu Studio
+
+**Corre en: agente + Worker + sitio.** Salva a veces ya preparó la pieza en
+Bambu Studio a mano — orientación, soportes pintados, capas — y quiere subir
+ese **proyecto** (`Guardar proyecto`, no `Exportar plato rebanado`) y solo
+elegir material y color del AMS al rebanar, sin que el rebanador le pise el
+trabajo. Es viable porque el CLI de Bambu Studio acepta un `.3mf` de proyecto
+como entrada y trae sus ajustes resueltos adentro
+(`Metadata/project_settings.config`): las mañas 1-3 de la receta CLI de
+arriba (aplanar perfiles, fusionar G-code de arranque, fijar `curr_bed_type`)
+no aplican porque esos valores YA vienen resueltos dentro del proyecto — no
+hay perfil externo que aplanar ni fusionar. Lo único que se fuerza es el
+filamento (`--load-filaments`), para que las temperaturas sigan al material
+elegido en /taller y no al preset que traía el proyecto guardado.
+
+Hay dos tipos de `.3mf` y esta fase solo cubre el primero:
+
+- **Proyecto** (`Guardar proyecto`): STL + colocación + soportes + capas +
+  preset de filamento, SIN rebanar. El "color" que trae el preset es solo una
+  etiqueta; no ata a ninguna ranura del AMS. → Esta fase: se sube, se rebana
+  eligiendo material/color, se imprime como cualquier pieza.
+- **Plato rebanado** (`Exportar plato rebanado`, `.gcode.3mf`): ya trae
+  G-code; el color se decide al imprimir con el `ams_mapping`, igual que las
+  lámparas. → **Fase 2 del plan siguiente (después, PR aparte, sin diseño
+  comprometido)**: se sube y pasa directo a `listo` sin rebanar. Esta fase lo
+  rechaza con un aviso claro (`ya_rebanado`) en vez de tratarlo como
+  proyecto — subir un plato ya exportado como si fuera un proyecto rebanaría
+  con la receta fija de STL sobre G-code, no sobre geometría.
+
+**Sonda del CLI (Fase 0 del plan, manual, en la PC de Salva).** Bambu Studio
+no existe en la nube, así que la única forma de confirmar la receta del 3MF
+es correrla una vez en la PC del taller. Salva guarda un proyecto de prueba
+para A1 (objeto girado y fuera del centro, soportes pintados, 0.20 Standard,
+PEI texturizada) en
+`C:\Users\salva\Desktop\FORMA\06-Web\formamx\pruebas\prueba.3mf`, y corre:
+
+```powershell
+$bs   = "C:\Program Files\Bambu Studio\bambu-studio.exe"
+$perf = "C:\Users\salva\Desktop\FORMA\06-Web\formamx\perfiles"   # profiles_dir del config.toml
+$proy = "C:\Users\salva\Desktop\FORMA\06-Web\formamx\pruebas\prueba.3mf"
+
+# A: solo filamento (la receta propuesta)
+$out = "$env:TEMP\probe3mf_A"; Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue; New-Item -ItemType Directory $out | Out-Null
+& $bs --load-filaments "$perf\filament_pla.json" --slice 0 --arrange 0 --orient 0 --export-3mf pieza.gcode.3mf --outputdir $out $proy
+Get-Content "$out\result.json"
+
+# B: además fuerza la máquina A1 (sin process)
+$out = "$env:TEMP\probe3mf_B"; Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue; New-Item -ItemType Directory $out | Out-Null
+& $bs --load-settings "$perf\machine.json" --load-filaments "$perf\filament_pla.json" --slice 0 --arrange 0 --orient 0 --export-3mf pieza.gcode.3mf --outputdir $out $proy
+Get-Content "$out\result.json"
+
+foreach ($v in 'A','B') {
+  $out = "$env:TEMP\probe3mf_$v"
+  Copy-Item "$out\pieza.gcode.3mf" "$out\pieza.zip" -Force
+  Expand-Archive "$out\pieza.zip" "$out\x" -Force
+  "== $v =="; Get-ChildItem "$out\x\Metadata" | Select-Object -ExpandProperty Name
+  Select-String -Path "$out\x\Metadata\plate_1.gcode" -Pattern '^; printer_model|^; enable_support|^; support_type|^; curr_bed_type|^; nozzle_temperature |^; filament_settings_id|^; layer_height|M970' | Select-Object -First 12
+}
+```
+
+Criterios de paso: `return_code: 0`, `main_predication` > 0 y
+`total_used_g` > 0; `; enable_support = 1` con el `support_type` del proyecto
+(el process del proyecto sobrevivió); `; filament_settings_id = Bambu PLA
+Basic @BBL A1` (el override de filamento funcionó); `; printer_model = Bambu
+Lab A1` y `M970` presentes; `Metadata/plate_1.png` existe; la miniatura
+muestra el objeto donde Salva lo dejó. Repetir A con un proyecto guardado
+como PETG pasando `filament_pla.json` (las temperaturas deben seguir al
+pick). Dos sondas extra: proyecto con 2 platos (¿cómo sale `sliced_plates`?)
+y proyecto guardado para X1C (¿error o rebana en silencio?). Gana A si pasa;
+si no, B (con `--load-settings` de la máquina).
+
+**Resultado: pendiente de la sonda en la PC** — Salva todavía no la corrió.
+El agente implementa la receta A por defecto (sin `--load-settings`) y los
+tres rechazos de abajo cubren los casos que la sonda existe para confirmar;
+si la sonda muestra que hace falta B, es un cambio de una línea en
+`agent/formamx_agent/slicer.py` (`_comando`), no de diseño.
+
+**El agente** (`agent/formamx_agent/slicer.py`) valida el proyecto antes de
+rebanarlo y lo rechaza con el motivo en /taller, en tres casos — ver el
+detalle exacto en `agent/README.md`, sección "Proyectos 3MF de Bambu
+Studio":
+
+- **no es un 3MF válido** (el archivo no es un zip, o le falta la geometría
+  del modelo);
+- **está guardado para otra impresora** (comparación exacta: "A1 mini" no
+  pasa por contener "A1");
+- **el proyecto usa más de un plato o más de un color**: `printer.py` siempre
+  imprime `plate_1.gcode` y arma `colors_json` de largo 1, así que un
+  proyecto con varios platos o colores no tiene cómo imprimirse hoy.
+
+**El Worker** (migración `0024_custom_prints_formato.sql`, columna `formato`
+sin `CHECK`, validada en `lib/custom_prints.ts`) decide el formato por la
+extensión al subir (`formatoDeNombre`): `.stl` o `.3mf` de proyecto se
+aceptan; `.gcode.3mf` se rechaza con 400 `ya_rebanado` antes de tocar R2.
+`stlKey(id, formato)` guarda el objeto como `stl/<id>.3mf` (mismo prefijo que
+el STL, los objetos viejos quedan intactos). Al rebanar, si `formato === '3mf'`
+el endpoint ignora `supports`/`orient` del body y guarda `NULL`: los decide
+el proyecto, no /taller.
+
+**El sitio**: un solo botón "Importar STL / 3MF" (la extensión decide el
+formato); para una pieza `3mf` el form de rebanar muestra solo el selector de
+filamento (sin los interruptores de soportes/orientación) y la tarjeta dice
+"soportes y orientación del proyecto" en vez de "con/sin soportes".
+
+**Orden de despliegue** (igual que siempre, migración antes que nada):
+`cd workers/api && npm run migrate:remote` → `npm run deploy` → merge del
+sitio → Salva hace `git pull` y reinicia el agente. Un agente viejo bajaría
+el 3mf como si fuera `<id>.stl` y el CLI fallaría con un mensaje críptico, así
+que el agente va primero (PR aparte) y tolera claims sin `formato` (default
+`'stl'`).
+
 ### Después (sin diseño comprometido)
 
 - Entrada por Telegram: cuando exista el bot de la fase B2 de
@@ -297,6 +413,12 @@ terminó correctamente. El sistema queda validado de punta a punta.
   construir un bot solo para esto.
 - Mover el rebanado a la Mac mini junto con el agente (fase B0): el CLI es el
   mismo binario en macOS.
+- **Plato ya rebanado (`.gcode.3mf`)**: aceptarlo, el agente lo copia a
+  `clientes/<id>.<material>.gcode.3mf` sin rebanar, saca tiempo/gramos/
+  material de `Metadata/slice_info.config` y el preview de `plate_1.png`, y
+  la pieza nace `listo`; Salva elige solo el color al imprimir (el material
+  lo dicta el archivo y debe existir en el AMS). Hoy Fase 5 lo rechaza con
+  400 `ya_rebanado`.
 
 ## Verificación general
 

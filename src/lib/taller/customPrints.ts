@@ -30,6 +30,10 @@ export interface CustomPrint {
   id: string;
   file_name: string;
   size_bytes: number;
+  // 'stl' o '3mf' (proyecto de Bambu Studio, "Guardar proyecto"): un 3mf ya
+  // trae soportes y orientación resueltos, así que su rebanado no ofrece
+  // esas dos opciones.
+  formato: 'stl' | '3mf';
   material: string | null;
   color_id: string | null;
   color_hex: string | null;
@@ -79,6 +83,7 @@ export interface OpcionesRebanado {
 // Tolerancia hacia atrás por si responde un worker anterior al módulo.
 const normalize = (p: CustomPrint): CustomPrint => ({
   ...p,
+  formato: p.formato ?? 'stl',
   material: p.material ?? null,
   color_id: p.color_id ?? null,
   color_hex: p.color_hex ?? null,

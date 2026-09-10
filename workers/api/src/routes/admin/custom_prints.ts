@@ -4,6 +4,7 @@ import { isSpoolColor, isSpoolMaterial } from '../../lib/catalog';
 import {
   CANCELABLE_STATUSES,
   DELETABLE_STATUSES,
+  formatoDeNombre,
   isOrient,
   isSupports,
   MAX_STL_BYTES,
@@ -71,16 +72,23 @@ customPrints.get('/', async (c) => {
   });
 });
 
-// Subida del STL. El cuerpo es el archivo crudo (no multipart) para poder
-// pasarlo a R2 en streaming sin cargarlo en memoria; el nombre viaja en
-// ?filename=. R2 necesita saber el tamaño de antemano, así que el
-// Content-Length es obligatorio y también sirve para rechazar lo enorme
-// ANTES de escribir nada.
+// Subida del STL o del proyecto .3mf. El cuerpo es el archivo crudo (no
+// multipart) para poder pasarlo a R2 en streaming sin cargarlo en memoria;
+// el nombre viaja en ?filename=. R2 necesita saber el tamaño de antemano,
+// así que el Content-Length es obligatorio y también sirve para rechazar lo
+// enorme ANTES de escribir nada.
 customPrints.post('/', async (c) => {
   const raw = c.req.query('filename') ?? '';
   // Un nombre con ruta ('C:\x\y.stl') se queda solo con su última parte.
   const fileName = raw.split(/[\\/]/).pop()?.trim() ?? '';
-  if (!fileName || !fileName.toLowerCase().endsWith('.stl')) {
+  const formato = fileName ? formatoDeNombre(fileName) : null;
+  if (!formato) {
+    // Un '.gcode.3mf' es un plato YA rebanado (Fase 2, sin implementar): se
+    // distingue con su propio motivo para que /taller explique por qué se
+    // rechazó en vez de decir "nombre inválido" a secas.
+    if (fileName.toLowerCase().endsWith('.gcode.3mf')) {
+      return c.json({ error: 'ya_rebanado' }, 400);
+    }
     return c.json({ error: 'nombre_invalido' }, 400);
   }
 
@@ -94,17 +102,17 @@ customPrints.post('/', async (c) => {
   if (!c.req.raw.body) return c.json({ error: 'archivo_vacio' }, 400);
 
   const id = 'cp_' + crypto.randomUUID();
-  const key = stlKey(id);
+  const key = stlKey(id, formato);
   await c.env.STL_BUCKET.put(key, c.req.raw.body, {
     httpMetadata: { contentType: 'application/octet-stream' },
   });
 
   try {
     const row = await c.env.DB.prepare(
-      `INSERT INTO custom_prints (id, file_name, r2_key, size_bytes)
-       VALUES (?, ?, ?, ?) RETURNING *`,
+      `INSERT INTO custom_prints (id, file_name, r2_key, size_bytes, formato)
+       VALUES (?, ?, ?, ?, ?) RETURNING *`,
     )
-      .bind(id, fileName, key, declared)
+      .bind(id, fileName, key, declared, formato)
       .first<CustomPrintRow>();
     return c.json(shapeCustomPrint(row!));
   } catch (e) {
@@ -129,12 +137,6 @@ customPrints.post('/:id/rebanar', async (c) => {
 
   if (!isSpoolMaterial(body.material)) return c.json({ error: 'material_invalido' }, 400);
   if (!isSpoolColor(body.color_id)) return c.json({ error: 'color_invalido' }, 400);
-  // Soportes y orientación tienen default: el caso común es dejar que el
-  // rebanador decida (soportes automáticos, mejor orientación).
-  const supports = body.supports ?? 'auto';
-  const orient = body.orient ?? 'auto';
-  if (!isSupports(supports)) return c.json({ error: 'soportes_invalido' }, 400);
-  if (!isOrient(orient)) return c.json({ error: 'orientacion_invalida' }, 400);
 
   const row = await c.env.DB.prepare('SELECT * FROM custom_prints WHERE id = ?')
     .bind(id)
@@ -142,6 +144,18 @@ customPrints.post('/:id/rebanar', async (c) => {
   if (!row) return c.json({ error: 'no_existe' }, 404);
   if (!REBANABLE_STATUSES.includes(row.status as (typeof REBANABLE_STATUSES)[number])) {
     return c.json({ error: 'transicion_invalida', from: row.status, to: 'en_cola' }, 409);
+  }
+
+  // Un proyecto .3mf ya trae soportes y orientación resueltos: el rebanado
+  // los respeta tal cual (el agente no pasa --load-settings/--arrange/
+  // --orient), así que aquí se ignora lo que venga en el body y se guarda
+  // NULL — no hay opción que mostrar ni que mandar de vuelta.
+  const es3mf = row.formato === '3mf';
+  const supports = es3mf ? null : (body.supports ?? 'auto');
+  const orient = es3mf ? null : (body.orient ?? 'auto');
+  if (!es3mf) {
+    if (!isSupports(supports)) return c.json({ error: 'soportes_invalido' }, 400);
+    if (!isOrient(orient)) return c.json({ error: 'orientacion_invalida' }, 400);
   }
 
   // UPDATE guardado por el estado leído (patrón pedidos.ts). Limpia los
