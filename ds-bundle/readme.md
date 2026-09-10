@@ -2,7 +2,7 @@
 
 **forma** es el taller de proyectos de una persona (y sus amigos): una bitácora donde cada pieza se hace una vez — bancas de madera hechas a mano, lámparas impresas en 3D, videos de naturaleza, música, energía renovable, edge AI. No es una tienda ni un portafolio: es documentación honesta del proceso. La venta existe, pero es consecuencia de la historia, nunca al revés.
 
-**Fuentes:** logo original del usuario (`uploads/Untitled.svg`, corregido ópticamente en `assets/logo/`), foto real de producto (`assets/imagenes/silla-jardin-01.jpeg`). No hay codebase ni Figma previos; la identidad se definió en este proyecto (ver `Logo forma.dc.html`, opciones 3c + verde de 3b, tipografía 4a aligerada).
+**Fuentes:** logo original del usuario (corregido ópticamente en `assets/logo/`), fotos reales de producto (`assets/imagenes/`). No hay codebase ni Figma previos; la identidad se definió explorando opciones en `Identidad forma.dc.html` (paleta 3c + verde de 3b, tipografía 4a aligerada). Este proyecto es la reinstalación del kit entregado en `uploads/Forma - Brand Kit/`.
 
 ---
 
@@ -43,7 +43,7 @@
 
 ## ICONOGRAPHY
 
-- **Marca:** wordmark + 3 iconos derivados del logo en `assets/logo/` (la «f», la «f» en contenedor app, la «o»). El icono de app oficial es `icono-app-f.svg`.
+- **Marca:** wordmark + 2 iconos derivados del logo en `assets/logo/` (la «f» suelta y la «f» en contenedor app, en positivo y negativo). El icono de app oficial es `icono-app-f.svg`.
 - **Iconos UI:** no existía un set. **Sustitución flagged:** usar [Lucide](https://lucide.dev) vía CDN (`https://unpkg.com/lucide@latest`), trazo 2px, redondeado — combina con lo blando de la marca. Usar POCOS iconos; forma prefiere texto y metadata mono.
 - **Emoji:** nunca. **Unicode como icono:** solo «·» como separador de metadata y «→» en enlaces.
 
@@ -59,9 +59,14 @@
 - `guidelines/` — specimen cards (color, tipo, espaciado, marca, voz)
 - `components/core/` — Button, Tag, Input, Checkbox, Switch
 - `components/content/` — ProjectCard, Meta
-- `ui_kits/web/` — home de la bitácora (starting point)
-- `ui_kits/posts/` — plantillas de posts 1080×1350 (starting points)
-- `Logo forma.dc.html` — historial de decisiones de identidad
+- `ui_kits/web/` — home de la bitácora, con tweaks (portada, ambiente día/noche, galería/diario)
+- `ui_kits/posts/` — posts 1080×1350 (proyecto, cita)
+- `templates/` — puntos de partida para proyectos que consumen el sistema:
+  - `templates/bitacora-web/BitacoraWeb.dc.html` — home de la bitácora con filtro
+  - `templates/post-proyecto/PostProyecto.dc.html` — post de proyecto 1080×1350
+  - `templates/post-cita/PostCita.dc.html` — post de cita en color pleno
+- `thumbnail.html` — tile de la portada del sistema
+- `Identidad forma.dc.html` — historial de decisiones de identidad (paleta, tipografía, logo)
 - `SKILL.md` — uso como Agent Skill
 
 **Caveat:** las fuentes se sirven desde Google Fonts (no hay binarios locales).

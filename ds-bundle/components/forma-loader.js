@@ -14,7 +14,7 @@
   var bundle = xhr(base + '../_ds_bundle.js');
   if (bundle) { try { (0, eval)(bundle); } catch (e) { /* ignore */ } }
   // Busca el namespace del bundle en nombres candidatos (nunca enumerar window: lanza SecurityError)
-  var candidates = ['Forma', 'forma', 'FormaDS', 'DS', 'DesignSystem'];
+  var candidates = ['FormaDesignSystem_12defe', 'DesignSystem_12defe', 'Forma', 'forma', 'FormaDS', 'DS', 'DesignSystem'];
   for (var i = 0; i < candidates.length; i++) {
     var v;
     try { v = window[candidates[i]]; } catch (e) { v = null; }
