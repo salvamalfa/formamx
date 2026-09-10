@@ -1,4 +1,4 @@
-"""Rebana un STL con el CLI de Bambu Studio y saca tiempo, gramos y preview.
+"""Rebana un STL o un proyecto 3MF con el CLI de Bambu Studio.
 
 El CLI no habla por consola de forma fiable (en Windows no hay salida), así que
 la verdad del rebanado es el `result.json` que deja en el directorio de salida:
@@ -19,6 +19,8 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import flatten_profiles
+
 log = logging.getLogger('formamx.slicer')
 
 # Cama de la A1. El chequeo es una red de seguridad con mensaje legible: el
@@ -26,6 +28,15 @@ log = logging.getLogger('formamx.slicer')
 CAMA_MM = 256.0
 # Tolerancia para no rechazar una pieza de 256.0000001 por redondeo del STL.
 HOLGURA_MM = 0.5
+
+# Nombre fijo del 3MF que deja el CLI en el outputdir; slice_stl lo mueve a
+# out_path después.
+_SALIDA = 'pieza.gcode.3mf'
+
+# Única impresora que el taller valida hoy. La comparación es EXACTA a
+# propósito: "Bambu Lab A1 mini" contiene "Bambu Lab A1" pero es otra máquina,
+# así que un substring aceptaría proyectos que no son de esta impresora.
+_IMPRESORA_TALLER = 'Bambu Lab A1'
 
 
 @dataclass
@@ -47,6 +58,11 @@ def parse_result(data: dict) -> SliceResult:
     platos = data.get('sliced_plates') or []
     if not platos:
         return SliceResult(False, error='el rebanador no reportó ningún plato')
+    if len(platos) != 1:
+        # printer.py siempre imprime plate_1.gcode: un proyecto con más de un
+        # plato no tiene forma de imprimirse hoy, así que se rechaza aquí en
+        # vez de fallar más adelante con un mensaje críptico.
+        return SliceResult(False, error=f'el proyecto tiene {len(platos)} platos; deja uno solo')
     plato = platos[0]
 
     for obj in plato.get('objects') or []:
@@ -58,11 +74,24 @@ def parse_result(data: dict) -> SliceResult:
                 False, error=f'la pieza mide {grandes} mm y no cabe en la cama ({CAMA_MM:.0f} mm)'
             )
 
+    filamentos = plato.get('filaments') or []
+    usados = [
+        f
+        for f in filamentos
+        if isinstance(f.get('total_used_g'), (int, float)) and f.get('total_used_g') > 0
+    ]
+    if len(usados) > 1:
+        # `imprimir` arma colors_json de largo 1: un proyecto que de verdad usa
+        # más de un color no tiene forma de imprimirse hoy con esta fase.
+        return SliceResult(
+            False, error=f'el proyecto usa {len(usados)} filamentos; esta fase imprime un solo color'
+        )
+
     prediccion = plato.get('main_predication')
     seconds = round(prediccion) if isinstance(prediccion, (int, float)) else None
     gramos = sum(
         f.get('total_used_g') or 0
-        for f in plato.get('filaments') or []
+        for f in filamentos
         if isinstance(f.get('total_used_g'), (int, float))
     )
     return SliceResult(True, seconds=seconds, grams=round(gramos, 2) or None)
@@ -78,6 +107,52 @@ def _process_con_soportes(profiles_dir: Path, destino: Path) -> Path:
     perfil['enable_support'] = '1'
     destino.write_text(json.dumps(perfil, ensure_ascii=False), encoding='utf-8')
     return destino
+
+
+def _validar_proyecto(path: Path) -> str | None:
+    """Valida que `path` sea un proyecto 3MF de Bambu Studio (Guardar proyecto).
+
+    Un proyecto ya trae la colocación, los soportes pintados y el preset de
+    filamento resueltos en Metadata/project_settings.config — por eso `_comando`
+    no le pasa --load-settings/--arrange/--orient, que pisarían ese trabajo.
+    Esta función solo rechaza lo que de plano no va a rebanar bien (otra
+    impresora, un zip que no es un 3MF); lo demás son avisos en el log, no
+    motivo de rechazo.
+
+    Devuelve el mensaje de error, o None si el proyecto pasa.
+    """
+    if not zipfile.is_zipfile(path):
+        return 'el archivo no es un proyecto 3MF válido (no es un zip)'
+    try:
+        with zipfile.ZipFile(path) as z:
+            nombres = z.namelist()
+            if '3D/3dmodel.model' not in nombres:
+                return 'el archivo no es un proyecto 3MF válido (falta 3D/3dmodel.model)'
+
+            if 'Metadata/project_settings.config' not in nombres:
+                log.warning(
+                    '%s no trae Metadata/project_settings.config; no puedo revisar impresora ni cama',
+                    path.name,
+                )
+                return None
+            try:
+                ajustes = json.loads(z.read('Metadata/project_settings.config').decode('utf-8'))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return 'Metadata/project_settings.config del proyecto está corrupto'
+
+            impresora = ajustes.get('printer_model')
+            if impresora and impresora != _IMPRESORA_TALLER:
+                return f'el proyecto está guardado para {impresora}, no para {_IMPRESORA_TALLER}'
+
+            if any(n.startswith('Metadata/plate_') and n.endswith('.gcode') for n in nombres):
+                log.warning('%s ya trae un plato rebanado adentro; se vuelve a rebanar de todos modos', path.name)
+
+            cama = ajustes.get('curr_bed_type')
+            if cama and cama != flatten_profiles.BED_TYPE:
+                log.warning('%s pide cama %r; el taller rebana para %r', path.name, cama, flatten_profiles.BED_TYPE)
+    except (zipfile.BadZipFile, OSError) as err:
+        return f'no pude leer el proyecto 3MF: {err}'
+    return None
 
 
 def _extraer_preview(tmf_path: Path) -> Path | None:
@@ -116,6 +191,54 @@ def _extraer_preview(tmf_path: Path) -> Path | None:
         return None
 
 
+def _comando(
+    exe: str,
+    profiles_dir: Path,
+    entrada: Path,
+    proceso: Path | None,
+    filamento: Path,
+    tmp: Path,
+    formato: str,
+    orient: str = 'auto',
+) -> list[str]:
+    """Arma el argv del CLI de Bambu Studio. Puro: no toca disco ni red.
+
+    `formato='stl'` es la receta de siempre: perfiles aplanados completos
+    (`proceso` ya trae los soportes resueltos), acomodo y orientación que
+    decide el rebanador, `--ensure-on-bed`.
+
+    `formato='3mf'` rebana un PROYECTO de Bambu Studio (Guardar proyecto): la
+    colocación, los soportes pintados y las capas ya están resueltos dentro
+    del propio 3MF, así que `--load-settings`/`--arrange`/`--orient` se omiten
+    a propósito — pisarían ese trabajo. Solo se fuerza el filamento
+    (`--load-filaments`) para que las temperaturas sigan al material que Salva
+    eligió en /taller, no al preset que traía el proyecto.
+    """
+    if formato == '3mf':
+        return [
+            exe,
+            '--load-filaments', str(filamento),
+            '--slice', '0',
+            '--arrange', '0',
+            '--orient', '0',
+            '--export-3mf', _SALIDA,
+            '--outputdir', str(tmp),
+            str(entrada),
+        ]
+    return [
+        exe,
+        '--load-settings', f'{profiles_dir / "machine.json"};{proceso}',
+        '--load-filaments', str(filamento),
+        '--slice', '0',
+        '--arrange', '1',
+        '--orient', '1' if orient == 'auto' else '0',
+        '--ensure-on-bed',
+        '--export-3mf', _SALIDA,
+        '--outputdir', str(tmp),
+        str(entrada),
+    ]
+
+
 def slice_stl(
     exe: str,
     profiles_dir: Path,
@@ -125,39 +248,40 @@ def slice_stl(
     supports: str = 'auto',
     orient: str = 'auto',
     timeout: int = 900,
+    formato: str = 'stl',
 ) -> SliceResult:
     """Rebana `stl_path` y deja el .gcode.3mf en `out_path`.
 
-    `supports`: 'auto' enciende los soportes automáticos, 'no' los apaga.
-    `orient`: 'auto' deja que el rebanador elija la mejor orientación (evalúa
-    voladizos y área de contacto, como el botón de la interfaz); 'original'
-    respeta la orientación con la que viene el archivo.
+    `formato`: 'stl' (un STL suelto, la receta de siempre) o '3mf' (un
+    proyecto de Bambu Studio: se valida con `_validar_proyecto` y se respeta
+    su colocación/soportes, solo se fuerza el filamento elegido).
+    `supports`/`orient` solo aplican a `formato='stl'`; un proyecto 3mf ya
+    trae ambos resueltos.
     """
     filamento = profiles_dir / f'filament_{material.lower()}.json'
     if not filamento.is_file():
         return SliceResult(False, error=f'no tengo perfil de filamento para {material}')
 
+    if formato == '3mf':
+        error_proyecto = _validar_proyecto(stl_path)
+        if error_proyecto:
+            return SliceResult(False, error=error_proyecto)
+
     tmp = Path(tempfile.mkdtemp(prefix='formamx_slice_'))
     try:
-        proceso = (
-            _process_con_soportes(profiles_dir, tmp / 'process.json')
-            if supports == 'auto'
-            else profiles_dir / 'process_estandar.json'
+        if formato == '3mf':
+            cmd = _comando(exe, profiles_dir, stl_path, None, filamento, tmp, formato)
+        else:
+            proceso = (
+                _process_con_soportes(profiles_dir, tmp / 'process.json')
+                if supports == 'auto'
+                else profiles_dir / 'process_estandar.json'
+            )
+            cmd = _comando(exe, profiles_dir, stl_path, proceso, filamento, tmp, formato, orient=orient)
+        log.info(
+            'rebanando %s (%s, formato=%s, soportes=%s, orientación=%s)',
+            stl_path.name, material, formato, supports, orient,
         )
-        salida = 'pieza.gcode.3mf'
-        cmd = [
-            exe,
-            '--load-settings', f'{profiles_dir / "machine.json"};{proceso}',
-            '--load-filaments', str(filamento),
-            '--slice', '0',
-            '--arrange', '1',
-            '--orient', '1' if orient == 'auto' else '0',
-            '--ensure-on-bed',
-            '--export-3mf', salida,
-            '--outputdir', str(tmp),
-            str(stl_path),
-        ]
-        log.info('rebanando %s (%s, soportes=%s, orientación=%s)', stl_path.name, material, supports, orient)
         try:
             subprocess.run(cmd, capture_output=True, timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -178,7 +302,7 @@ def slice_stl(
         if not res.ok:
             return res
 
-        generado = tmp / salida
+        generado = tmp / _SALIDA
         if not generado.is_file():
             return SliceResult(False, error='el rebanador dijo que sí pero no dejó el 3MF')
         out_path.parent.mkdir(parents=True, exist_ok=True)

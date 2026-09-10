@@ -132,8 +132,11 @@ def process_slice(sp: dict, cfg: dict, files_dir: Path, api: TallerApi) -> None:
     print_id = sp['id']
     slicer = cfg['slicer']
     material = sp.get('material') or 'PLA'
+    # Un agente que aún no sabe de proyectos 3mf (compatible hacia atrás) trata
+    # todo como STL; el CLI elige el cargador por la extensión del archivo.
+    formato = sp.get('formato') or 'stl'
     tmp_dir = Path(tempfile.mkdtemp(prefix='formamx_stl_'))
-    stl = tmp_dir / f'{print_id}.stl'
+    stl = tmp_dir / f'{print_id}.{formato}'
     try:
         api.download_stl(print_id, stl)
         destino = files_dir / 'clientes' / f'{print_id}.{material.lower()}.gcode.3mf'
@@ -146,6 +149,7 @@ def process_slice(sp: dict, cfg: dict, files_dir: Path, api: TallerApi) -> None:
             supports=sp.get('supports') or 'auto',
             orient=sp.get('orient') or 'auto',
             timeout=int(slicer.get('timeout_seconds', 900)),
+            formato=formato,
         )
         if res.ok:
             log.info('pieza %s rebanada: %ss, %sg → %s', print_id, res.seconds, res.grams, destino)

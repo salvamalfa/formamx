@@ -109,6 +109,33 @@ El rebanado corre en su propio hilo: una pieza recién subida no espera a que
 termine la lámpara que esté imprimiendo. El trabajo pesado lo hace Bambu
 Studio como proceso aparte.
 
+### Proyectos 3MF de Bambu Studio
+
+Además de un STL suelto, /taller acepta un **proyecto** 3MF (el que se saca
+con **"Guardar proyecto"** en Bambu Studio, no con "Exportar plato rebanado").
+Un proyecto ya trae la colocación, los soportes pintados y las capas
+resueltas — por eso el agente respeta ese trabajo tal cual: **no** pasa
+`--load-settings`, `--arrange` ni `--orient`, que lo pisarían. Lo único que
+sigues eligiendo en /taller es **material y color**, que se fuerza con
+`--load-filaments` para que las temperaturas sigan al material elegido y no
+al preset que traía el proyecto guardado.
+
+El agente rechaza un proyecto antes de rebanarlo, con el motivo en /taller,
+en tres casos:
+
+- **no es un 3MF válido** (el archivo no es un zip, o le falta la geometría
+  del modelo);
+- **está guardado para otra impresora** (por ejemplo una X1 Carbon en vez de
+  la A1 del taller — la comparación es exacta, así que "A1 mini" no pasa por
+  contener "A1");
+- **el proyecto usa más de un plato o más de un color**: el taller siempre
+  imprime un plato con un solo color, así que un proyecto con varios no tiene
+  forma de imprimirse hoy.
+
+**No subas el `.gcode.3mf`** (el plato ya exportado y rebanado): eso es la
+Fase 2, todavía no implementada, y hoy /taller lo rechaza igual que cualquier
+otro archivo que no sea `.stl` o `.3mf` de proyecto.
+
 ## Probar en ensayo (sin impresora)
 
 Con `dry_run = true` en el config, el agente simula las impresiones: despacha
