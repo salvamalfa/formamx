@@ -4,6 +4,8 @@ paths:
   - "workers/api/src/routes/**"
   - "workers/api/src/lib/orders.ts"
   - "workers/api/src/lib/jobs.ts"
+  - "workers/api/src/lib/auth.ts"
+  - "workers/api/src/index.ts"
   - "workers/api/wrangler.toml"
   - "src/components/taller/**"
 ---

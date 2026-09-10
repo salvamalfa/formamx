@@ -39,7 +39,11 @@ migraciones remotas como parte de una revisión.
   No añadas esta pausa a mantenimiento interno sin cambios perceptibles, como
   dependencias, CI, tests, documentación o refactors puramente técnicos.
 - Cada cambio va en una rama corta y un pull request hacia `master`.
-- Al abrir el pull request, activa auto-merge con método squash. GitHub hace el
-  merge solo cuando todos los checks requeridos están verdes y todas las
-  conversaciones están resueltas; corrige cualquier hallazgo y deja
-  auto-merge activo hasta que se cumplan esas condiciones.
+- Al abrir el pull request, intenta activar auto-merge con método squash, pero
+  cuenta con que falle (el repo tiene "Allow auto-merge" prendido y aun así la
+  herramienta lo rechaza, con checks corriendo o ya en verde). Cuando
+  auto-merge falle, por el motivo que sea, haz tú el squash merge en cuanto se
+  cumplan las tres condiciones: checks verdes, sin conversaciones abiertas y
+  respetando el orden de deploy de `CLAUDE.md`. No lo reintentes esperando que
+  cambie, y no dejes el pull request parado: uno verde nunca se queda
+  esperando a Salva.
