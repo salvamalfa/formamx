@@ -19,6 +19,8 @@
       "mcp__github__subscribe_pr_activity",
       "mcp__github__unsubscribe_pr_activity",
 
+      "DesignSync",
+
       "Bash(npm run check)",
       "Bash(npm test)",
       "Bash(npm run build)",
