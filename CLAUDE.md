@@ -83,7 +83,7 @@ reglas.
   `ADMIN_TOKEN`, `AGENT_TOKEN`, `NTFY_TOPIC` (legado y roto: ntfy.sh bloquea a
   Workers).
 - **Los STL/3MF no van en git** (binarios pesados). Viven en
-  `C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\`.
+  `C:\Users\salva\Desktop\FORMA\06-Web\3mf\`.
 - Al tocar features de Cloudflare que este repo aún no usa, o ante errores
   raros de plataforma/wrangler: consulta la guía oficial para agentes
   (https://developers.cloudflare.com/agent-setup/prompt.md y el repo

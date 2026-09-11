@@ -1,5 +1,5 @@
 # Configuración del agente de impresión de formamx.
-# Copia este archivo como C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml
+# Copia este archivo como C:\Users\salva\Desktop\FORMA\06-Web\config.toml
 # y llena tus valores.
 # La copia real NUNCA se sube al repo (contiene el token del agente).
 
@@ -14,13 +14,13 @@ poll_seconds = 20
 #   <files_dir>\pantalla\tessera.petg.gcode.3mf   (uno por modelo y material)
 #   <files_dir>\cuerpo\cuerpo.pla.gcode.3mf
 #   <files_dir>\tapa\tapa.pla.gcode.3mf
-files_dir = 'C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf'
+files_dir = 'C:\Users\salva\Desktop\FORMA\06-Web\3mf'
 
 # true = ensayo: simula la impresión sin tocar la impresora.
 dry_run = true
 dry_run_seconds = 20
 
-log_file = 'C:\Users\salva\Desktop\FORMA\06-Web\formamx\agent.log'
+log_file = 'C:\Users\salva\Desktop\FORMA\06-Web\agent.log'
 
 [printer]
 serial = "PEGA-AQUI-EL-NUMERO-DE-SERIE"
@@ -38,5 +38,5 @@ access_code = "PEGA-AQUI-EL-ACCESS-CODE"
 # una vez `python -m formamx_agent.flatten_profiles` (ver README).
 # [slicer]
 # exe = 'C:\Program Files\Bambu Studio\bambu-studio.exe'
-# profiles_dir = 'C:\Users\salva\Desktop\FORMA\06-Web\formamx\perfiles'
+# profiles_dir = 'C:\Users\salva\Desktop\FORMA\06-Web\perfiles'
 # timeout_seconds = 900
