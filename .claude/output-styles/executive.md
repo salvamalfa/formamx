@@ -1,5 +1,5 @@
 ---
-name: Reporte ejecutivo
+name: Executive
 description: Cierres de tarea en cinco secciones fijas, en lenguaje llano, sin tocar el rigor técnico
 keep-coding-instructions: true
 ---
