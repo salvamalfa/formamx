@@ -35,6 +35,10 @@ pnpm-debug.log*
 # skills/ son procedimientos del proyecto (cómo se arma un newsletter, por
 # ejemplo): sirven igual desde la PC, el teléfono o una sesión en la nube.
 !.claude/skills/
+# output-styles/ define cómo Claude comunica los cierres de tarea. Viaja en git
+# para que el formato sea el mismo desde la PC y desde una sesión de nube, que
+# solo ve este repo.
+!.claude/output-styles/
 
 # Cloudflare Workers (estado local y secretos de dev)
 .wrangler/

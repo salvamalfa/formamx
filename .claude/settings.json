@@ -1,5 +1,5 @@
 {
-  "outputStyle": "Concise",
+  "outputStyle": "Reporte ejecutivo",
   "permissions": {
     "allow": [
       "mcp__Claude_Code_Remote__subscribe_pr_activity",
