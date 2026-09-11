@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 import { dibujarBloque } from './bloques.ts';
 import { parsearEdicion, type Edicion } from './edicion.ts';
-import { envolver } from './layout.ts';
+import { envolver, tablaLienzo } from './layout.ts';
 import { revisar } from './lint.ts';
 import { BASE_IMAGENES } from './marca.ts';
 import { leerPaleta, type Paleta } from './tokens.ts';
@@ -23,10 +23,18 @@ export const RAIZ = dirname(dirname(fileURLToPath(import.meta.url)));
 const EDICIONES = join(RAIZ, 'newsletter', 'ediciones');
 const SALIDA = join(RAIZ, 'newsletter', 'dist');
 
+function filasDe(edicion: Edicion, paleta: Paleta): string {
+  return edicion.bloques.map((b) => dibujarBloque(b, paleta)).join('\n');
+}
+
 /** Arma el HTML del correo a partir de una edición ya parseada. */
 export function construir(edicion: Edicion, paleta: Paleta): string {
-  const filas = edicion.bloques.map((b) => dibujarBloque(b, paleta)).join('\n');
-  return envolver(edicion, filas, paleta);
+  return envolver(edicion, filasDe(edicion, paleta), paleta);
+}
+
+/** Solo la tabla del correo, sin doctype/head/body — la usa la vista de revisión. */
+export function construirFragmento(edicion: Edicion, paleta: Paleta): string {
+  return tablaLienzo(edicion, filasDe(edicion, paleta), paleta);
 }
 
 /**
@@ -94,9 +102,10 @@ function main(): void {
     const nombre = archivo.replace(/\.md$/, '');
     const html = construir(edicion, paleta);
     const previa = versionPrevia(html, RAIZ);
+    const fragmento = versionPrevia(construirFragmento(edicion, paleta), RAIZ);
     writeFileSync(join(SALIDA, `${nombre}.html`), html, 'utf8');
     writeFileSync(join(SALIDA, `${nombre}.preview.html`), previa, 'utf8');
-    writeFileSync(join(SALIDA, `${nombre}.artifact.html`), paraArtifact(edicion, previa, paleta), 'utf8');
+    writeFileSync(join(SALIDA, `${nombre}.artifact.html`), paraArtifact(edicion, fragmento, paleta), 'utf8');
     console.log(`   para Reach     newsletter/dist/${nombre}.html`);
     console.log(`   para mirar     newsletter/dist/${nombre}.preview.html`);
     console.log(`   para revisar   newsletter/dist/${nombre}.artifact.html  (Claude lo publica)`);
