@@ -6,19 +6,19 @@ Salida cruda, sin interpretar. Generada el 2026-09-10 con Bambu Studio en
 
 ## Advertencia sobre el archivo de entrada
 
-La sonda **no** se corrió con el proyecto especificado (un 3MF guardado con
-"Guardar proyecto" desde Bambu Studio con la A1 seleccionada, pieza girada y
-fuera del centro, soportes pintados). Ese archivo no existe todavía.
+Las dos primeras corridas de abajo (variantes A y B, y los dos controles) se
+hicieron antes de que existiera el proyecto de la A1, con archivos sustitutos.
+La corrida definitiva, con `pruebas/PRUEBA.3mf`, está en la última sección.
 
-Se corrió con `06-Web/formamx/3mf/cuerpo/cuerpo.pla.gcode.3mf`, que es **salida
-del agente** (un plato ya rebanado, con `Metadata/plate_1.gcode` dentro), no un
-proyecto guardado. Sus ajustes de origen: `printer_model = Bambu Lab A1`,
+El sustituto de las variantes A y B fue
+`06-Web/formamx/3mf/cuerpo/cuerpo.pla.gcode.3mf`, que es **salida del agente**
+(un plato ya rebanado, con `Metadata/plate_1.gcode` dentro), no un proyecto
+guardado. Sus ajustes de origen: `printer_model = Bambu Lab A1`,
 `curr_bed_type = Textured PEI Plate`, `layer_height = 0.2`,
 `enable_support = 0`, `filament_settings_id = ['Generic PLA @BBL A1']`.
 
-Por eso los criterios de paso de la sonda no son evaluables tal como se
-escribieron. Se agregan dos controles al final para separar "el archivo no
-sirve" de "la invocacion no sirve".
+Con ese archivo los criterios de paso no eran evaluables, asi que se agregaron
+dos controles para separar "el archivo no sirve" de "la invocacion no sirve".
 
 ## Variante A
 
@@ -332,8 +332,182 @@ top_7.png
 ; LAYER_HEIGHT: 0.2
 ```
 
-## Pendiente
+## Corrida con el proyecto A1 (2026-09-10)
 
-Volver a correr A (y B si hace falta) con el proyecto de la A1 en
-`06-Web/formamx/pruebas/prueba.3mf` para poder evaluar los criterios de paso
-como se escribieron.
+Entrada: `06-Web/formamx/pruebas/PRUEBA.3mf`, guardado con "Guardar proyecto"
+desde Bambu Studio. Ajustes de origen del proyecto:
+
+| clave | valor |
+|---|---|
+| `printer_model` | `Bambu Lab A1` |
+| `print_settings_id` | `0.20mm Standard @BBL A1` |
+| `layer_height` | `0.2` |
+| `curr_bed_type` | `Textured PEI Plate` |
+| `enable_support` | `1` |
+| `support_type` | `tree(auto)` |
+| `filament_settings_id` | `['Generic PETG @BBL A1']` |
+| gcode adentro | ninguno |
+| `paint_supports` | ausente (los soportes son automaticos, no pintados) |
+
+### Variante A
+
+Mismo comando que `slicer.py` usa en produccion para `formato='3mf'`, con
+`pruebas\PRUEBA.3mf` como entrada.
+
+Campos de primer nivel de `result.json`:
+
+```json
+{
+    "error_string": "Success.",
+    "export_time": 451,
+    "layer_height": 0.20000000298023224,
+    "plate_index": 0,
+    "prepare_time": 40,
+    "return_code": 0,
+    "sparse_infill_density": 15.0,
+    "upward_compatible_machine": [
+        "Bambu Lab H2D 0.4 nozzle",
+        "Bambu Lab H2D Pro 0.4 nozzle",
+        "Bambu Lab H2S 0.4 nozzle",
+        "Bambu Lab P2S 0.4 nozzle",
+        "Bambu Lab H2C 0.4 nozzle",
+        "Bambu Lab X2D 0.4 nozzle",
+        "Bambu Lab A2L 0.4 nozzle"
+    ],
+    "wall_loops": 2
+}
+```
+
+Del unico plato de `sliced_plates`:
+
+```json
+{
+    "filament_change_times": 0,
+    "filaments": [
+        {
+            "filament_id": "GFA00",
+            "id": 1,
+            "main_used_g": 35.02460479736328,
+            "total_used_g": 35.024600982666016
+        }
+    ],
+    "generate_support_material_time": 12793,
+    "id": 1,
+    "infill_time": 55,
+    "layer_filament_change": 0,
+    "main_predication": 11215.625,
+    "make_perimeters_time": 191,
+    "obj_cached_cnt": 0,
+    "objects": [
+        {
+            "bbox": {
+                "depth": 163.90916442871094,
+                "height": 42.0,
+                "width": 97.32733154296875,
+                "x": 79.33633422851562,
+                "y": 46.04541778564453,
+                "z": 0.0
+            },
+            "id": 5,
+            "name": "PRUEBA.stl",
+            "triangle_count": 5226
+        }
+    ],
+    "sliced_time": 15916,
+    "sliced_time_with_cache": 2465,
+    "total_predication": 11615.80078125,
+    "triangle_count": 5226,
+    "warning_message": ""
+}
+```
+
+`feature_type_times`:
+
+```json
+{
+    "Bottom surface": 3.890489101409912,
+    "Bridge": 82.87589263916016,
+    "Custom": 367.2567443847656,
+    "Flush": 25.0,
+    "Gap infill": 927.9013061523438,
+    "Inner wall": 342.8996276855469,
+    "Internal solid infill": 409.4520263671875,
+    "Outer wall": 2624.5830078125,
+    "Overhang wall": 173.01451110839844,
+    "Support": 3154.88623046875,
+    "Support interface": 145.0946807861328,
+    "Support transition": 177.1998748779297,
+    "Top surface": 94.0489501953125,
+    "Travel": 3103.948486328125,
+    "Undefined": 3086.86669921875
+}
+```
+Archivos generados en `$out`:
+
+```
+pieza.gcode.3mf
+plate_1.gcode
+result.json
+```
+
+`Metadata/` del `pieza.gcode.3mf` generado:
+
+```
+_rels
+cut_information.xml
+filament_sequence.json
+layer_heights_profile.txt
+model_settings.config
+pick_1.png
+plate_1.gcode
+plate_1.gcode.md5
+plate_1.json
+plate_1.png
+plate_1_small.png
+plate_no_light_1.png
+project_settings.config
+slice_info.config
+top_1.png
+```
+
+`Select-String` sobre `Metadata/plate_1.gcode` (se omiten `machine_start_gcode`
+y las ~700 lineas de `; LAYER_HEIGHT:`, que hacen match porque `Select-String`
+no distingue mayusculas):
+
+```
+; curr_bed_type = Textured PEI Plate
+; enable_support = 1
+; filament_settings_id = "Bambu PLA Basic @BBL A1"
+; layer_height = 0.2
+; printer_model = Bambu Lab A1
+; support_type = tree(auto)
+```
+
+Primeras lineas `M970`:
+
+```
+M970.3 Q1 A5 K0 O3
+M970.2 Q1 K1 W58 Z0.1
+M970.3 Q0 A10 K0 O1
+M970.2 Q0 K1 W78 Z0.1
+```
+
+### Criterios de paso
+
+| criterio | valor observado |
+|---|---|
+| `return_code` 0 | `0`, `error_string = "Success."` |
+| gramos > 0 | `total_used_g = 35.024600982666016` |
+| tiempo > 0 | `total_predication = 11615.80078125` |
+| `enable_support = 1` con el `support_type` del proyecto | `enable_support = 1`, `support_type = tree(auto)`; el proyecto trae `tree(auto)` |
+| `filament_settings_id = Bambu PLA Basic @BBL A1` | `"Bambu PLA Basic @BBL A1"`; el proyecto traia `Generic PETG @BBL A1` y `--load-filaments` lo sobreescribio |
+| `printer_model = Bambu Lab A1` | `Bambu Lab A1` |
+| `M970` presente | si |
+| `Metadata/plate_1.png` existe | si |
+
+Los ocho criterios se cumplen. No se corrio la variante B: la especificacion la
+reserva para cuando A falla alguno.
+
+Desviacion respecto al proyecto especificado: los soportes de `PRUEBA.3mf` son
+automaticos (`tree(auto)`, sin `paint_supports` en los objetos), no pintados a
+mano. El caso de soportes pintados queda cubierto por el control 2 de arriba.
