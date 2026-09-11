@@ -28,7 +28,10 @@ test('/trabajos enlaza a /banca y /lampara', async ({ page }) => {
 test('/forma responde 200 y muestra su h1', async ({ page }) => {
   const res = await page.goto('/forma');
   expect(res?.status()).toBe(200);
-  await expect(page.locator('h1')).toBeVisible();
+  // El h1 de /forma es el logo: su nombre accesible sale del alt de la imagen.
+  // Se busca por nombre a propósito — un `locator('h1')` pelado revienta por
+  // modo estricto si la página trae otro h1, y el error no dice cuál sobra.
+  await expect(page.getByRole('heading', { level: 1, name: 'forma' })).toBeVisible();
 });
 
 test('/mas responde 200 y muestra su h1', async ({ page }) => {
