@@ -15,8 +15,8 @@ import { leerPaleta } from './tokens.ts';
 
 const paleta = leerPaleta(RAIZ);
 const edicion = parsearEdicion(
-  readFileSync(join(RAIZ, 'newsletter', 'ediciones', '2026-09-15-ejemplo.md'), 'utf8'),
-  'la edición de ejemplo',
+  readFileSync(join(RAIZ, 'newsletter', 'ediciones', '2026-09-15-quinta-pantalla.md'), 'utf8'),
+  'la edición de septiembre',
 );
 const html = construir(edicion, paleta);
 

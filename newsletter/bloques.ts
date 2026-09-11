@@ -106,10 +106,7 @@ ${fila(
 
     case 'afuera':
       return fila(
-        `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
-          <tr><td class="etiqueta" bgcolor="${p.bosqueClaro}" style="background-color:${p.bosqueClaro};border-radius:999px;padding:6px 14px;font-family:${FUENTE};font-size:12px;font-weight:600;color:${p.bosque};">${escapar(bloque.etiqueta)}</td></tr>
-        </table>
-        ${titulo(bloque.titulo, 24, p, 'h2')}
+        `${titulo(bloque.titulo, 24, p, 'h2')}
         ${parrafos(bloque.parrafos, p)}`,
         { arriba: 40, abajo: 24 },
       );
@@ -118,7 +115,7 @@ ${fila(
 
 /** Botón a prueba de balas: el color va en la celda, no en el enlace. */
 function boton(rotulo: string, url: string, p: Paleta): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
           <tr>
             <td bgcolor="${p.naranja}" style="background-color:${p.naranja};border-radius:999px;">
               <a href="${url}" style="display:inline-block;padding:14px 28px;font-family:${FUENTE};font-size:16px;font-weight:700;line-height:1.2;color:${p.blanco};text-decoration:none;border-radius:999px;">${escapar(rotulo)}</a>
