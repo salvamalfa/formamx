@@ -329,12 +329,12 @@ no existe en la nube, así que la única forma de confirmar la receta del 3MF
 es correrla una vez en la PC del taller. Salva guarda un proyecto de prueba
 para A1 (objeto girado y fuera del centro, soportes pintados, 0.20 Standard,
 PEI texturizada) en
-`C:\Users\salva\Desktop\FORMA\06-Web\formamx\pruebas\prueba.3mf`, y corre:
+`C:\Users\salva\Desktop\FORMA\06-Web\pruebas\prueba.3mf`, y corre:
 
 ```powershell
 $bs   = "C:\Program Files\Bambu Studio\bambu-studio.exe"
-$perf = "C:\Users\salva\Desktop\FORMA\06-Web\formamx\perfiles"   # profiles_dir del config.toml
-$proy = "C:\Users\salva\Desktop\FORMA\06-Web\formamx\pruebas\prueba.3mf"
+$perf = "C:\Users\salva\Desktop\FORMA\06-Web\perfiles"   # profiles_dir del config.toml
+$proy = "C:\Users\salva\Desktop\FORMA\06-Web\pruebas\prueba.3mf"
 
 # A: solo filamento (la receta propuesta)
 $out = "$env:TEMP\probe3mf_A"; Remove-Item -Recurse -Force $out -ErrorAction SilentlyContinue; New-Item -ItemType Directory $out | Out-Null

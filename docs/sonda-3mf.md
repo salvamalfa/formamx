@@ -2,7 +2,7 @@
 
 Salida cruda, sin interpretar. Generada el 2026-09-10 con Bambu Studio en
 `C:\Program Files\Bambu Studio\bambu-studio.exe` y los perfiles de
-`06-Web/formamx/perfiles/`.
+`06-Web/perfiles/`.
 
 ## Advertencia sobre el archivo de entrada
 
@@ -11,7 +11,7 @@ hicieron antes de que existiera el proyecto de la A1, con archivos sustitutos.
 La corrida definitiva, con `pruebas/PRUEBA.3mf`, está en la última sección.
 
 El sustituto de las variantes A y B fue
-`06-Web/formamx/3mf/cuerpo/cuerpo.pla.gcode.3mf`, que es **salida del agente**
+`06-Web/3mf/cuerpo/cuerpo.pla.gcode.3mf`, que es **salida del agente**
 (un plato ya rebanado, con `Metadata/plate_1.gcode` dentro), no un proyecto
 guardado. Sus ajustes de origen: `printer_model = Bambu Lab A1`,
 `curr_bed_type = Textured PEI Plate`, `layer_height = 0.2`,
@@ -334,7 +334,7 @@ top_7.png
 
 ## Corrida con el proyecto A1 (2026-09-10)
 
-Entrada: `06-Web/formamx/pruebas/PRUEBA.3mf`, guardado con "Guardar proyecto"
+Entrada: `06-Web/pruebas/PRUEBA.3mf`, guardado con "Guardar proyecto"
 desde Bambu Studio. Ajustes de origen del proyecto:
 
 | clave | valor |

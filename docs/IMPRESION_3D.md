@@ -41,7 +41,7 @@ este documento cubre SOLO este proyecto.)
   G-code fija temperaturas al rebanar, un archivo sin material es ambiguo.
   El agente elige el archivo según el **material de la ranura mapeada**.
 - Los 3MF rebanados viven SOLO en la PC de Salva
-  (`C:\Users\salva\Desktop\FORMA\06-Web\formamx\3mf\{pantalla|cuerpo|tapa}\`).
+  (`C:\Users\salva\Desktop\FORMA\06-Web\3mf\{pantalla|cuerpo|tapa}\`).
   Jamás subir STL/3MF al repo: son binarios
   pesados y no son código (la regla nació cuando el repo era público y se
   mantiene ahora que es privado).
@@ -121,11 +121,11 @@ cadena; es LAN propia).
 
 ## Config del agente (PC de Salva, nunca al repo)
 
-`C:\Users\salva\Desktop\FORMA\06-Web\formamx\config.toml`: api_base,
+`C:\Users\salva\Desktop\FORMA\06-Web\config.toml`: api_base,
 agent_token, files_dir, dry_run, `[printer]` serial/access_code (+ `ip`
 opcional, ver arriba). El **modo ensayo** (`dry_run = true`) simula las
 impresiones pero SÍ lee el AMS real — sirve para probar el circuito completo
-sin filamento. Log en `C:\Users\salva\Desktop\FORMA\06-Web\formamx\agent.log`.
+sin filamento. Log en `C:\Users\salva\Desktop\FORMA\06-Web\agent.log`.
 
 ## Verificación al tocar este proyecto
 

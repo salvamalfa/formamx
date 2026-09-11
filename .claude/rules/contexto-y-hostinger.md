@@ -9,7 +9,7 @@ nube, porque describe el terreno.
 ## Este repo es una pieza de algo más grande
 
 En la PC de Salva, este repo está clonado **dentro** de una carpeta `FORMA`
-(`FORMA/06-Web/formamx/repo/`) que contiene el resto del negocio: lo legal y
+(`FORMA/06-Web/formamx/`) que contiene el resto del negocio: lo legal y
 fiscal, las finanzas, el brand kit y, sobre todo, **el pipeline de las
 lámparas**: los STL, la escena de Blender y los renders originales en
 `FORMA/05-Proyectos/Lamparas-3D/`.
