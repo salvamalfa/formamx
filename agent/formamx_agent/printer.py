@@ -79,6 +79,82 @@ class PrinterError(Exception):
     pass
 
 
+# Tope para que la impresora empiece a moverse tras aceptar la orden. Antes no
+# había ninguno: si nunca arrancaba, el agente se quedaba doce horas esperando
+# y no tomaba ningún otro trabajo.
+ARRANQUE_TIMEOUT_SECONDS = 300
+
+# Estados que la impresora reporta cuando la impresión YA es suya.
+ESTADOS_DE_ARRANQUE = frozenset({'PREPARE', 'RUNNING', 'SLICING'})
+
+# Código con el que rechaza cualquier orden de impresión —incluida una vacía—
+# cuando el Modo desarrollador (LAN) está apagado en su pantalla. Es genérico
+# ("fallo al verificar el comando MQTT"), así que sin este mensaje el motivo
+# real no aparece por ningún lado.
+ERR_COMANDO_NO_VERIFICADO = 0x05024007
+
+
+def motivo_rechazo(err_code: int) -> str:
+    if err_code == ERR_COMANDO_NO_VERIFICADO:
+        return 'La impresora rechazó la orden: activa el Modo desarrollador (LAN) en su pantalla.'
+    return f'la impresora rechazó la orden (err_code={err_code})'
+
+
+class SeguimientoImpresion:
+    """Estado de una impresión, alimentado con los reportes MQTT.
+
+    Vive fuera del cliente MQTT para poder probarlo sin impresora. Su regla
+    central: mientras la impresión no haya arrancado, el `gcode_state` que
+    llega es el de la impresión ANTERIOR. Darlo por bueno era el bug que
+    reportaba como terminadas impresiones que nunca empezaron.
+    """
+
+    def __init__(self, remote_name: str, sequence_id: str):
+        self.remote_name = remote_name
+        self.sequence_id = sequence_id
+        self.arrancada = False
+        self.done: bool | None = None
+        self.error: str | None = None
+        self.progreso: int | None = None
+
+    @property
+    def cerrada(self) -> bool:
+        return self.done is not None
+
+    def mensaje(self, data: dict) -> None:
+        p = data.get('print')
+        if not isinstance(p, dict):
+            return
+        if p.get('command') == 'project_file' and p.get('sequence_id') == self.sequence_id:
+            self._respuesta_a_la_orden(p)
+            return
+
+        # El archivo con nuestro nombre en curso, o un estado de arranque: la
+        # impresión ya es la nuestra y a partir de aquí sus reportes valen.
+        if p.get('gcode_file') == self.remote_name or p.get('gcode_state') in ESTADOS_DE_ARRANQUE:
+            self.arrancada = True
+        if not self.arrancada:
+            return
+
+        pct = p.get('mc_percent')
+        if isinstance(pct, int):
+            self.progreso = pct
+        estado = p.get('gcode_state')
+        if estado == 'FINISH':
+            self.done = True
+        elif estado == 'FAILED':
+            self.done = False
+            self.error = f"la impresora reportó fallo (print_error={p.get('print_error')})"
+
+    def _respuesta_a_la_orden(self, p: dict) -> None:
+        """La impresora repite la orden con su desenlace: éxito o err_code."""
+        err = p.get('err_code')
+        if p.get('result') == 'success' or not isinstance(err, int) or err == 0:
+            return
+        self.done = False
+        self.error = motivo_rechazo(err)
+
+
 def _ssl_context() -> ssl.SSLContext:
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -279,21 +355,31 @@ class BambuPrinter:
         """Arranca la impresión y monitorea hasta FINISH/FAILED.
 
         on_progress(pct) se llama con cada avance reportado. Devuelve
-        (ok, mensaje_de_error). Una desconexión a media impresión se
-        reintenta sola (loop de reconexión de paho).
+        (ok, mensaje_de_error) solo si la impresión llegó a arrancar. Una
+        desconexión a media impresión se reintenta sola (loop de reconexión
+        de paho).
+
+        Si la impresora rechaza la orden o nunca arranca, lanza PrinterError:
+        nada tocó la cama, así que el trabajo debe fallar sin activar el
+        candado de cama sucia y quedar reintentable desde /taller.
         """
-        result: dict = {'done': None, 'error': None, 'started': False}
+        seguimiento = SeguimientoImpresion(remote_name, str(int(time.time())))
+        # `avance` se dispara con la primera noticia —arrancó o la rechazaron—
+        # y `finished` solo con el desenlace final de una impresión ya en curso.
+        avance = threading.Event()
         finished = threading.Event()
+        enviada = {'si': False}
 
         def on_connect(client, _userdata, _flags, rc, _props=None):
             if rc != 0:
-                result['done'] = False
-                result['error'] = f'MQTT rechazó la conexión (rc={rc})'
+                seguimiento.done = False
+                seguimiento.error = f'MQTT rechazó la conexión (rc={rc})'
+                avance.set()
                 finished.set()
                 return
             client.subscribe(f'device/{self.serial}/report')
-            if not result['started']:
-                result['started'] = True
+            if not enviada['si']:
+                enviada['si'] = True
                 payload = {
                     'print': {
                         'command': 'project_file',
@@ -307,28 +393,27 @@ class BambuPrinter:
                         'vibration_cali': False,
                         'timelapse': False,
                         'layer_inspect': False,
-                        'sequence_id': str(int(time.time())),
+                        'sequence_id': seguimiento.sequence_id,
                     }
                 }
                 client.publish(f'device/{self.serial}/request', json.dumps(payload))
-                log.info('impresión enviada: %s (ams_mapping=%s)', subtask, ams_mapping)
+                log.info('orden de impresión enviada: %s (ams_mapping=%s)', subtask, ams_mapping)
 
         def on_message(_client, _userdata, msg):
             try:
                 data = json.loads(msg.payload)
             except ValueError:
                 return
-            p = data.get('print', {})
-            pct = p.get('mc_percent')
-            if isinstance(pct, int):
-                on_progress(pct)
-            g = p.get('gcode_state')
-            if g == 'FINISH':
-                result['done'] = True
-                finished.set()
-            elif g == 'FAILED':
-                result['done'] = False
-                result['error'] = f"la impresora reportó fallo (print_error={p.get('print_error')})"
+            antes = seguimiento.progreso
+            arrancaba = seguimiento.arrancada
+            seguimiento.mensaje(data)
+            if seguimiento.arrancada and not arrancaba:
+                log.info('la impresora arrancó la impresión')
+            if seguimiento.progreso is not None and seguimiento.progreso != antes:
+                on_progress(seguimiento.progreso)
+            if seguimiento.arrancada or seguimiento.cerrada:
+                avance.set()
+            if seguimiento.cerrada:
                 finished.set()
 
         ip = self._resolve_ip()
@@ -341,10 +426,23 @@ class BambuPrinter:
             self._forget_ip()
             raise PrinterError(f'impresora fuera de línea: {err}') from err
         client.loop_start()
-        finished.wait(max_hours * 3600)
+        # Dos esperas: primero a que la impresión sea de verdad nuestra, y solo
+        # entonces a que termine. Sin la primera, una orden rechazada dejaba al
+        # agente colgado hasta el tope de horas.
+        avance.wait(ARRANQUE_TIMEOUT_SECONDS)
+        if seguimiento.arrancada:
+            finished.wait(max_hours * 3600)
         client.loop_stop()
         client.disconnect()
 
-        if result['done'] is None:
+        if not seguimiento.arrancada:
+            # Nada tocó la cama: PrinterError para que el trabajo falle SIN
+            # activar el candado de cama sucia y quede reintentable en /taller.
+            raise PrinterError(
+                seguimiento.error
+                or f'la impresora no arrancó la impresión en '
+                f'{ARRANQUE_TIMEOUT_SECONDS // 60} min; revisa su pantalla'
+            )
+        if seguimiento.done is None:
             return False, f'sin desenlace tras {max_hours} h; revisa la impresora'
-        return bool(result['done']), result['error']
+        return bool(seguimiento.done), seguimiento.error
