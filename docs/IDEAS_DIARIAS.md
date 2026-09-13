@@ -59,7 +59,7 @@ que ya está en el repo y me dices si pasa.
 
 **Veredicto (2026-09-13).** Sí. Primero se probó con la foto de la banca
 recortada, pero al verla Salva pidió el logo: una pieza suelta no representa el
-enlace de la marca. Quedó el logo sobre hueso. Tres ajustes que salieron de esa
+enlace de la marca. Quedó el logo sobre tinta: en burbuja de chat el fondo oscuro se separa del globo en vez de fundirse con él. Tres ajustes que salieron de esa
 misma revisión: el sufijo del título es la marca (`| forma`) y no el dominio
 (`| formamx`), la portada no lleva sufijo porque ya se llama forma, y su
 descripción perdió la frase de la bitácora.
