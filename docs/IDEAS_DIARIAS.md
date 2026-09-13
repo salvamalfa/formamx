@@ -24,7 +24,7 @@ rutina; no hace falta que lo edites a mano.
 | --- | --- | --- | --- | --- |
 | 003 | 2026-09-13 | Después de la compra | Página pública de seguimiento del pedido | `propuesta` |
 | 002 | 2026-09-13 | Captación | El botón "Avísame" guarda el correo de verdad | `propuesta` |
-| 001 | 2026-09-13 | Cómo se comparte | Imagen de vista previa al compartir el sitio | `propuesta` |
+| 001 | 2026-09-13 | Cómo se comparte | Imagen de vista previa al compartir el sitio | `sí` |
 
 ---
 
@@ -56,6 +56,12 @@ Eso es otra idea, más grande.
 **Qué necesito de ti.** Una foto o render bueno para la imagen por defecto, en
 1200 × 630. Si no tienes una a la mano, la armo recortando la foto de la banca
 que ya está en el repo y me dices si pasa.
+
+**Veredicto (2026-09-13).** Sí, con la foto de la banca por lo pronto. La foto
+es vertical, así que para el formato ancho se pierde más de la mitad: quedó
+encuadrada al 58 % desde arriba, que centra el asiento y el libro y deja ver
+las patas. Para que se vea mejor hace falta una foto horizontal, no otro
+recorte.
 
 ### 2. El botón "Avísame" guarda el correo de verdad
 

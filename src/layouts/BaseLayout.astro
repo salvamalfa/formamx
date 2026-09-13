@@ -4,7 +4,14 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description?: string;
+  /**
+   * Imagen del recuadro que sale al compartir el enlace (WhatsApp, Telegram,
+   * Instagram, X). Vive en `public/` y **tiene que medir 1200 × 630**: las
+   * etiquetas `og:image:width`/`height` de abajo prometen ese tamaño, y varias
+   * apps deciden con ellas si dibujan el recuadro grande o una miniatura.
+   */
   image?: string;
+  imageAlt?: string;
   themeColor?: string;
 }
 
@@ -12,8 +19,11 @@ const {
   title,
   description = 'Configura tu lámpara Forma: elige modelo de pantalla y el color de cada pieza.',
   image = '/images/og-default.jpg',
+  imageAlt = 'Una banca de madera de forma sobre el pasto, con un libro abierto encima.',
   themeColor = '#FFFFFF',
 } = Astro.props;
+
+const imageURL = new URL(image, Astro.site);
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
@@ -41,16 +51,22 @@ const fullTitle = title === 'forma' ? title : `${title} | formamx`;
 
     <!-- Open Graph -->
     <meta property="og:type"        content="website" />
+    <meta property="og:site_name"   content="forma" />
+    <meta property="og:locale"      content="es_MX" />
     <meta property="og:url"         content={canonicalURL} />
     <meta property="og:title"       content={`${title} | formamx`} />
     <meta property="og:description" content={description} />
-    <meta property="og:image"       content={new URL(image, Astro.site)} />
+    <meta property="og:image"        content={imageURL} />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"    content={imageAlt} />
 
     <!-- Twitter Card -->
     <meta name="twitter:card"        content="summary_large_image" />
     <meta name="twitter:title"       content={`${title} | formamx`} />
     <meta name="twitter:description" content={description} />
-    <meta name="twitter:image"       content={new URL(image, Astro.site)} />
+    <meta name="twitter:image"       content={imageURL} />
+    <meta name="twitter:image:alt"   content={imageAlt} />
 
     <slot name="head" />
   </head>
