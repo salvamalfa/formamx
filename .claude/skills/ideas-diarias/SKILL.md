@@ -109,21 +109,34 @@ Mezcla tamaños. Tres ideas grandes el mismo día no se implementan ninguna; tre
 chicas seguidas no mueven el negocio. Un chico, un medio y uno grande es la
 mezcla que funciona.
 
-### 6. Registra y cierra
+### 6. Entrega en el chat, no en el repo
 
-Agrega la edición a `docs/IDEAS_DIARIAS.md` y, en el mismo cambio, escribe los
-veredictos que Salva haya dado desde la edición anterior. Eso es un PR de
-documentación, sin cambio perceptible: no lleva la pausa de la demo. Ábrelo,
-espera los checks y mergéalo tú.
+**Las ideas del día se quedan en el chat. No se commitean.** Preséntale las tres
+completas y ya: una propuesta que Salva todavía no ha contestado no es
+información que valga un commit, y un PR diario por un archivo de texto es
+ruido que le hace ignorar los PR de verdad.
 
-Luego preséntale las tres ideas en el chat, completas. El PR es el archivo; el
-mensaje es lo que él lee.
+Lo único que sí se guarda en `docs/IDEAS_DIARIAS.md` es el **veredicto**: qué
+dijo que sí, qué dijo que no. Eso es lo que hay que recordar dentro de un mes, y
+pasa una vez por semana, no todos los días.
+
+Cuando haya veredictos nuevos que anotar, van en el PR de la idea que se esté
+implementando, no en uno propio. Si la respuesta fue "no" y no hay nada que
+implementar, junta ese veredicto con el siguiente cambio que toque el repo.
+
+**El merge lo hace Salva.** Deja el PR abierto y avísale; no lo mergees tú. Esto
+manda sobre la regla general de `CLAUDE.md` para todo lo que salga de esta skill.
+
+### 7. Una idea que no se propuso también se cuenta
+
+Si una sospecha no aguantó la medición, dilo en el chat en una línea. Vale casi
+tanto como una idea: le enseña que lo que sí propones está medido, no supuesto.
 
 ## Cuando dice que sí
 
-Ya no es esta skill. Es el flujo normal de `CLAUDE.md`: rama corta, implementas,
-pausa de la demo con capturas, PR, merge. Lo único extra es marcar la idea como
-`construida` en la bitácora dentro de ese mismo PR.
+Ya no es esta skill. Es el flujo normal de `CLAUDE.md` — rama corta, implementas,
+pausa de la demo con capturas, PR — con dos cambios: la idea se marca como
+`construida` en la bitácora dentro de ese mismo PR, y **el merge lo hace Salva**.
 
 Si dice que sí a varias, empieza por la más chica, para que el día termine con
 algo desplegado.

@@ -5,8 +5,12 @@ sitio. El procedimiento está en `.claude/skills/ideas-diarias/SKILL.md`; aquí
 solo vive el registro.
 
 **Para qué sirve este archivo:** sin él, el agente vuelve a proponer en
-noviembre lo que dijiste que no en septiembre. Se escribe solo, desde la
-rutina; no hace falta que lo edites a mano.
+noviembre lo que dijiste que no en septiembre.
+
+**Solo guarda veredictos, no propuestas.** Las ideas del día se quedan en el
+chat; aquí baja lo que contestaste, y baja montado en el PR de la idea que se
+esté implementando, no en uno propio. Un PR diario por un archivo de texto es
+ruido.
 
 ## Estados
 
