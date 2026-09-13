@@ -57,11 +57,12 @@ Eso es otra idea, más grande.
 1200 × 630. Si no tienes una a la mano, la armo recortando la foto de la banca
 que ya está en el repo y me dices si pasa.
 
-**Veredicto (2026-09-13).** Sí, con la foto de la banca por lo pronto. La foto
-es vertical, así que para el formato ancho se pierde más de la mitad: quedó
-encuadrada al 58 % desde arriba, que centra el asiento y el libro y deja ver
-las patas. Para que se vea mejor hace falta una foto horizontal, no otro
-recorte.
+**Veredicto (2026-09-13).** Sí. Primero se probó con la foto de la banca
+recortada, pero al verla Salva pidió el logo: una pieza suelta no representa el
+enlace de la marca. Quedó el logo sobre hueso. Tres ajustes que salieron de esa
+misma revisión: el sufijo del título es la marca (`| forma`) y no el dominio
+(`| formamx`), la portada no lleva sufijo porque ya se llama forma, y su
+descripción perdió la frase de la bitácora.
 
 ### 2. El botón "Avísame" guarda el correo de verdad
 

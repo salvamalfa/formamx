@@ -9,6 +9,8 @@ interface Props {
    * Instagram, X). Vive en `public/` y **tiene que medir 1200 × 630**: las
    * etiquetas `og:image:width`/`height` de abajo prometen ese tamaño, y varias
    * apps deciden con ellas si dibujan el recuadro grande o una miniatura.
+   * La de por defecto es el logo sobre hueso: se comparte más el enlace de la
+   * marca que el de una pieza suelta.
    */
   image?: string;
   imageAlt?: string;
@@ -19,7 +21,7 @@ const {
   title,
   description = 'Configura tu lámpara Forma: elige modelo de pantalla y el color de cada pieza.',
   image = '/images/og-default.jpg',
-  imageAlt = 'Una banca de madera de forma sobre el pasto, con un libro abierto encima.',
+  imageAlt = 'El logo de forma.',
   themeColor = '#FFFFFF',
 } = Astro.props;
 
@@ -27,9 +29,10 @@ const imageURL = new URL(image, Astro.site);
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-// La portada ya se titula "forma"; evitamos el sufijo redundante en la
-// pestaña. El resto de páginas conservan "… | formamx" para contexto y SEO.
-const fullTitle = title === 'forma' ? title : `${title} | formamx`;
+// El sufijo es la marca, "forma", no el dominio: así se lee el recuadro al
+// compartir el enlace y así se lee la pestaña. La portada ya se titula "forma",
+// y ahí el sufijo sobraría.
+const fullTitle = title === 'forma' ? title : `${title} | forma`;
 ---
 
 <!doctype html>
@@ -54,7 +57,7 @@ const fullTitle = title === 'forma' ? title : `${title} | formamx`;
     <meta property="og:site_name"   content="forma" />
     <meta property="og:locale"      content="es_MX" />
     <meta property="og:url"         content={canonicalURL} />
-    <meta property="og:title"       content={`${title} | formamx`} />
+    <meta property="og:title"       content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image"        content={imageURL} />
     <meta property="og:image:width"  content="1200" />
@@ -63,7 +66,7 @@ const fullTitle = title === 'forma' ? title : `${title} | formamx`;
 
     <!-- Twitter Card -->
     <meta name="twitter:card"        content="summary_large_image" />
-    <meta name="twitter:title"       content={`${title} | formamx`} />
+    <meta name="twitter:title"       content={fullTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image"       content={imageURL} />
     <meta name="twitter:image:alt"   content={imageAlt} />
