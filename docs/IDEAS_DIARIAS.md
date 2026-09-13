@@ -7,10 +7,11 @@ solo vive el registro.
 **Para qué sirve este archivo:** sin él, el agente vuelve a proponer en
 noviembre lo que dijiste que no en septiembre.
 
-**Solo guarda veredictos, no propuestas.** Las ideas del día se quedan en el
-chat; aquí baja lo que contestaste, y baja montado en el PR de la idea que se
-esté implementando, no en uno propio. Un PR diario por un archivo de texto es
-ruido.
+**El texto largo vive en el chat; aquí vive el índice.** Las tres ideas del día
+se te entregan en la conversación. A este archivo baja un renglón por idea —
+fecha, área, título y estado — y tu veredicto cuando contestas. El renglón viaja
+montado en el siguiente PR que toque el repo, no en uno propio: un PR diario por
+un archivo de texto es ruido.
 
 ## Estados
 
@@ -26,6 +27,9 @@ ruido.
 
 | # | Fecha | Área | Idea | Estado |
 | --- | --- | --- | --- | --- |
+| 006 | 2026-09-13 | Móvil | Fotos reales de la lámpara encendida, en una casa | `propuesta` |
+| 005 | 2026-09-13 | Móvil | Saber cuánta gente entra y dónde se cae | `propuesta` |
+| 004 | 2026-09-13 | Móvil | Botones del configurador que se dejan tocar en el celular | `propuesta` |
 | 003 | 2026-09-13 | Después de la compra | Seguimiento del pedido por correo y página pública | `sí` |
 | 002 | 2026-09-13 | Captación | El botón "Avísame" guarda el correo de verdad | `propuesta` |
 | 001 | 2026-09-13 | Cómo se comparte | Imagen de vista previa al compartir el sitio | `sí` |
@@ -127,3 +131,16 @@ completo está en `docs/SEGUIMIENTO_PEDIDO.md`; las maquetas de los cuatro
 correos, en el lienzo "Correos de pedido" de Claude Design. El hallazgo que
 cambió el diseño: Reach no puede mandar correo transaccional, así que son dos
 canales y no uno.
+
+---
+
+## Edición 2 — 2026-09-13 · móvil y accesibilidad
+
+Ideas 004 a 006, con el detalle entregado en el chat. Medido con el sitio
+corriendo a 390, 375 y 360 px.
+
+Lo que salió bien, y por eso no generó idea: cero scroll horizontal en cualquier
+ancho, los quince controles del configurador tienen nombre accesible, y el foco
+de teclado se ve. Dos sospechas se cayeron al medirlas: los controles no se
+cortan en pantallas chicas, y la lámpara no se ve chica (ocupa el 78 % del alto;
+lo que parece aire es el margen transparente del PNG).

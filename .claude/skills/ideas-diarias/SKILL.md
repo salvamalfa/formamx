@@ -109,23 +109,34 @@ Mezcla tamaños. Tres ideas grandes el mismo día no se implementan ninguna; tre
 chicas seguidas no mueven el negocio. Un chico, un medio y uno grande es la
 mezcla que funciona.
 
-### 6. Entrega en el chat, no en el repo
+### 6. Entrega en el chat; al repo va solo el renglón
 
-**Las ideas del día se quedan en el chat. No se commitean.** Preséntale las tres
-completas y ya: una propuesta que Salva todavía no ha contestado no es
-información que valga un commit, y un PR diario por un archivo de texto es
-ruido que le hace ignorar los PR de verdad.
+**El texto completo de las tres ideas se queda en el chat.** Preséntaselas y ya:
+la prosa de una propuesta que Salva todavía no ha contestado no vale un commit, y
+un PR diario por un archivo de texto es ruido que le hace ignorar los PR de
+verdad.
 
-Lo único que sí se guarda en `docs/IDEAS_DIARIAS.md` es el **veredicto**: qué
-dijo que sí, qué dijo que no. Eso es lo que hay que recordar dentro de un mes, y
-pasa una vez por semana, no todos los días.
+**Pero el índice de `docs/IDEAS_DIARIAS.md` sí se actualiza en cada corrida**, con
+un renglón por idea: número, fecha, área, título en una frase y estado. Sin ese
+renglón el sistema se rompe solo — la rotación de áreas pierde su registro, una
+idea aprobada que todavía no se construye se olvida, y la regla de los catorce
+días sin respuesta no puede correr porque no hay fecha contra la cual contarlos.
+Compacto no es lo mismo que ausente.
 
-Cuando haya veredictos nuevos que anotar, van en el PR de la idea que se esté
-implementando, no en uno propio. Si la respuesta fue "no" y no hay nada que
-implementar, junta ese veredicto con el siguiente cambio que toque el repo.
+**Cómo llega ese renglón al repo, sin un PR diario:**
 
-**El merge lo hace Salva.** Deja el PR abierto y avísale; no lo mergees tú. Esto
-manda sobre la regla general de `CLAUDE.md` para todo lo que salga de esta skill.
+- Si ese mismo día se implementa una idea, viaja en ese PR. Es el caso normal.
+- Si no, se acumula y se sube junto con el siguiente cambio que toque el repo.
+- Si pasa una semana sin que ningún PR lo arrastre, se sube solo en un PR de una
+  línea. Semanal, no diario.
+
+En cuanto Salva contesta, su veredicto se escribe en el mismo renglón. Eso es lo
+que de verdad hay que recordar dentro de un mes.
+
+**El merge lo hace Salva.** Deja el PR abierto y avísale; no lo mergees tú. Es
+una excepción deliberada que él pidió el 2026-09-13, y manda sobre la regla de
+`CLAUDE.md` y `AGENTS.md` para todo lo que salga de esta skill. No la "corrijas"
+de vuelta por parecerse a una contradicción: no lo es.
 
 ### 7. Una idea que no se propuso también se cuenta
 
