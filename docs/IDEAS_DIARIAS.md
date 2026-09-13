@@ -22,7 +22,7 @@ rutina; no hace falta que lo edites a mano.
 
 | # | Fecha | Área | Idea | Estado |
 | --- | --- | --- | --- | --- |
-| 003 | 2026-09-13 | Después de la compra | Página pública de seguimiento del pedido | `propuesta` |
+| 003 | 2026-09-13 | Después de la compra | Seguimiento del pedido por correo y página pública | `sí` |
 | 002 | 2026-09-13 | Captación | El botón "Avísame" guarda el correo de verdad | `propuesta` |
 | 001 | 2026-09-13 | Cómo se comparte | Imagen de vista previa al compartir el sitio | `sí` |
 
@@ -116,3 +116,10 @@ mano mientras tanto.
 **Qué necesito de ti.** Decidir qué tanto le muestras al cliente. Mi propuesta:
 el estado y nada más — ni fotos del avance, ni tiempos estimados que luego no se
 cumplan.
+
+**Veredicto (2026-09-13).** Sí, y creció: Salva pidió que el seguimiento fuera
+**por correo**, no solo una página, y conectado con el newsletter. El plan
+completo está en `docs/SEGUIMIENTO_PEDIDO.md`; las maquetas de los cuatro
+correos, en el lienzo "Correos de pedido" de Claude Design. El hallazgo que
+cambió el diseño: Reach no puede mandar correo transaccional, así que son dos
+canales y no uno.
