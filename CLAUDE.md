@@ -20,6 +20,7 @@ de verdad del retrato; no lo dupliques aquí.
 | Negocio: Stripe live, SAS/RFC, páginas legales, envíos, CFDI, respaldos, CI, analytics | `docs/NEGOCIO.md` — plan por fases, sin implementar. Los textos legales son borradores: abogado/contador antes de confiar en ellos |
 | Newsletter de clientes: escribir o construir una edición | `.claude/skills/newsletter/SKILL.md` y el código en `newsletter/`. El envío se queda manual: la API de Reach no crea campañas |
 | Newsletter: decisiones de canal, cuenta de Reach, datos legales del pie | `docs/MARKETING.md`. No confundir con el newsletter interno (agente de Cowork aparte, sin relación con este repo) |
+| Ideas diarias para el sitio (la rutina de las 8 am) | `.claude/skills/ideas-diarias/SKILL.md`; la bitácora de lo propuesto y su veredicto en `docs/IDEAS_DIARIAS.md` |
 | Marca, voz, estilos | `ds-bundle/readme.md` |
 | Sincronizar `ds-bundle/` con el proyecto de Claude Design (pull-before-push) | `.design-sync/NOTES.md` — léelo ANTES de tocar `ds-bundle/`; hay una regla que se auto-carga en `.claude/rules/design-sync.md` |
 
