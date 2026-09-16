@@ -75,7 +75,7 @@ function Swatch({
       aria-label={color.label}
       title={color.label}
       onClick={onSelect}
-      class={`grid size-10 shrink-0 cursor-pointer place-items-center rounded-full border-2 transition-transform hover:scale-108 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
+      class={`grid size-11 shrink-0 cursor-pointer place-items-center rounded-full border-2 transition-transform hover:scale-108 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
         checked ? 'border-[var(--tinta)]' : 'border-transparent'
       }`}
     >
@@ -228,7 +228,7 @@ export default function LampConfigurator({ manifest }: { manifest: LampImageMani
                     role="radio"
                     aria-checked={m.id === modelId}
                     onClick={() => setModelId(m.id)}
-                    class={`shrink-0 cursor-pointer rounded-full border-[1.5px] px-4 py-1.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
+                    class={`inline-flex min-h-11 shrink-0 cursor-pointer items-center rounded-full border-[1.5px] px-4 py-1.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] ${
                       m.id === modelId
                         ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-hover)]'
                         : 'border-[var(--border-strong)] bg-transparent text-[var(--text-muted)] hover:border-[var(--accent)]'

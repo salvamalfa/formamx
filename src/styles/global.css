@@ -71,8 +71,9 @@
   .nav-btn {
     display: grid;
     place-items: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    /* 44px: el mínimo para el pulgar. El icono de dentro no cambia. */
+    width: 2.75rem;
+    height: 2.75rem;
     border-radius: 9999px;
     border: 1px solid var(--color-border);
     background: var(--color-surface);

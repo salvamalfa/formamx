@@ -29,7 +29,7 @@ un archivo de texto es ruido.
 | --- | --- | --- | --- | --- |
 | 006 | 2026-09-13 | Móvil | Fotos reales de la lámpara encendida, en una casa | `propuesta` |
 | 005 | 2026-09-13 | Móvil | Saber cuánta gente entra y dónde se cae | `propuesta` |
-| 004 | 2026-09-13 | Móvil | Botones del configurador que se dejan tocar en el celular | `propuesta` |
+| 004 | 2026-09-13 | Móvil | Botones del configurador que se dejan tocar en el celular | `construida` |
 | 003 | 2026-09-13 | Después de la compra | Seguimiento del pedido por correo y página pública | `sí` |
 | 002 | 2026-09-13 | Captación | El botón "Avísame" guarda el correo de verdad | `propuesta` |
 | 001 | 2026-09-13 | Cómo se comparte | Imagen de vista previa al compartir el sitio | `sí` |
