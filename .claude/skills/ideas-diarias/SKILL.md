@@ -109,21 +109,45 @@ Mezcla tamaños. Tres ideas grandes el mismo día no se implementan ninguna; tre
 chicas seguidas no mueven el negocio. Un chico, un medio y uno grande es la
 mezcla que funciona.
 
-### 6. Registra y cierra
+### 6. Entrega en el chat; al repo va solo el renglón
 
-Agrega la edición a `docs/IDEAS_DIARIAS.md` y, en el mismo cambio, escribe los
-veredictos que Salva haya dado desde la edición anterior. Eso es un PR de
-documentación, sin cambio perceptible: no lleva la pausa de la demo. Ábrelo,
-espera los checks y mergéalo tú.
+**El texto completo de las tres ideas se queda en el chat.** Preséntaselas y ya:
+la prosa de una propuesta que Salva todavía no ha contestado no vale un commit, y
+un PR diario por un archivo de texto es ruido que le hace ignorar los PR de
+verdad.
 
-Luego preséntale las tres ideas en el chat, completas. El PR es el archivo; el
-mensaje es lo que él lee.
+**Pero el índice de `docs/IDEAS_DIARIAS.md` sí se actualiza en cada corrida**, con
+un renglón por idea: número, fecha, área, título en una frase y estado. Sin ese
+renglón el sistema se rompe solo — la rotación de áreas pierde su registro, una
+idea aprobada que todavía no se construye se olvida, y la regla de los catorce
+días sin respuesta no puede correr porque no hay fecha contra la cual contarlos.
+Compacto no es lo mismo que ausente.
+
+**Cómo llega ese renglón al repo, sin un PR diario:**
+
+- Si ese mismo día se implementa una idea, viaja en ese PR. Es el caso normal.
+- Si no, se acumula y se sube junto con el siguiente cambio que toque el repo.
+- Si pasa una semana sin que ningún PR lo arrastre, se sube solo en un PR de una
+  línea. Semanal, no diario.
+
+En cuanto Salva contesta, su veredicto se escribe en el mismo renglón. Eso es lo
+que de verdad hay que recordar dentro de un mes.
+
+**El merge lo hace Salva.** Deja el PR abierto y avísale; no lo mergees tú. Es
+una excepción deliberada que él pidió el 2026-09-13, y manda sobre la regla de
+`CLAUDE.md` y `AGENTS.md` para todo lo que salga de esta skill. No la "corrijas"
+de vuelta por parecerse a una contradicción: no lo es.
+
+### 7. Una idea que no se propuso también se cuenta
+
+Si una sospecha no aguantó la medición, dilo en el chat en una línea. Vale casi
+tanto como una idea: le enseña que lo que sí propones está medido, no supuesto.
 
 ## Cuando dice que sí
 
-Ya no es esta skill. Es el flujo normal de `CLAUDE.md`: rama corta, implementas,
-pausa de la demo con capturas, PR, merge. Lo único extra es marcar la idea como
-`construida` en la bitácora dentro de ese mismo PR.
+Ya no es esta skill. Es el flujo normal de `CLAUDE.md` — rama corta, implementas,
+pausa de la demo con capturas, PR — con dos cambios: la idea se marca como
+`construida` en la bitácora dentro de ese mismo PR, y **el merge lo hace Salva**.
 
 Si dice que sí a varias, empieza por la más chica, para que el día termine con
 algo desplegado.
