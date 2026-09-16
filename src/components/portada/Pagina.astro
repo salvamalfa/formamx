@@ -28,6 +28,10 @@ const { title, description, nombre } = Astro.props;
 
 <style>
   .pagina-columna .menu-link {
+    display: inline-flex;
+    align-items: center;
+    /* Es el único control de estas páginas y medía 39px de alto. */
+    min-height: 44px;
     font-weight: 700;
     font-size: 14px;
     color: var(--text-body);

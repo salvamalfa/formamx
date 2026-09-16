@@ -163,6 +163,11 @@
   font-weight: 700;
   font-size: 14px;
   padding: 11px 22px;
+  /* 44px es el mínimo para picarle con el pulgar sin errarle. El padding ya
+     daba 39; esto sube el área sensible sin mover la tipografía ni el ancho.
+     `btn-sm` se queda como está: solo vive en /taller, que es denso a
+     propósito y se usa con el dedo apuntando, no de pasada. */
+  min-height: 44px;
   border-radius: var(--radius-pill);
   border: none;
   cursor: pointer;
