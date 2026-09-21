@@ -2,36 +2,40 @@
 @import "./fonts.css";
 @import "./brand.css";
 
+/* Tema de Tailwind mapeado a los tokens de marca de brand.css. Los valores van
+   literales porque Tailwind los necesita estaticos para generar utilidades; el
+   comentario dice de que token salio cada uno. Si cambia un token en brand.css,
+   cambialo aqui tambien. */
 @theme {
-  --color-bg:           oklch(98% 0.002 264);
-  --color-surface:      oklch(100% 0 0);
-  --color-surface-2:    oklch(96% 0.003 264);
-  --color-border:       oklch(90% 0.004 264);
-  --color-accent:       oklch(25% 0.01 264);
-  --color-accent-hover: oklch(35% 0.01 264);
-  --color-text:         oklch(22% 0.01 264);
-  --color-muted:        oklch(50% 0.01 264);
+  --color-bg:           #ffffff; /* --surface-page */
+  --color-surface:      #ffffff; /* --surface-card */
+  --color-surface-2:    #f7f7f5; /* --surface-sunken */
+  --color-border:       #e8e8e4; /* --border-soft */
+  --color-accent:       #2e6da4; /* --accent */
+  --color-accent-hover: #245883; /* --accent-hover */
+  --color-text:         #1a1a18; /* --text-body */
+  --color-muted:        #6e6e68; /* --text-muted */
 
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
+  --font-sans: 'Alan Sans', ui-sans-serif, system-ui, sans-serif; /* --font-body */
+  --font-mono: ui-monospace, monospace; /* la marca no tiene monoespaciada */
 
-  --radius-card: 0.75rem;
-  --radius-btn:  0.5rem;
+  --radius-card: 16px;  /* --radius-m */
+  --radius-btn:  999px; /* --radius-pill */
 }
 
 @layer base {
   body {
-    background-color: var(--color-bg);
-    color: var(--color-text);
-    font-family: var(--font-sans);
+    background-color: var(--surface-page);
+    color: var(--text-body);
+    font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
   }
 
   h1, h2, h3, h4 {
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    line-height: 1.15;
+    font-weight: var(--weight-display);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-display);
   }
 
   a {
@@ -40,8 +44,8 @@
   }
 
   ::selection {
-    background-color: var(--color-accent);
-    color: white;
+    background-color: var(--accent);
+    color: var(--accent-contrast);
   }
 }
 
