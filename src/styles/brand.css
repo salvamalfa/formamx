@@ -1,7 +1,11 @@
-/* Brand kit "forma" — tokens y componentes del design system de Claude Design
-   (proyecto "forma"; el espejo local vive en ds-bundle/ y el id del proyecto
-   destino está pineado en .design-sync/config.json). Con
-   alcance a .brand-forma para no interferir con lo que aún use el estilo
+/* Brand kit "forma" — tokens y componentes del design system de marca.
+   GENERADO A PARTIR del brand kit de Claude (artifact "Forma Brand Kit"): no
+   edites los valores de este archivo a mano. Si necesitas cambiar un color,
+   tipografia, espaciado, etc., cambialo primero en el brand kit y luego
+   copia el cambio aqui. (ds-bundle/ y .design-sync/ eran el mecanismo viejo de
+   sincronizacion contra un proyecto de Claude Design que ya no existe; se
+   archivaron fuera del repo el 2026-09-21). Con
+   alcance a .brand-forma para no interferir con lo que aun use el estilo
    anterior.
 
    Paleta de julio 2026 con la jerarquía de acción de agosto: fondo blanco,
@@ -9,7 +13,7 @@
    materiales y el oficio, azul taller para la información —enlaces, metadata,
    foco— y para las acciones secundarias y terciarias, verde bosque para lo que
    vive afuera. El naranja nunca es un enlace de texto ni metadata. El crema y
-   el mostaza salieron de la paleta. Ver ds-bundle/readme.md. */
+   el mostaza salieron de la paleta. (La guia completa del kit vive en el brand kit de Claude.) */
 
 .brand-forma {
   /* ── Color: base ───────────────────────────────────── */
