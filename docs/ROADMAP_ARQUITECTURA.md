@@ -76,7 +76,7 @@ así el core nunca se vuelve un almacén-dios.
 manejo uniforme de 401); un archivo por módulo (`pedidos.ts`, `impresora.ts`)
 con sus tipos al lado; `index.ts` re-exporta.
 
-**Estilo:** tokens del brand kit vía `src/styles/brand.css` (`ds-bundle/`).
+**Estilo:** tokens del brand kit vía `src/styles/brand.css`.
 Ningún módulo escribe colores/radios a mano: clases de marca y primitivas de `ui/`.
 
 ## 5. Convenciones del Worker

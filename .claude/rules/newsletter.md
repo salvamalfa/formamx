@@ -18,5 +18,5 @@ Lo que más se olvida:
   razón social y el domicilio sí van en nuestro pie, esos no los pone él.
 - **Tablas y estilos en línea, nunca flex ni grid.** `newsletter/render.test.ts`
   guarda esa y otras invariantes del correo.
-- **Los colores salen de `ds-bundle/tokens/`** vía `newsletter/tokens.ts`. No
+- **Los colores salen de `src/styles/brand.css`** vía `newsletter/tokens.ts`. No
   escribas un hex a mano en un bloque.

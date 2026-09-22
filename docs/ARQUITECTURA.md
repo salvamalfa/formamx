@@ -278,7 +278,7 @@ formamx/
 │   │       ├── resumen/ pedidos/ proyectos/ clientes/
 │   │       ├── impresora/ inventario/ envios/
 │   │       └── router.ts       paneles conmutados por location.hash
-│   └── styles/brand.css        tokens de marca (espejo en ds-bundle/)
+│   └── styles/brand.css        tokens de marca (fuente de verdad)
 │
 ├── workers/api/                Backend
 │   ├── src/routes/             checkout · products · webhook · agent

@@ -77,7 +77,7 @@ maquetar:
 
 El correo no se maqueta a mano cada mes: una edición se escribe como texto en
 `newsletter/ediciones/` y `npm run newsletter:build` produce el HTML de correo
-con la marca aplicada. Los colores salen del design system (`ds-bundle/tokens/`)
+con la marca aplicada. Los colores salen de `src/styles/brand.css`
 para que el newsletter siga a la marca sin copiarla, y un lint bloquea lo que
 la voz de forma no admite (emoji, guiones largos, jerga de marketing, enlaces
 relativos, huecos sin llenar).

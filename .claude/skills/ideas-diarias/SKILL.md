@@ -79,7 +79,7 @@ solo con lo que le sirva a un taller de una persona.
 
 Filtro duro: forma es una bitácora que vende, no una tienda. Una idea que
 convierta el sitio en catálogo genérico se descarta aunque la use todo el
-mundo. La voz y el criterio de marca están en `ds-bundle/readme.md`.
+mundo. La voz y el criterio de marca están en `src/styles/brand.css` y la voz de marca de `CLAUDE.md`.
 
 ### 5. Escribe las tres
 
