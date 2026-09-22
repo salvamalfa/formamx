@@ -19,7 +19,7 @@ esquema de la base de datos— en **[docs/ARQUITECTURA.md](docs/ARQUITECTURA.md)
 | `src/` | Sitio Astro 6 (Preact + Tailwind 4): bitácora, configurador de lámparas, `/taller` (dashboard privado) |
 | `workers/api/` | Backend en Cloudflare Workers + D1: checkout Stripe, webhook, cola de pedidos y trabajos de impresión ([README](workers/api/README.md)) |
 | `agent/` | Agente Python que corre junto a la impresora: FTPS + MQTT a la A1, sincronización del AMS ([README](agent/README.md)) |
-| `src/styles/brand.css` | Fuente de verdad de la marca: tokens y componentes CSS. El brand kit vive ahora en un artifact de Claude Design (Design System), sincronizado a mano desde este archivo, no en un directorio del repo |
+| `src/styles/brand.css` | Tokens y componentes CSS de la marca que aplica el sitio. Es una copia generada: la fuente de verdad es el brand kit, un artifact de Claude Design (Design System). Los cambios se hacen primero ahí y se copian a mano a este archivo; no hay sync automático |
 | `docs/` | Documentación por área: impresión 3D, agente de IA, roadmap de arquitectura (ERP/MES por módulos) |
 | `CLAUDE.md` | Contexto operativo para sesiones de Claude Code |
 
