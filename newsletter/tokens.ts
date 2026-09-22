@@ -3,7 +3,7 @@
 // resuelve a hex literales, para hornearlos en estilos en línea al construir
 // el correo.
 //
-// La fuente es `src/styles/brand.css`, la misma que aplica el sitio.
+// Lee `src/styles/brand.css`, la copia de la marca que aplica el sitio.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
