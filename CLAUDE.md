@@ -22,8 +22,7 @@ de verdad del retrato; no lo dupliques aquí.
 | Newsletter: decisiones de canal, cuenta de Reach, datos legales del pie | `docs/MARKETING.md`. No confundir con el newsletter interno (agente de Cowork aparte, sin relación con este repo) |
 | Ideas diarias para el sitio (la rutina de las 8 am) | `.claude/skills/ideas-diarias/SKILL.md`; la bitácora de lo propuesto y su veredicto en `docs/IDEAS_DIARIAS.md` |
 | Seguimiento del pedido por correo (transaccional, Resend, página pública) | `docs/SEGUIMIENTO_PEDIDO.md` — plan por fases, SIN implementar. Reach no puede mandarlos: son dos canales, no uno |
-| Marca, voz, estilos | `ds-bundle/readme.md` |
-| Sincronizar `ds-bundle/` con el proyecto de Claude Design (pull-before-push) | `.design-sync/NOTES.md` — léelo ANTES de tocar `ds-bundle/`; hay una regla que se auto-carga en `.claude/rules/design-sync.md` |
+| Marca, voz, estilos, tokens | `src/styles/brand.css`. El brand kit espejo vive en este artifact: https://claude.ai/artifact/XURWkPwWFLu9T7SbQdG2ZX — actualízalo a mano si cambias tokens/componentes ahí, no hay sync automático |
 
 Lo que aún no existe (Stripe en prueba, avisos rotos, lo legal) está en
 `docs/ARQUITECTURA.md` §6, no aquí — así no hay dos listas que se contradigan.
@@ -156,5 +155,4 @@ queda esperando a Salva. El merge a `master` dispara el deploy a Hostinger.
 Toda la documentación por área vive en `docs/`. En la raíz solo quedan
 `README.md` (presentación) y `CLAUDE.md` (este archivo). Las reglas que solo
 aplican a ciertos archivos viven en `.claude/rules/` y se cargan solas cuando
-Claude toca esos archivos. `ds-bundle/` no se reorganiza: su layout lo dicta el
-sync con Claude Design (`.design-sync/`).
+Claude toca esos archivos.
