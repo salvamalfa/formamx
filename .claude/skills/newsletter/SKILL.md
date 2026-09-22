@@ -59,7 +59,7 @@ primario por vista) y **todas las URL absolutas**.
 
 ## La voz
 
-Es la de la bitácora, la misma de `ds-bundle/readme.md`:
+Es la de la bitácora, la misma de `CLAUDE.md`:
 
 - Español, siempre de **tú**. Primera persona: "hice", "se me quemó", "aprendí".
 - Frases cortas y detalles concretos: material, medida, número de intento.
@@ -125,7 +125,7 @@ cómo se lee en Arial y en modo oscuro.
 
 ## Tocar el diseño
 
-Los colores salen de `ds-bundle/tokens/colors.css` a través de
+Los colores salen de `src/styles/brand.css` a través de
 `newsletter/tokens.ts`; no escribas un hex a mano en un bloque, agrega el token.
 Si el bloque que necesitas no existe, primero decide si de verdad hace falta uno
 nuevo o si `nota` alcanza; un catálogo que crece sin freno es justo lo que este

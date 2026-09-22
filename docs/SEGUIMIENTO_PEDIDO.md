@@ -47,7 +47,7 @@ Tres cosas concretas, y las tres valen la pena:
 1. **El mismo motor de plantillas.** `newsletter/` ya construye correo de verdad
    con la marca aplicada: tablas, estilos en línea, modo oscuro, ancho de 600 px,
    Alan Sans con Arial de respaldo, y los colores leídos de
-   `ds-bundle/tokens/colors.css` en vez de copiados. Los correos del pedido usan
+   `src/styles/brand.css` en vez de copiados. Los correos del pedido usan
    ese mismo motor. Un cambio de marca se hace una vez y aterriza en los dos.
 2. **La invitación a la lista**, una sola vez, al final. Va en el último correo
    (el de "va en camino"), ya cumplido el pedido, con un botón secundario. No en
@@ -57,7 +57,7 @@ Tres cosas concretas, y las tres valen la pena:
 
 ### Lo que hay que separar para que eso funcione
 
-`newsletter/tokens.ts` lee `ds-bundle/tokens/colors.css` con `readFileSync`. Eso
+`newsletter/tokens.ts` lee `src/styles/brand.css` con `readFileSync`. Eso
 en el Worker no corre: no hay sistema de archivos. Pero el resto del motor ya
 recibe la paleta como parámetro (`envolver(edicion, filas, paleta)`), así que el
 corte es limpio:
@@ -65,8 +65,7 @@ corte es limpio:
 - `layout.ts`, `bloques.ts` y `marca.ts` se quedan como están y se comparten.
 - La paleta se hornea en una constante generada, que el Worker importa.
 - Un test comprueba que esa constante no se haya separado de
-  `ds-bundle/tokens/colors.css`, igual que `tokens.test.ts` ya vigila que
-  `src/styles/brand.css` no se separe del design system.
+  `src/styles/brand.css`.
 
 ## 4. Con qué se mandan
 

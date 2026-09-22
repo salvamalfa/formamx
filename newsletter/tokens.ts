@@ -3,10 +3,7 @@
 // resuelve a hex literales, para hornearlos en estilos en línea al construir
 // el correo.
 //
-// La fuente es `ds-bundle/tokens/`, que es el design system sincronizado con
-// Claude Design. `src/styles/brand.css` es la copia que aplica el sitio;
-// tokens.test.ts comprueba que las dos no se hayan separado, porque hoy nada
-// más lo vigila.
+// Lee `src/styles/brand.css`, la copia de la marca que aplica el sitio.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -84,15 +81,15 @@ function resolverUno(nombre: string, tokens: Map<string, string>, visitados: Set
   );
 }
 
-/** Lee la paleta del design system. `raiz` es la raíz del repo. */
+/** Lee la paleta de `src/styles/brand.css`. `raiz` es la raíz del repo. */
 export function leerPaleta(raiz: string): Paleta {
-  const css = readFileSync(join(raiz, 'ds-bundle', 'tokens', 'colors.css'), 'utf8');
+  const css = readFileSync(join(raiz, 'src', 'styles', 'brand.css'), 'utf8');
   const resueltos = resolverTokens(parsearTokens(css));
   const paleta = {} as Paleta;
   for (const [campo, token] of Object.entries(MAPA) as [keyof Paleta, string][]) {
     const valor = resueltos.get(token);
     if (valor === undefined) {
-      throw new Error(`El design system ya no define ${token}; actualiza newsletter/tokens.ts`);
+      throw new Error(`brand.css ya no define ${token}; actualiza newsletter/tokens.ts`);
     }
     // El correo es más seguro en mayúsculas y forma larga; los clientes viejos
     // se atragantan con hex de 3 dígitos en algunos atributos.
