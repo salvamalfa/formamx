@@ -11,14 +11,14 @@
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\""
   },
   "dependencies": {
-    "hono": "^4.13.8",
+    "hono": "^4.13.11",
     "stripe": "^22.6.2"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260918.1",
-    "@types/node": "^26.6.2",
+    "@cloudflare/workers-types": "^5.20260930.1",
+    "@types/node": "^26.6.3",
     "typescript": "^6.0.3",
-    "wrangler": "^4.135.0"
+    "wrangler": "^4.144.0"
   },
   "overrides": {
     "sharp": "^0.35.4"
