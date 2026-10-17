@@ -8,11 +8,16 @@ nube, porque describe el terreno.
 
 ## Este repo es una pieza de algo más grande
 
-En la PC de Salva, este repo está clonado **dentro** de una carpeta `FORMA`
-(`FORMA/06-Web/formamx/`) que contiene el resto del negocio: lo legal y
-fiscal, las finanzas, el brand kit y, sobre todo, **el pipeline de las
-lámparas**: los STL, la escena de Blender y los renders originales en
-`FORMA/05-Proyectos/Lamparas-3D/`.
+En la PC de Salva hay dos carpetas hermanas en el Escritorio:
+
+- **`FORMA/`**: el resto del negocio, sincronizado completo con Google Drive.
+  Lo legal y fiscal, las finanzas, el brand kit y, sobre todo, **el pipeline
+  de las lámparas**: los STL, la escena de Blender y los renders originales
+  en `FORMA/05-Proyectos/Lamparas-3D/`.
+- **`FORMA-PC/`**: lo que solo vive en esa PC y nunca va a Drive. La copia
+  local de este repo (`FORMA-PC/formamx/`, de donde corre el agente de
+  impresión) y los archivos de trabajo del agente que no se versionan:
+  `config.toml` (con el token), `agent.log`, `3mf/`, `perfiles/` y `pruebas/`.
 
 En una sesión de nube **esa carpeta no existe**. Si necesitas un render
 original, un STL o un documento legal, no está aquí y no lo puedes generar:
