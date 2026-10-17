@@ -16,7 +16,11 @@ interface WaitUntil {
 
 // Reglas de oro de este endpoint:
 // - La firma se verifica sobre el body crudo, antes de cualquier parseo.
-// - Idempotencia doble: webhook_events por event_id + UNIQUE de session_id.
+// - Idempotencia: los handlers son idempotentes por sí mismos (UNIQUE de
+//   session_id, UPDATEs guardados, candado de paid_at). webhook_events solo
+//   ahorra trabajo: se escribe DESPUÉS de procesar, así un isolate que muere a
+//   media corrida o un reintento que se cruza con el primero nunca deja el
+//   evento marcado como visto sin haberse aplicado.
 // - Los cambios de estado son UPDATEs guardados (WHERE status = ...) para que
 //   un evento duplicado o tardío nunca regrese un pedido a un estado anterior.
 // - OXXO es pago diferido: `completed` con payment_status 'unpaid' crea el
@@ -41,38 +45,46 @@ webhook.post('/stripe', async (c) => {
     return c.text('firma invalida', 400);
   }
 
-  const dedupe = await c.env.DB.prepare(
-    'INSERT OR IGNORE INTO webhook_events (event_id, type) VALUES (?, ?)',
-  )
-    .bind(event.id, event.type)
-    .run();
-  if (!dedupe.meta.changes) return c.text('duplicado', 200);
+  const seen = await c.env.DB.prepare('SELECT 1 FROM webhook_events WHERE event_id = ?')
+    .bind(event.id)
+    .first();
+  if (seen) return c.text('duplicado', 200);
 
   const session = event.data.object as Stripe.Checkout.Session;
+  // Sesiones que no salieron de /api/checkout (un Payment Link o una sesión
+  // creada a mano en el dashboard) no llevan product_id: no hay pedido que
+  // esperar para ellas.
+  const fromCheckout = Boolean(session.metadata?.product_id);
 
-  // Si el procesamiento falla (error transitorio de D1, etc.) se libera la fila
-  // de dedupe y se responde 500: así Stripe reintenta y el evento vuelve a
-  // procesarse en vez de quedar consumido con el pedido a medias o perdido.
+  // Si el procesamiento falla (error transitorio de D1, etc.) se responde 500
+  // sin marcar el evento: Stripe reintenta y vuelve a procesarse en vez de
+  // quedar consumido con el pedido a medias o perdido.
   try {
     switch (event.type) {
       case 'checkout.session.completed':
         await onSessionCompleted(c.env, c.executionCtx, session);
         break;
       case 'checkout.session.async_payment_succeeded':
-        await promotePendingOrder(c.env, c.executionCtx, session.id, 'pagada');
+        await promotePendingOrder(c.env, c.executionCtx, session.id, 'pagada', fromCheckout);
         break;
       case 'checkout.session.async_payment_failed':
+        await promotePendingOrder(c.env, c.executionCtx, session.id, 'cancelada', fromCheckout);
+        break;
       case 'checkout.session.expired':
-        await promotePendingOrder(c.env, c.executionCtx, session.id, 'cancelada');
+        // Una sesión que expira casi nunca tuvo pedido (nadie llegó a pagar):
+        // no hay nada que esperar, a diferencia de los dos casos de arriba.
+        await promotePendingOrder(c.env, c.executionCtx, session.id, 'cancelada', false);
         break;
       // Otros tipos: aceptados y olvidados a propósito.
     }
   } catch (err) {
     console.error('procesando webhook fallo', event.id, err);
-    await c.env.DB.prepare('DELETE FROM webhook_events WHERE event_id = ?').bind(event.id).run();
     return c.text('error', 500);
   }
 
+  await c.env.DB.prepare('INSERT OR IGNORE INTO webhook_events (event_id, type) VALUES (?, ?)')
+    .bind(event.id, event.type)
+    .run();
   return c.text('ok', 200);
 });
 
@@ -147,10 +159,34 @@ async function promotePendingOrder(
   ctx: WaitUntil,
   sessionId: string,
   outcome: 'pagada' | 'cancelada',
+  requireOrder: boolean,
 ): Promise<void> {
+  // Stripe no garantiza el orden de entrega. Si el `completed` de esta sesión
+  // falló y está en reintentos cuando llega el desenlace del OXXO, no hay
+  // pedido que mover; dar el evento por bueno dejaría el pedido atorado en
+  // `pendiente` con el dinero ya cobrado. Se lanza para que el handler
+  // responda 500 sin marcar el evento: Stripe reintenta cuando el pedido ya
+  // existe.
+  if (requireOrder) {
+    const exists = await env.DB.prepare('SELECT 1 FROM orders WHERE provider_session_id = ?')
+      .bind(sessionId)
+      .first();
+    if (!exists) throw new Error(`pedido aun no existe para ${sessionId}`);
+  }
+
+  // El pago confirmado también rescata un pedido que Salva canceló a mano
+  // mientras la ficha seguía vigente: el cliente ya pagó en efectivo y OXXO no
+  // se puede reembolsar por Stripe, así que el pedido vuelve a la vista como
+  // `pagada` para decidir (surtirlo o devolver por transferencia) en vez de
+  // quedarse cancelado con el dinero adentro. paid_at IS NULL distingue esa
+  // cancelación de una que ocurrió después de cobrar.
+  const from =
+    outcome === 'pagada'
+      ? "(status = 'pendiente' OR (status = 'cancelada' AND paid_at IS NULL))"
+      : "status = 'pendiente'";
   await env.DB.prepare(
     `UPDATE orders SET status = ?, updated_at = datetime('now')
-     WHERE provider_session_id = ? AND status = 'pendiente'`,
+     WHERE provider_session_id = ? AND ${from}`,
   )
     .bind(outcome, sessionId)
     .run();
@@ -167,33 +203,44 @@ async function promotePendingOrder(
 // taller. Corre exactamente una vez por pedido: el candado atómico de paid_at
 // deja pasar solo al primer llamador, aunque el webhook se reintente.
 async function onOrderPaid(env: Env, ctx: WaitUntil, sessionId: string): Promise<void> {
-  const claimed = await env.DB.prepare(
-    "UPDATE orders SET paid_at = datetime('now') WHERE provider_session_id = ? AND paid_at IS NULL",
-  )
-    .bind(sessionId)
-    .run();
-  // Otro procesamiento (o un reintento) ya corrió los efectos: no repetir.
-  if (!claimed.meta.changes) return;
-
   const order = await env.DB.prepare('SELECT * FROM orders WHERE provider_session_id = ?')
     .bind(sessionId)
     .first<OrderRow>();
   if (!order) return;
 
-  let oversold = false;
+  // Descuento de stock y candado en un solo batch (una transacción de D1): o
+  // pasan los dos o ninguno. Separados, un error entre ambos dejaba paid_at
+  // puesto sin descontar, y el reintento ya no descontaba nunca: la pieza
+  // única se podía vender otra vez. El descuento va primero y exige que el
+  // candado siga libre; D1 corre los statements de un batch en orden y sin
+  // concurrencia, así que solo el llamador que va a ganar el candado descuenta.
+  // status = 'pagada': un pedido cancelado a mano entre un intento y su
+  // reintento ya no cobra efectos.
+  const [decremented, claimed] = await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE products SET stock = stock - 1
+       WHERE id = ? AND stock > 0 AND EXISTS (
+         SELECT 1 FROM orders
+         WHERE provider_session_id = ? AND paid_at IS NULL AND status = 'pagada'
+       )`,
+    ).bind(order.product_id, sessionId),
+    env.DB.prepare(
+      `UPDATE orders SET paid_at = datetime('now')
+       WHERE provider_session_id = ? AND paid_at IS NULL AND status = 'pagada'`,
+    ).bind(sessionId),
+  ]);
+  // Otro procesamiento (o un reintento) ya corrió los efectos: no repetir.
+  if (!claimed.meta.changes) return;
+
   const product = await env.DB.prepare('SELECT * FROM products WHERE id = ?')
     .bind(order.product_id)
     .first<ProductRow>();
-  if (product && product.stock !== null) {
-    const decremented = await env.DB.prepare(
-      'UPDATE products SET stock = stock - 1 WHERE id = ? AND stock > 0',
-    )
-      .bind(order.product_id)
-      .run();
-    // Dos compradores pueden llegar a Stripe antes de que aterrice cualquiera
-    // de los dos webhooks; el pedido se conserva pero el aviso pide reembolso.
-    oversold = !decremented.meta.changes;
-  }
+  // Dos compradores pueden llegar a Stripe antes de que aterrice cualquiera
+  // de los dos webhooks; el pedido se conserva pero el aviso pide reembolso.
+  // Piezas sin stock (NULL, la lámpara) nunca descuentan y nunca se sobrevenden.
+  const oversold = product?.stock !== null && product?.stock !== undefined && !decremented.meta.changes;
+  // ntfy no llega desde Workers: el log de Cloudflare es hoy el único rastro.
+  if (oversold) console.error('posible sobreventa, reembolsar', order.id, order.product_id);
 
   const lamp = order.config_json ? validateLampConfig(JSON.parse(order.config_json)) : null;
   const label = lamp ? lampLabel(lamp) : (product?.name ?? order.product_id);

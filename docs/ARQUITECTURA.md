@@ -115,14 +115,23 @@ cancelarse a mano desde /taller.
 - `/api/checkout` solo crea la sesión de Stripe; no toca `orders`. El pedido
   nace con el webhook `checkout.session.completed`: tarjeta entra directo en
   `pagada`, OXXO entra en `pendiente` y sube a `pagada` cuando Stripe avisa
-  (`async_payment_succeeded`).
+  (`async_payment_succeeded`). Única vuelta atrás del grafo, y solo la hace el
+  webhook: un OXXO que Salva canceló a mano y que el cliente pagó de todos
+  modos regresa de `cancelada` a `pagada` (OXXO no se reembolsa por Stripe).
+- OXXO solo se ofrece para piezas bajo pedido (stock NULL, la lámpara). Las
+  piezas únicas (la banca) se cobran solo con tarjeta: una ficha OXXO no
+  aparta la pieza mientras sigue vigente.
 - `print_jobs` no se crea al pagar: nace cuando Salva pasa el pedido a
   `en_cola` y despacha desde /taller (`POST /orders/:id/dispatch`), que
   genera los 3 trabajos de la lámpara (pantalla, cuerpo, tapa).
 - Los productos con `production='manual'` (madera) nunca pasan por la
   impresora: se muestran como "En progreso" hasta `lista`.
-- El webhook es **idempotente**: `webhook_events` guarda cada `evt_` de Stripe
-  para que un reintento no duplique nada.
+- El webhook es **idempotente** por construcción (sesión única por pedido,
+  cambios de estado guardados, candado de `paid_at` que en la misma
+  transacción descuenta el stock). `webhook_events` anota cada `evt_` de
+  Stripe **después** de procesarlo, como atajo para los reintentos; si algo
+  falla a la mitad, el evento queda sin anotar y Stripe lo vuelve a mandar.
+  El flujo completo está cubierto en `workers/api/src/routes/webhook.test.ts`.
 - Tras cada impresión real la cama queda marcada como ocupada
   (`printer_flags.bed_clear = 0`) y el agente no recibe más trabajos hasta que
   Salva confirme en /taller que la despejó.
