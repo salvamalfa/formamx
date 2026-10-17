@@ -56,3 +56,8 @@ test('las URLs de regreso usan el origen del sitio', () => {
   assert.equal(p.success_url, 'https://formamx.com/gracias?sid={CHECKOUT_SESSION_ID}');
   assert.equal(p.cancel_url, 'https://formamx.com/lampara');
 });
+
+test('se cobra solo en pesos, sin conversión de moneda', () => {
+  const p = buildSessionParams(base);
+  assert.equal(p.adaptive_pricing?.enabled, false);
+});

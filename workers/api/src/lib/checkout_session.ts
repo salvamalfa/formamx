@@ -33,6 +33,9 @@ export interface SessionInput {
 export function buildSessionParams(input: SessionInput): Stripe.Checkout.SessionCreateParams {
   return {
     mode: 'payment',
+    // Adaptive Pricing viene prendido en la cuenta y le ofrece al comprador
+    // extranjero pagar en su moneda (USD, etc.). FORMA cobra solo en pesos.
+    adaptive_pricing: { enabled: false },
     allowed_payment_method_types: [...input.paymentMethods],
     line_items: [
       {
