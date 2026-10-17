@@ -224,10 +224,25 @@ test('reintento del mismo evento: "duplicado", un solo pedido, stock baja una ve
 });
 
 test('mismo pago en dos eventos distintos: el stock baja una sola vez', async () => {
+  // Con stock 2, el segundo descuento no lo frena "stock > 0": solo el candado.
+  db.prepare("UPDATE products SET stock = 2 WHERE id = 'banca-001'").run();
   const s = session('cs_doble', { payment_status: 'paid', amount_total: 240000, metadata: bancaMeta });
   await send('checkout.session.completed', s);
   await send('checkout.session.completed', s);
-  assert.equal(stock('banca-001'), 0);
+  assert.equal(stock('banca-001'), 1);
+});
+
+test('cancelado a mano antes del reintento: el reintento no cobra efectos', async () => {
+  db.prepare("UPDATE products SET stock = 2 WHERE id = 'banca-001'").run();
+  const s = session('cs_cancelada', { payment_status: 'paid', amount_total: 240000, metadata: bancaMeta });
+  await send('checkout.session.completed', s);
+  // Simula un primer intento que creó el pedido pero murió antes del candado.
+  db.prepare("UPDATE orders SET paid_at = NULL, status = 'cancelada' WHERE provider_session_id = 'cs_cancelada'").run();
+  db.prepare("UPDATE products SET stock = 2 WHERE id = 'banca-001'").run();
+  await send('checkout.session.completed', s);
+  assert.equal(order('cs_cancelada')!.status, 'cancelada');
+  assert.equal(order('cs_cancelada')!.paid_at, null);
+  assert.equal(stock('banca-001'), 2);
 });
 
 test('sobreventa: el segundo pago se conserva y el stock no baja de cero', async () => {

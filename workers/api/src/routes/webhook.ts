@@ -208,19 +208,26 @@ async function onOrderPaid(env: Env, ctx: WaitUntil, sessionId: string): Promise
     .first<OrderRow>();
   if (!order) return;
 
-  // Candado y descuento de stock en un solo batch (una transacción de D1): o
+  // Descuento de stock y candado en un solo batch (una transacción de D1): o
   // pasan los dos o ninguno. Separados, un error entre ambos dejaba paid_at
   // puesto sin descontar, y el reintento ya no descontaba nunca: la pieza
-  // única se podía vender otra vez. changes() es el número de filas que movió
-  // el UPDATE anterior del mismo batch, así que el descuento solo corre si
-  // este llamador ganó el candado.
-  const [claimed, decremented] = await env.DB.batch([
+  // única se podía vender otra vez. El descuento va primero y exige que el
+  // candado siga libre; D1 corre los statements de un batch en orden y sin
+  // concurrencia, así que solo el llamador que va a ganar el candado descuenta.
+  // status = 'pagada': un pedido cancelado a mano entre un intento y su
+  // reintento ya no cobra efectos.
+  const [decremented, claimed] = await env.DB.batch([
     env.DB.prepare(
-      "UPDATE orders SET paid_at = datetime('now') WHERE provider_session_id = ? AND paid_at IS NULL",
+      `UPDATE products SET stock = stock - 1
+       WHERE id = ? AND stock > 0 AND EXISTS (
+         SELECT 1 FROM orders
+         WHERE provider_session_id = ? AND paid_at IS NULL AND status = 'pagada'
+       )`,
+    ).bind(order.product_id, sessionId),
+    env.DB.prepare(
+      `UPDATE orders SET paid_at = datetime('now')
+       WHERE provider_session_id = ? AND paid_at IS NULL AND status = 'pagada'`,
     ).bind(sessionId),
-    env.DB.prepare(
-      'UPDATE products SET stock = stock - 1 WHERE id = ? AND stock > 0 AND changes() = 1',
-    ).bind(order.product_id),
   ]);
   // Otro procesamiento (o un reintento) ya corrió los efectos: no repetir.
   if (!claimed.meta.changes) return;
