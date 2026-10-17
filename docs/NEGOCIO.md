@@ -98,13 +98,30 @@ requerir solicitud aparte).
 de Stripe. **Verificación:** cuenta "activada", métodos card y OXXO en live.
 **Dependencias:** 1a completa y §2a mergeada.
 
+**Estado (octubre 2026): cuenta activada** como FORMA WORKS (persona moral),
+cobros habilitados, capacidades de tarjeta y OXXO activas. Se activó antes de
+§2a: Stripe no la frenó, pero la LFPC sigue pidiendo términos publicados. Dos
+cosas que la revisión de la cuenta encontró y que no dependen del código:
+
+- **Los depósitos al banco están detenidos**: Stripe marca la cuenta en
+  revisión de listas (`disabled_reason: listed`), una verificación rutinaria
+  de nombres contra listas restringidas. Se puede cobrar, pero el dinero se
+  queda en el saldo de Stripe hasta que la liberen. El calendario de depósitos
+  está en "manual": al liberarse, conviene pasarlo a automático.
+- **OXXO está aprobado pero apagado** en Settings → Payment methods. Desde la
+  API 2026-09-30 eso importa: el checkout ya no lista métodos a mano, solo
+  filtra los que la cuenta tiene prendidos (ver `workers/api/README.md`).
+
 ### Fase 1c — llaves live + prueba de humo
 
-1. En el dashboard (modo live): copiar `sk_live_…` y crear el webhook live
-   apuntando a `https://formamx-api.formamx.workers.dev/api/webhook/stripe`
-   (misma ruta que hoy en test; confirmar el path exacto en
-   `workers/api/src/index.ts` al implementar) con los mismos eventos que el de
-   test → `whsec_…`.
+1. En el dashboard (modo live): crear el webhook live apuntando a
+   `https://formamx-api.formamx.workers.dev/api/webhook/stripe` con los cuatro
+   eventos de `checkout.session.*` que lista `workers/api/README.md` y la
+   **versión de API `2026-09-30.endive`** (la de `STRIPE_API_VERSION`) →
+   `whsec_…`. Como llave, mejor una **restringida** (`rk_live_…`) con solo
+   *Checkout Sessions: Write* que la `sk_live_…` completa: si se filtra desde
+   el Worker, solo sirve para crear sesiones de pago. Si la prueba de humo
+   falla por permisos, se usa la `sk_live_…`.
 2. `cd workers/api && npx wrangler secret put STRIPE_SECRET_KEY` y
    `npx wrangler secret put STRIPE_WEBHOOK_SECRET` (los 2 únicos secretos; no
    hay publishable key en el frontend porque Checkout es hosted y la sesión se
@@ -113,9 +130,9 @@ de Stripe. **Verificación:** cuenta "activada", métodos card y OXXO en live.
    tarjeta al precio ya nuevo (§3b). Verificar: pago en el dashboard live →
    webhook 200 → pedido `pagada` en /taller → monto correcto en
    `orders.amount_mxn`.
-4. **Reembolso** desde el dashboard de Stripe → verificar qué hace el webhook
-   con el evento de refund. Si no lo maneja, el pedido se cancela a mano en
-   /taller (documentarlo al implementar).
+4. **Reembolso** desde el dashboard de Stripe. El webhook no escucha
+   reembolsos ni contracargos (no están entre sus eventos): el pedido se
+   cancela a mano en /taller después de reembolsar.
 5. Nota que va también en los términos (§2a): **los pagos OXXO no se pueden
    reembolsar vía Stripe**; un reembolso de OXXO es una transferencia manual
    al cliente. Tampoco generan contracargos.

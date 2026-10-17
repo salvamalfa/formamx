@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { AppContext } from '../env';
 import { lampLabel, validateLampConfig } from '../lib/catalog';
 import type { ProductRow } from '../lib/db';
+import { buildSessionParams, paymentMethodsFor } from '../lib/checkout_session';
 import { stripeClient } from '../lib/stripe';
 
 export const checkout = new Hono<AppContext>();
@@ -49,25 +50,16 @@ checkout.post('/', async (c) => {
 
   try {
     const stripe = stripeClient(c.env.STRIPE_SECRET_KEY);
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card', 'oxxo'],
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: 'mxn',
-            unit_amount: product.price_mxn,
-            product_data: { name },
-          },
-        },
-      ],
-      shipping_address_collection: { allowed_countries: ['MX'] },
-      phone_number_collection: { enabled: true },
-      metadata,
-      success_url: `${c.env.SITE_ORIGIN}/gracias?sid={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${c.env.SITE_ORIGIN}${cancelPath}`,
-    });
+    const session = await stripe.checkout.sessions.create(
+      buildSessionParams({
+        name,
+        unitAmountMxn: product.price_mxn,
+        metadata,
+        cancelPath,
+        siteOrigin: c.env.SITE_ORIGIN,
+        paymentMethods: paymentMethodsFor(product.stock),
+      }),
+    );
     if (!session.url) return c.json({ error: 'stripe' }, 500);
     return c.json({ url: session.url });
   } catch (err) {

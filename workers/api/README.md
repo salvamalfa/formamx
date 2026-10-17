@@ -88,6 +88,9 @@ npm run deploy
 #    URL: https://formamx-api.<tu-subdominio>.workers.dev/api/webhook/stripe
 #    Eventos: checkout.session.completed, checkout.session.async_payment_succeeded,
 #             checkout.session.async_payment_failed, checkout.session.expired
+#    Versión de API: la de STRIPE_API_VERSION en src/lib/stripe.ts (hoy
+#    2026-09-30.endive). El webhook manda los eventos con la versión del
+#    endpoint, no con la del código: si no coinciden, cambia la forma del pago.
 #    Copia el signing secret:
 npx wrangler secret put STRIPE_WEBHOOK_SECRET
 
@@ -98,7 +101,10 @@ npm run deploy
 Después:
 
 - En Stripe: habilita **OXXO** (Settings → Payment methods) y los **recibos por
-  email** de pagos exitosos (Settings → Emails).
+  email** de pagos exitosos (Settings → Emails). OXXO encendido ahí no es
+  opcional: el checkout solo filtra la lista de métodos que la cuenta tiene
+  prendidos (`allowed_payment_method_types`), así que si OXXO está apagado
+  desaparece del checkout sin ningún error.
 - Pega la URL real del Worker en `src/config/api.ts` del sitio.
 
 Avisos: el secreto `NTFY_TOPIC` es legado y está **roto** (ntfy.sh bloquea a
