@@ -47,8 +47,8 @@ todo lo fiscal (CFDI, régimen de la SAS). Donde quedó ambigüedad, el doc dice
 
 ## §1 — Cobrar de verdad: SAS + Stripe live
 
-**Por qué importa.** Stripe está en modo prueba: el sitio simula vender. Todo
-lo demás es decorado si no entra dinero.
+**Por qué importa.** Sin cobros reales, todo lo demás es decorado. **Desde el
+2026-10-17 Stripe cobra en modo real** (§1c hecho).
 
 ### Fase 1a — trámites de la SAS (los hace Salva; Claude solo documenta)
 
@@ -113,6 +113,20 @@ cosas que la revisión de la cuenta encontró y que no dependen del código:
   filtra los que la cuenta tiene prendidos (ver `workers/api/README.md`).
 
 ### Fase 1c — llaves live + prueba de humo
+
+**HECHO (2026-10-17): Stripe ya cobra en modo real.** Webhook live creado con
+los 4 eventos y la versión `2026-09-30.endive`, verificado habilitado. En el
+Worker, `STRIPE_SECRET_KEY` es una llave **restringida** (`rk_live_…`, solo
+*Checkout Sessions: Write*) y alcanzó: no hizo falta la `sk_live_…`. Antes se
+borraron de D1 los 16 pedidos de prueba (`cs_test_`/`cs_e2e_`) y sus 9
+trabajos de impresión, con respaldo local fuera del repo. La prueba de humo
+se cobró a $99 (precio bajado un rato en `products` y regresado a $499):
+pago con tarjeta en live → webhook entregado → pedido `pagada` con
+`amount_mxn = 9900` → reembolso desde el dashboard. En la prueba apareció la
+opción de pagar en USD (Adaptive Pricing, prendido en la cuenta); el checkout
+lo apaga en cada sesión para cobrar solo en pesos.
+
+El plan original, como referencia:
 
 1. En el dashboard (modo live): crear el webhook live apuntando a
    `https://formamx-api.formamx.workers.dev/api/webhook/stripe` con los cuatro
