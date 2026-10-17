@@ -24,7 +24,7 @@ de verdad del retrato; no lo dupliques aquí.
 | Seguimiento del pedido por correo (transaccional, Resend, página pública) | `docs/SEGUIMIENTO_PEDIDO.md` — plan por fases, SIN implementar. Reach no puede mandarlos: son dos canales, no uno |
 | Marca, voz, estilos, tokens | tokens en `src/styles/brand.css`, que es una copia generada. La fuente de verdad es el brand kit: https://claude.ai/artifact/XURWkPwWFLu9T7SbQdG2ZX — cambia primero ahí y copia el cambio a mano a `brand.css`; no hay sync automático |
 
-Lo que aún no existe (Stripe en prueba, avisos rotos, lo legal) está en
+Lo que aún no existe (avisos rotos, lo legal) está en
 `docs/ARQUITECTURA.md` §6, no aquí — así no hay dos listas que se contradigan.
 
 Voz de marca, regla corta: español de tú, primera persona, sin marketing,
@@ -80,7 +80,7 @@ reglas.
   `.dev.vars` o en configs locales de las máquinas de Salva. El
   `CLOUDFLARE_API_TOKEN` NUNCA se pide por chat ni se escribe en un archivo —
   y en particular jamás en `.claude/settings.json`, que sí se commitea.
-- Secretos del Worker: `STRIPE_SECRET_KEY` (test), `STRIPE_WEBHOOK_SECRET`,
+- Secretos del Worker: `STRIPE_SECRET_KEY` (live, restringida `rk_live_`), `STRIPE_WEBHOOK_SECRET`,
   `ADMIN_TOKEN`, `AGENT_TOKEN`, `NTFY_TOPIC` (legado y roto: ntfy.sh bloquea a
   Workers).
 - **Los STL/3MF no van en git** (binarios pesados). Viven en

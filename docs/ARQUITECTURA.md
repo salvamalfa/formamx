@@ -336,7 +336,11 @@ pero se muestran dentro de los paneles de Clientes y Proyectos.
 
 Para no confundir el mapa con el plan:
 
-- Stripe sigue en **modo prueba**; el paso a live está en `docs/NEGOCIO.md` §1.
+- Stripe **ya cobra en modo real** desde el 2026-10-17 (prueba de humo con
+  dinero real pasada, `docs/NEGOCIO.md` §1c). Lo que falta de ese lado:
+  los depósitos al banco siguen sujetos a la revisión de la cuenta (§1b), y
+  el webhook no escucha reembolsos ni contracargos (se cancelan a mano en
+  /taller).
 - Los avisos custom desde el Worker están rotos (ntfy bloquea a Workers).
   Mientras tanto los avisos de pago llegan por la app de Stripe; el reemplazo
   —outbox en D1 + bot de Telegram— es `docs/AGENTE_IA.md` fases B1-B2.
